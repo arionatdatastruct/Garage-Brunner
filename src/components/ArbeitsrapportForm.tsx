@@ -10,12 +10,13 @@ import { TermineCard } from './TermineCard';
 import { NotizenCard } from './NotizenCard';
 import { PreviewOverlay } from './PreviewOverlay';
 import { SuccessMessage } from './SuccessMessage';
-import type { Fahrzeug } from '@/hooks/useFahrzeugSuche';
+import type { Fahrzeug, Kunde } from '@/hooks/useFahrzeugSuche';
 import type { CompressedImage } from '@/lib/image-compress';
 
 export interface FormData {
   datum: string;
   fahrzeug: Fahrzeug | null;
+  kunde: Kunde | null;
   kennzeichen: string;
   marke: string;
   modell: string;
@@ -43,6 +44,7 @@ export interface FormData {
 const initialForm: FormData = {
   datum: new Date().toISOString().split('T')[0],
   fahrzeug: null,
+  kunde: null,
   kennzeichen: '',
   marke: '',
   modell: '',
@@ -104,14 +106,45 @@ export function ArbeitsrapportForm() {
     return parts.join(' | ');
   };
 
+  const uploadPhotos = async (): Promise<string[]> => {
+    const urls: string[] = [];
+    for (const foto of form.fotos) {
+      const fileName = `${Date.now()}-${foto.originalName}`;
+      const blob = await fetch(foto.dataUrl).then(r => r.blob());
+      const { error } = await supabase.storage.from('fotos').upload(fileName, blob, {
+        contentType: 'image/jpeg',
+      });
+      if (!error) {
+        const { data } = supabase.storage.from('fotos').getPublicUrl(fileName);
+        urls.push(data.publicUrl);
+      }
+    }
+    return urls;
+  };
+
   const sendData = async () => {
     setSending(true);
     try {
-      let fahrzeugId = form.fahrzeug?.id;
+      // 1. Handle Kunde
+      let kundeId = form.fahrzeug?.kunde_id || form.kunde?.id || null;
+      if (!kundeId && form.kunde) {
+        const { data: newKunde, error: kundeError } = await supabase
+          .from('kunden')
+          .insert({
+            name: form.kunde.name,
+            adresse: form.kunde.adresse || null,
+            telefon: form.kunde.telefon || null,
+            email: form.kunde.email || null,
+          })
+          .select('id')
+          .single();
+        if (kundeError) throw kundeError;
+        kundeId = newKunde.id;
+      }
 
+      // 2. Handle Fahrzeug
+      let fahrzeugId = form.fahrzeug?.id;
       if (!fahrzeugId) {
-        // New vehicle - use customer data from dialog or form
-        const kundeData = form.fahrzeug;
         const { data: newCar, error: carError } = await supabase
           .from('fahrzeuge')
           .insert({
@@ -119,10 +152,7 @@ export function ArbeitsrapportForm() {
             marke: form.marke || null,
             modell: form.modell || null,
             jahrgang: form.jahrgang || null,
-            kunde_name: kundeData?.kunde_name || null,
-            kunde_telefon: kundeData?.kunde_telefon || null,
-            kunde_adresse: kundeData?.kunde_adresse || null,
-            kunde_email: kundeData?.kunde_email || null,
+            kunde_id: kundeId,
           })
           .select('id')
           .single();
@@ -130,6 +160,10 @@ export function ArbeitsrapportForm() {
         fahrzeugId = newCar.id;
       }
 
+      // 3. Upload photos to storage
+      const fotoUrls = await uploadPhotos();
+
+      // 4. Create rapport
       const { error: rapportError } = await supabase
         .from('arbeitsrapporte')
         .insert({
@@ -147,7 +181,7 @@ export function ArbeitsrapportForm() {
           naechster_service_km: form.naechsterServiceKm ? parseInt(form.naechsterServiceKm) : null,
           mfk_datum: form.mfkDatum || null,
           notizen: form.notizen || null,
-          fotos: form.fotos.map(f => f.dataUrl),
+          fotos: fotoUrls,
           ampel_status: Object.values(form.sicherheitscheck).includes('rot') ? 'rot' :
             Object.values(form.sicherheitscheck).includes('gelb') ? 'gelb' : 'gruen',
         });
@@ -181,20 +215,14 @@ export function ArbeitsrapportForm() {
       )}
 
       <DatumCard datum={form.datum} />
-
       <FahrzeugKundeCard form={form} update={update} />
-
       <ArtDerArbeitCard form={form} update={update} />
-
       <SicherheitsCheckCard
         values={form.sicherheitscheck}
         onChange={(v) => update('sicherheitscheck', v)}
       />
-
       <ArbeitszeitCard form={form} update={update} />
-
       <TermineCard form={form} update={update} />
-
       <NotizenCard value={form.notizen} onChange={(v) => update('notizen', v)} />
 
       <button

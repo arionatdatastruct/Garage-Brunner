@@ -20,10 +20,10 @@ export function FahrzeugKundeCard({ form, update }: Props) {
     search(val.toUpperCase().trim());
     setShowResults(true);
 
-    // Reset previous selection when user types again
     if (customerFound) {
       setCustomerFound(false);
       update('fahrzeug', null);
+      update('kunde', null);
       update('marke', '');
       update('modell', '');
       update('jahrgang', '');
@@ -33,6 +33,7 @@ export function FahrzeugKundeCard({ form, update }: Props) {
 
   const selectFahrzeug = (f: Fahrzeug) => {
     update('fahrzeug', f);
+    update('kunde', f.kunde);
     update('kennzeichen', f.kennzeichen);
     update('marke', f.marke || '');
     update('modell', f.modell || '');
@@ -43,24 +44,22 @@ export function FahrzeugKundeCard({ form, update }: Props) {
     loadHistorie(f.id);
   };
 
-  const handleNeuerKunde = (kunde: { name: string; adresse: string; telefon: string; email: string }) => {
-    const newFahrzeug: Fahrzeug = {
+  const handleNeuerKunde = (kundeData: { name: string; adresse: string; telefon: string; email: string }) => {
+    update('kunde', {
       id: '',
-      kennzeichen: form.kennzeichen,
-      marke: form.marke || null,
-      modell: form.modell || null,
-      jahrgang: form.jahrgang || null,
-      kunde_name: kunde.name || null,
-      kunde_telefon: kunde.telefon || null,
-      kunde_adresse: kunde.adresse || null,
-      kunde_email: kunde.email || null,
-    };
-    update('fahrzeug', newFahrzeug);
+      name: kundeData.name,
+      adresse: kundeData.adresse || null,
+      telefon: kundeData.telefon || null,
+      email: kundeData.email || null,
+    });
+    update('fahrzeug', null);
     setCustomerFound(true);
     setShowNeuerKunde(false);
     setShowResults(false);
     clearHistorie();
   };
+
+  const kunde = form.kunde || form.fahrzeug?.kunde;
 
   return (
     <div className="garage-card">
@@ -89,7 +88,7 @@ export function FahrzeugKundeCard({ form, update }: Props) {
                 <div className="flex justify-between items-center">
                   <div>
                     <div className="font-semibold text-primary">{r.kennzeichen}</div>
-                    <div className="text-xs text-muted-foreground">{r.kunde_name || 'Unbekannt'}</div>
+                    <div className="text-xs text-muted-foreground">{r.kunde?.name || 'Unbekannt'}</div>
                   </div>
                   <div className="text-xs text-muted-foreground text-right">
                     {r.marke && <span>{r.marke} {r.modell}</span>}
@@ -112,35 +111,35 @@ export function FahrzeugKundeCard({ form, update }: Props) {
         )}
       </div>
 
-      {/* Customer Info Card - shown after selection */}
-      {customerFound && form.fahrzeug && (
+      {/* Customer Info Card */}
+      {customerFound && kunde && (
         <div className="rounded-xl bg-primary/10 border border-primary/30 p-4 mb-3 animate-in fade-in">
           <div className="flex justify-between items-start">
             <div className="flex-1">
               <h4 className="text-sm font-semibold text-primary mb-2">
-                {form.fahrzeug.id ? '✓ Kunde gefunden' : '✓ Neuer Kunde'}
+                {form.fahrzeug?.id ? '✓ Kunde gefunden' : '✓ Neuer Kunde'}
               </h4>
               <div className="grid grid-cols-1 gap-1.5 text-sm">
                 <div className="flex items-center gap-2">
                   <span className="text-muted-foreground w-5">👤</span>
-                  <strong>{form.fahrzeug.kunde_name || 'Unbekannt'}</strong>
+                  <strong>{kunde.name}</strong>
                 </div>
-                {form.fahrzeug.kunde_adresse && (
+                {kunde.adresse && (
                   <div className="flex items-center gap-2">
                     <span className="text-muted-foreground w-5">📍</span>
-                    <span>{form.fahrzeug.kunde_adresse}</span>
+                    <span>{kunde.adresse}</span>
                   </div>
                 )}
-                {form.fahrzeug.kunde_telefon && (
+                {kunde.telefon && (
                   <div className="flex items-center gap-2">
                     <span className="text-muted-foreground w-5">📞</span>
-                    <span>{form.fahrzeug.kunde_telefon}</span>
+                    <span>{kunde.telefon}</span>
                   </div>
                 )}
-                {form.fahrzeug.kunde_email && (
+                {kunde.email && (
                   <div className="flex items-center gap-2">
                     <span className="text-muted-foreground w-5">✉️</span>
-                    <span>{form.fahrzeug.kunde_email}</span>
+                    <span>{kunde.email}</span>
                   </div>
                 )}
               </div>
@@ -150,6 +149,7 @@ export function FahrzeugKundeCard({ form, update }: Props) {
               onClick={() => {
                 setCustomerFound(false);
                 update('fahrzeug', null);
+                update('kunde', null);
                 update('marke', '');
                 update('modell', '');
                 update('jahrgang', '');
@@ -222,7 +222,7 @@ export function FahrzeugKundeCard({ form, update }: Props) {
         </button>
       )}
 
-      {/* Vehicle details - auto-filled from selection */}
+      {/* Vehicle details */}
       <div className="grid grid-cols-2 gap-3 mt-4">
         <div>
           <label className="garage-label">Marke</label>

@@ -1,16 +1,22 @@
 import { useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
+export interface Kunde {
+  id: string;
+  name: string;
+  adresse: string | null;
+  telefon: string | null;
+  email: string | null;
+}
+
 export interface Fahrzeug {
   id: string;
   kennzeichen: string;
   marke: string | null;
   modell: string | null;
   jahrgang: string | null;
-  kunde_name: string | null;
-  kunde_telefon: string | null;
-  kunde_adresse: string | null;
-  kunde_email: string | null;
+  kunde_id: string | null;
+  kunde: Kunde | null;
 }
 
 export interface HistorieItem {
@@ -36,10 +42,19 @@ export function useFahrzeugSuche() {
     timeoutRef.current = setTimeout(async () => {
       const { data } = await supabase
         .from('fahrzeuge')
-        .select('*')
+        .select('id, kennzeichen, marke, modell, jahrgang, kunde_id, kunden(id, name, adresse, telefon, email)')
         .ilike('kennzeichen', `%${query}%`)
         .limit(10);
-      setResults((data as Fahrzeug[]) || []);
+      const mapped: Fahrzeug[] = (data || []).map((d: any) => ({
+        id: d.id,
+        kennzeichen: d.kennzeichen,
+        marke: d.marke,
+        modell: d.modell,
+        jahrgang: d.jahrgang,
+        kunde_id: d.kunde_id,
+        kunde: d.kunden || null,
+      }));
+      setResults(mapped);
       setSearching(false);
     }, 300);
   }, []);
