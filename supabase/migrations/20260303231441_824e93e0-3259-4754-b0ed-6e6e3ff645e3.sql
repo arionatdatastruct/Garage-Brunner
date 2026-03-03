@@ -1,0 +1,1 @@
+DROP TRIGGER "Neuer Rapport" ON public.arbeitsrapporte;
