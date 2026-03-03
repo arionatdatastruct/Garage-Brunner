@@ -1,11 +1,15 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState } from 'react';
+import { ArbeitsrapportForm } from '@/components/ArbeitsrapportForm';
 
 const Index = () => {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
+    <div className="min-h-screen p-4 pb-24">
+      <div className="max-w-[500px] mx-auto">
+        <div className="text-center mb-6">
+          <h1 className="text-2xl font-semibold mb-1">🔧 Arbeitsrapport</h1>
+          <p className="text-sm text-muted-foreground">Erfasse deine Arbeit schnell und einfach</p>
+        </div>
+        <ArbeitsrapportForm />
       </div>
     </div>
   );
