@@ -146,7 +146,7 @@ export function PreviewOverlay({ form, materialListe, beschreibung, onClose, onS
       </div>
 
       {/* Action Bar */}
-      <div className="fixed bottom-0 left-0 right-0 sm:bottom-5 sm:left-1/2 sm:-translate-x-1/2 sm:right-auto flex gap-2 sm:gap-4 bg-secondary p-3 sm:p-4 sm:rounded-xl shadow-[0_-5px_20px_rgba(0,0,0,0.5)] z-[1001]">
+      <div className="preview-actions-bar fixed bottom-0 left-0 right-0 sm:bottom-5 sm:left-1/2 sm:-translate-x-1/2 sm:right-auto flex gap-2 sm:gap-4 bg-secondary p-3 sm:p-4 sm:rounded-xl shadow-[0_-5px_20px_rgba(0,0,0,0.5)] z-[1001]">
         <button onClick={onClose} className="flex-1 sm:flex-none border-none px-3 sm:px-6 py-3 rounded-lg cursor-pointer font-semibold text-xs sm:text-sm text-white bg-muted-foreground/50 flex items-center justify-center gap-1.5">
           ← Zurück
         </button>
