@@ -27,10 +27,12 @@ export type Database = {
           kategorie: string | null
           km_stand: number | null
           material_liste: Json | null
+          mechaniker: string | null
           mfk_datum: string | null
           naechster_service_datum: string | null
           naechster_service_km: number | null
           notizen: string | null
+          reifen_zustand: string | null
           sicherheitscheck: Json | null
         }
         Insert: {
@@ -45,10 +47,12 @@ export type Database = {
           kategorie?: string | null
           km_stand?: number | null
           material_liste?: Json | null
+          mechaniker?: string | null
           mfk_datum?: string | null
           naechster_service_datum?: string | null
           naechster_service_km?: number | null
           notizen?: string | null
+          reifen_zustand?: string | null
           sicherheitscheck?: Json | null
         }
         Update: {
@@ -63,10 +67,12 @@ export type Database = {
           kategorie?: string | null
           km_stand?: number | null
           material_liste?: Json | null
+          mechaniker?: string | null
           mfk_datum?: string | null
           naechster_service_datum?: string | null
           naechster_service_km?: number | null
           notizen?: string | null
+          reifen_zustand?: string | null
           sicherheitscheck?: Json | null
         }
         Relationships: [
@@ -83,7 +89,10 @@ export type Database = {
         Row: {
           created_at: string | null
           id: string
+          jahrgang: string | null
           kennzeichen: string
+          kunde_adresse: string | null
+          kunde_email: string | null
           kunde_name: string | null
           kunde_telefon: string | null
           marke: string | null
@@ -92,7 +101,10 @@ export type Database = {
         Insert: {
           created_at?: string | null
           id?: string
+          jahrgang?: string | null
           kennzeichen: string
+          kunde_adresse?: string | null
+          kunde_email?: string | null
           kunde_name?: string | null
           kunde_telefon?: string | null
           marke?: string | null
@@ -101,7 +113,10 @@ export type Database = {
         Update: {
           created_at?: string | null
           id?: string
+          jahrgang?: string | null
           kennzeichen?: string
+          kunde_adresse?: string | null
+          kunde_email?: string | null
           kunde_name?: string | null
           kunde_telefon?: string | null
           marke?: string | null
