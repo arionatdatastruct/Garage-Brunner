@@ -32,6 +32,7 @@ export type Database = {
           naechster_service_datum: string | null
           naechster_service_km: number | null
           notizen: string | null
+          rapport_nummer: string | null
           reifen_zustand: string | null
           sicherheitscheck: Json | null
         }
@@ -52,6 +53,7 @@ export type Database = {
           naechster_service_datum?: string | null
           naechster_service_km?: number | null
           notizen?: string | null
+          rapport_nummer?: string | null
           reifen_zustand?: string | null
           sicherheitscheck?: Json | null
         }
@@ -72,6 +74,7 @@ export type Database = {
           naechster_service_datum?: string | null
           naechster_service_km?: number | null
           notizen?: string | null
+          rapport_nummer?: string | null
           reifen_zustand?: string | null
           sicherheitscheck?: Json | null
         }

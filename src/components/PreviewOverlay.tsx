@@ -1,4 +1,6 @@
+import { useState, useEffect } from 'react';
 import { SAFETY_CHECKS } from '@/lib/presets';
+import { supabase } from '@/integrations/supabase/client';
 import type { FormData } from './ArbeitsrapportForm';
 
 interface Props {
@@ -11,9 +13,19 @@ interface Props {
 }
 
 export function PreviewOverlay({ form, materialListe, beschreibung, onClose, onSend, sending }: Props) {
+  const [rapportCount, setRapportCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    // Get current count for preview number
+    supabase.from('arbeitsrapporte').select('id', { count: 'exact', head: true })
+      .then(({ count }) => setRapportCount((count || 0) + 1));
+  }, []);
+
   const formatted = new Date(form.datum).toLocaleDateString('de-CH', {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
   });
+
+  const nextRapportNr = rapportCount !== null ? `RAP-${String(rapportCount).padStart(4, '0')}` : '...';
 
   const hasServiceContent = form.kategorien.includes('service') && (form.serviceNotiz || form.serviceMaterial.length > 0);
   const hasReparaturContent = form.kategorien.includes('reparatur') && (form.schadenBeschreibung || form.reparaturMaterial.length > 0);
@@ -26,37 +38,48 @@ export function PreviewOverlay({ form, materialListe, beschreibung, onClose, onS
   if (form.mfkDatum) serviceTermine.push(`MFK fällig: ${new Date(form.mfkDatum).toLocaleDateString('de-CH')}`);
 
   return (
-    <div className="preview-overlay fixed inset-0 bg-black/95 z-[1000] flex justify-center overflow-y-auto p-5">
+    <div className="preview-overlay fixed inset-0 bg-black/95 z-[1000] flex justify-center overflow-y-auto p-3 sm:p-5 pb-28">
       {/* A4 Paper */}
-      <div className="a4-paper bg-white text-black w-[210mm] min-h-[297mm] p-[20mm] shadow-[0_0_20px_rgba(0,0,0,0.5)] font-[Helvetica,Arial,sans-serif] relative mx-auto rounded-sm max-w-full">
+      <div className="a4-paper bg-white text-black w-full sm:w-[210mm] sm:min-h-[297mm] p-4 sm:p-[20mm] shadow-[0_0_20px_rgba(0,0,0,0.5)] font-[Helvetica,Arial,sans-serif] relative mx-auto rounded-sm max-w-full h-fit">
 
         {/* Header */}
-        <div className="border-b-2 border-gray-800 pb-5 mb-8 flex justify-between">
+        <div className="border-b-2 border-gray-800 pb-4 mb-6 flex justify-between items-start">
           <div>
-            <h1 className="text-2xl font-bold m-0">Arbeitsrapport</h1>
-            <p className="mt-1 text-gray-500">{formatted}</p>
+            <h1 className="text-xl sm:text-2xl font-bold m-0">Arbeitsrapport</h1>
+            <p className="mt-1 text-gray-500 text-sm">{formatted}</p>
           </div>
           <div className="text-right">
-            <h2 className="text-lg font-bold text-gray-700">{form.fahrzeug?.id ? form.kennzeichen : 'Neuer Kunde'}</h2>
+            <div className="text-xs font-mono text-gray-400 mb-1">{nextRapportNr}</div>
+            <h2 className="text-base sm:text-lg font-bold text-gray-700">{form.kennzeichen || '—'}</h2>
           </div>
         </div>
 
         {/* Kunde & Fahrzeug */}
         <PreviewSection label="Kunde & Fahrzeug">
-          <strong>{form.fahrzeug?.kunde_name || 'Unbekannt'}</strong><br />
-          {form.marke} {form.modell} ({form.kennzeichen})<br />
-          KM: {form.kmStand}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
+            <div>
+              <strong>{form.fahrzeug?.kunde_name || 'Unbekannt'}</strong>
+              {form.fahrzeug?.kunde_adresse && <><br /><span className="text-gray-600 text-sm">{form.fahrzeug.kunde_adresse}</span></>}
+              {form.fahrzeug?.kunde_telefon && <><br /><span className="text-gray-600 text-sm">📞 {form.fahrzeug.kunde_telefon}</span></>}
+              {form.fahrzeug?.kunde_email && <><br /><span className="text-gray-600 text-sm">✉️ {form.fahrzeug.kunde_email}</span></>}
+            </div>
+            <div className="text-sm text-gray-600">
+              {form.marke} {form.modell} {form.jahrgang && `(${form.jahrgang})`}<br />
+              Kennzeichen: <strong>{form.kennzeichen}</strong><br />
+              KM-Stand: <strong>{form.kmStand || '—'}</strong>
+            </div>
+          </div>
         </PreviewSection>
 
         {/* Arbeitszeit */}
         <PreviewSection label="Arbeitszeit">
-          {form.arbeitszeit} Stunden
+          <span className="text-lg font-semibold">{form.arbeitszeit} Stunden</span>
           {form.mechaniker && <> · Mechaniker: <strong>{form.mechaniker}</strong></>}
         </PreviewSection>
 
         {/* Service */}
         {hasServiceContent && (
-          <PreviewSection label="Service Arbeiten">
+          <PreviewSection label="🛠️ Service Arbeiten">
             <div>{form.serviceNotiz || '(Nur Material)'}</div>
             {form.serviceMaterial.length > 0 && (
               <PreviewMaterial items={form.serviceMaterial.map(m =>
@@ -68,7 +91,7 @@ export function PreviewOverlay({ form, materialListe, beschreibung, onClose, onS
 
         {/* Reparatur */}
         {hasReparaturContent && (
-          <PreviewSection label="Reparatur / Schaden">
+          <PreviewSection label="🔩 Reparatur / Schaden">
             <div>{form.schadenBeschreibung || '(Nur Material)'}</div>
             {form.reparaturMaterial.length > 0 && <PreviewMaterial items={form.reparaturMaterial} />}
           </PreviewSection>
@@ -76,10 +99,10 @@ export function PreviewOverlay({ form, materialListe, beschreibung, onClose, onS
 
         {/* Fotos */}
         {form.fotos.length > 0 && (
-          <PreviewSection label="Fotos">
-            <div className="flex flex-wrap gap-2.5 mt-2">
+          <PreviewSection label="📷 Fotos">
+            <div className="flex flex-wrap gap-2 mt-2">
               {form.fotos.map((f, i) => (
-                <img key={i} src={f.dataUrl} className="w-[140px] h-[140px] object-cover rounded border border-gray-300" />
+                <img key={i} src={f.dataUrl} className="w-[100px] h-[100px] sm:w-[140px] sm:h-[140px] object-cover rounded border border-gray-300" />
               ))}
             </div>
           </PreviewSection>
@@ -87,7 +110,7 @@ export function PreviewOverlay({ form, materialListe, beschreibung, onClose, onS
 
         {/* Reifen */}
         {hasReifenContent && (
-          <PreviewSection label="Reifen">
+          <PreviewSection label="🛞 Reifen">
             Zustand: {form.reifenZustand === 'gut' ? '✓ Gut' : form.reifenZustand === 'mittel' ? '⚠ Mittel' : form.reifenZustand === 'schlecht' ? '✗ Schlecht' : '-'}<br />
             Notiz: {form.reifenNotiz || '-'}
             {form.reifenMaterial.length > 0 && <PreviewMaterial items={form.reifenMaterial} />}
@@ -119,7 +142,7 @@ export function PreviewOverlay({ form, materialListe, beschreibung, onClose, onS
         {/* Termine */}
         {serviceTermine.length > 0 && (
           <PreviewSection label="📅 Nächste Termine">
-            <div className="preview-termine-box font-semibold bg-yellow-100 border border-yellow-400 rounded-md p-3">
+            <div className="preview-termine-box font-semibold bg-yellow-100 border border-yellow-400 rounded-md p-3 text-sm">
               {serviceTermine.map((t, i) => <div key={i}>{t}</div>)}
             </div>
           </PreviewSection>
@@ -131,23 +154,23 @@ export function PreviewOverlay({ form, materialListe, beschreibung, onClose, onS
         </PreviewSection>
       </div>
 
-      {/* Action Bar */}
-      <div className="preview-actions-bar fixed bottom-5 left-1/2 -translate-x-1/2 flex gap-4 bg-secondary p-4 rounded-xl shadow-[0_5px_20px_rgba(0,0,0,0.5)] z-[1001]">
-        <button onClick={onClose} className="border-none px-6 py-3 rounded-lg cursor-pointer font-semibold text-sm text-white bg-muted-foreground/50 flex items-center gap-2">
+      {/* Action Bar - Mobile optimized */}
+      <div className="preview-actions-bar fixed bottom-0 left-0 right-0 sm:bottom-5 sm:left-1/2 sm:-translate-x-1/2 sm:right-auto flex gap-2 sm:gap-4 bg-secondary p-3 sm:p-4 sm:rounded-xl shadow-[0_-5px_20px_rgba(0,0,0,0.5)] z-[1001]">
+        <button onClick={onClose} className="flex-1 sm:flex-none border-none px-3 sm:px-6 py-3 rounded-lg cursor-pointer font-semibold text-xs sm:text-sm text-white bg-muted-foreground/50 flex items-center justify-center gap-1.5">
           ← Zurück
         </button>
-        <button onClick={() => window.print()} className="border-none px-6 py-3 rounded-lg cursor-pointer font-semibold text-sm text-white bg-blue-500 flex items-center gap-2">
-          🖨️ PDF / Drucken
+        <button onClick={() => window.print()} className="flex-1 sm:flex-none border-none px-3 sm:px-6 py-3 rounded-lg cursor-pointer font-semibold text-xs sm:text-sm text-white bg-blue-500 flex items-center justify-center gap-1.5">
+          🖨️ Drucken
         </button>
         <button
           onClick={onSend}
           disabled={sending}
-          className="border-none px-6 py-3 rounded-lg cursor-pointer font-semibold text-sm text-white bg-green-500 flex items-center gap-2 disabled:opacity-50"
+          className="flex-1 sm:flex-none border-none px-3 sm:px-6 py-3 rounded-lg cursor-pointer font-semibold text-xs sm:text-sm text-white bg-green-500 flex items-center justify-center gap-1.5 disabled:opacity-50"
         >
           {sending ? (
             <><span className="inline-block w-4 h-4 border-2 border-white/30 rounded-full border-t-white animate-spin" /> Sende...</>
           ) : (
-            '✓ Daten an Büro senden'
+            '✓ Senden'
           )}
         </button>
       </div>
@@ -157,9 +180,9 @@ export function PreviewOverlay({ form, materialListe, beschreibung, onClose, onS
 
 function PreviewSection({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="preview-section mb-6" style={{ pageBreakInside: 'avoid' }}>
+    <div className="preview-section mb-5" style={{ pageBreakInside: 'avoid' }}>
       <div className="font-bold text-xs text-gray-500 uppercase mb-1">{label}</div>
-      <div className="text-base leading-relaxed border-b border-gray-100 pb-1">{children}</div>
+      <div className="text-sm sm:text-base leading-relaxed border-b border-gray-100 pb-1">{children}</div>
     </div>
   );
 }
