@@ -100,13 +100,16 @@
 /* Print styles */
 @media print {
   @page {
-    margin: 0;
+    margin: 10mm;
     size: A4;
   }
-  body > *:not(.preview-overlay) {
-    display: none !important;
+  html, body {
+    background: white !important;
+    color: black !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
-  .preview-actions-bar {
+  body > *:not(.preview-overlay) {
     display: none !important;
   }
   .preview-overlay {
@@ -116,19 +119,24 @@
     padding: 0 !important;
     margin: 0 !important;
     background: white !important;
+    color: black !important;
     width: 100% !important;
     height: auto !important;
     overflow: visible !important;
     display: block !important;
   }
+  .preview-overlay * {
+    color: black !important;
+  }
   .a4-paper {
     position: relative !important;
     margin: 0 !important;
-    padding: 15mm !important;
+    padding: 0 !important;
     box-shadow: none !important;
     width: 100% !important;
     max-width: 100% !important;
     min-height: auto !important;
+    background: white !important;
   }
   .preview-section {
     page-break-inside: avoid !important;
@@ -137,5 +145,9 @@
   .preview-termine-box {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
+  }
+  /* Hide action bar when printing */
+  .preview-overlay > div:last-child {
+    display: none !important;
   }
 }
