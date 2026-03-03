@@ -16,7 +16,6 @@ export function PreviewOverlay({ form, materialListe, beschreibung, onClose, onS
   const [rapportCount, setRapportCount] = useState<number | null>(null);
 
   useEffect(() => {
-    // Get current count for preview number
     supabase.from('arbeitsrapporte').select('id', { count: 'exact', head: true })
       .then(({ count }) => setRapportCount((count || 0) + 1));
   }, []);
@@ -26,6 +25,7 @@ export function PreviewOverlay({ form, materialListe, beschreibung, onClose, onS
   });
 
   const nextRapportNr = rapportCount !== null ? `RAP-${String(rapportCount).padStart(4, '0')}` : '...';
+  const kunde = form.kunde || form.fahrzeug?.kunde;
 
   const hasServiceContent = form.kategorien.includes('service') && (form.serviceNotiz || form.serviceMaterial.length > 0);
   const hasReparaturContent = form.kategorien.includes('reparatur') && (form.schadenBeschreibung || form.reparaturMaterial.length > 0);
@@ -39,7 +39,6 @@ export function PreviewOverlay({ form, materialListe, beschreibung, onClose, onS
 
   return (
     <div className="preview-overlay fixed inset-0 bg-black/95 z-[1000] flex justify-center overflow-y-auto p-3 sm:p-5 pb-28">
-      {/* A4 Paper */}
       <div className="a4-paper bg-white text-black w-full sm:w-[210mm] sm:min-h-[297mm] p-4 sm:p-[20mm] shadow-[0_0_20px_rgba(0,0,0,0.5)] font-[Helvetica,Arial,sans-serif] relative mx-auto rounded-sm max-w-full h-fit">
 
         {/* Header */}
@@ -58,10 +57,10 @@ export function PreviewOverlay({ form, materialListe, beschreibung, onClose, onS
         <PreviewSection label="Kunde & Fahrzeug">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
             <div>
-              <strong>{form.fahrzeug?.kunde_name || 'Unbekannt'}</strong>
-              {form.fahrzeug?.kunde_adresse && <><br /><span className="text-gray-600 text-sm">{form.fahrzeug.kunde_adresse}</span></>}
-              {form.fahrzeug?.kunde_telefon && <><br /><span className="text-gray-600 text-sm">📞 {form.fahrzeug.kunde_telefon}</span></>}
-              {form.fahrzeug?.kunde_email && <><br /><span className="text-gray-600 text-sm">✉️ {form.fahrzeug.kunde_email}</span></>}
+              <strong>{kunde?.name || 'Unbekannt'}</strong>
+              {kunde?.adresse && <><br /><span className="text-gray-600 text-sm">{kunde.adresse}</span></>}
+              {kunde?.telefon && <><br /><span className="text-gray-600 text-sm">📞 {kunde.telefon}</span></>}
+              {kunde?.email && <><br /><span className="text-gray-600 text-sm">✉️ {kunde.email}</span></>}
             </div>
             <div className="text-sm text-gray-600">
               {form.marke} {form.modell} {form.jahrgang && `(${form.jahrgang})`}<br />
@@ -71,13 +70,11 @@ export function PreviewOverlay({ form, materialListe, beschreibung, onClose, onS
           </div>
         </PreviewSection>
 
-        {/* Arbeitszeit */}
         <PreviewSection label="Arbeitszeit">
           <span className="text-lg font-semibold">{form.arbeitszeit} Stunden</span>
           {form.mechaniker && <> · Mechaniker: <strong>{form.mechaniker}</strong></>}
         </PreviewSection>
 
-        {/* Service */}
         {hasServiceContent && (
           <PreviewSection label="🛠️ Service Arbeiten">
             <div>{form.serviceNotiz || '(Nur Material)'}</div>
@@ -89,7 +86,6 @@ export function PreviewOverlay({ form, materialListe, beschreibung, onClose, onS
           </PreviewSection>
         )}
 
-        {/* Reparatur */}
         {hasReparaturContent && (
           <PreviewSection label="🔩 Reparatur / Schaden">
             <div>{form.schadenBeschreibung || '(Nur Material)'}</div>
@@ -97,7 +93,6 @@ export function PreviewOverlay({ form, materialListe, beschreibung, onClose, onS
           </PreviewSection>
         )}
 
-        {/* Fotos */}
         {form.fotos.length > 0 && (
           <PreviewSection label="📷 Fotos">
             <div className="flex flex-wrap gap-2 mt-2">
@@ -108,7 +103,6 @@ export function PreviewOverlay({ form, materialListe, beschreibung, onClose, onS
           </PreviewSection>
         )}
 
-        {/* Reifen */}
         {hasReifenContent && (
           <PreviewSection label="🛞 Reifen">
             Zustand: {form.reifenZustand === 'gut' ? '✓ Gut' : form.reifenZustand === 'mittel' ? '⚠ Mittel' : form.reifenZustand === 'schlecht' ? '✗ Schlecht' : '-'}<br />
@@ -117,7 +111,6 @@ export function PreviewOverlay({ form, materialListe, beschreibung, onClose, onS
           </PreviewSection>
         )}
 
-        {/* Safety */}
         {hasSafety && (
           <PreviewSection label="🚦 Sicherheits-Check">
             <div className="flex flex-col gap-1.5 mt-2">
@@ -125,7 +118,7 @@ export function PreviewOverlay({ form, materialListe, beschreibung, onClose, onS
                 const val = form.sicherheitscheck[key] || '';
                 return (
                   <div key={key} className="flex items-center gap-2.5 text-sm py-1.5 border-b border-gray-100 last:border-0">
-                    <div className={`w-4 h-4 rounded-full flex-shrink-0 preview-safety-dot ${
+                    <div className={`w-4 h-4 rounded-full flex-shrink-0 ${
                       val === 'gruen' ? 'bg-green-500' :
                       val === 'gelb' ? 'bg-yellow-500' :
                       val === 'rot' ? 'bg-red-500' : 'bg-gray-300'
@@ -139,23 +132,21 @@ export function PreviewOverlay({ form, materialListe, beschreibung, onClose, onS
           </PreviewSection>
         )}
 
-        {/* Termine */}
         {serviceTermine.length > 0 && (
           <PreviewSection label="📅 Nächste Termine">
-            <div className="preview-termine-box font-semibold bg-yellow-100 border border-yellow-400 rounded-md p-3 text-sm">
+            <div className="font-semibold bg-yellow-100 border border-yellow-400 rounded-md p-3 text-sm">
               {serviceTermine.map((t, i) => <div key={i}>{t}</div>)}
             </div>
           </PreviewSection>
         )}
 
-        {/* Notizen */}
         <PreviewSection label="Interne Notizen">
           {form.notizen || '-'}
         </PreviewSection>
       </div>
 
-      {/* Action Bar - Mobile optimized */}
-      <div className="preview-actions-bar fixed bottom-0 left-0 right-0 sm:bottom-5 sm:left-1/2 sm:-translate-x-1/2 sm:right-auto flex gap-2 sm:gap-4 bg-secondary p-3 sm:p-4 sm:rounded-xl shadow-[0_-5px_20px_rgba(0,0,0,0.5)] z-[1001]">
+      {/* Action Bar */}
+      <div className="fixed bottom-0 left-0 right-0 sm:bottom-5 sm:left-1/2 sm:-translate-x-1/2 sm:right-auto flex gap-2 sm:gap-4 bg-secondary p-3 sm:p-4 sm:rounded-xl shadow-[0_-5px_20px_rgba(0,0,0,0.5)] z-[1001]">
         <button onClick={onClose} className="flex-1 sm:flex-none border-none px-3 sm:px-6 py-3 rounded-lg cursor-pointer font-semibold text-xs sm:text-sm text-white bg-muted-foreground/50 flex items-center justify-center gap-1.5">
           ← Zurück
         </button>
@@ -180,7 +171,7 @@ export function PreviewOverlay({ form, materialListe, beschreibung, onClose, onS
 
 function PreviewSection({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="preview-section mb-5" style={{ pageBreakInside: 'avoid' }}>
+    <div className="mb-5" style={{ pageBreakInside: 'avoid' }}>
       <div className="font-bold text-xs text-gray-500 uppercase mb-1">{label}</div>
       <div className="text-sm sm:text-base leading-relaxed border-b border-gray-100 pb-1">{children}</div>
     </div>

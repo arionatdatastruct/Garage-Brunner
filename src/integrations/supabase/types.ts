@@ -94,10 +94,7 @@ export type Database = {
           id: string
           jahrgang: string | null
           kennzeichen: string
-          kunde_adresse: string | null
-          kunde_email: string | null
-          kunde_name: string | null
-          kunde_telefon: string | null
+          kunde_id: string | null
           marke: string | null
           modell: string | null
         }
@@ -106,10 +103,7 @@ export type Database = {
           id?: string
           jahrgang?: string | null
           kennzeichen: string
-          kunde_adresse?: string | null
-          kunde_email?: string | null
-          kunde_name?: string | null
-          kunde_telefon?: string | null
+          kunde_id?: string | null
           marke?: string | null
           modell?: string | null
         }
@@ -118,12 +112,44 @@ export type Database = {
           id?: string
           jahrgang?: string | null
           kennzeichen?: string
-          kunde_adresse?: string | null
-          kunde_email?: string | null
-          kunde_name?: string | null
-          kunde_telefon?: string | null
+          kunde_id?: string | null
           marke?: string | null
           modell?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fahrzeuge_kunde_id_fkey"
+            columns: ["kunde_id"]
+            isOneToOne: false
+            referencedRelation: "kunden"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kunden: {
+        Row: {
+          adresse: string | null
+          created_at: string | null
+          email: string | null
+          id: string
+          name: string
+          telefon: string | null
+        }
+        Insert: {
+          adresse?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          name: string
+          telefon?: string | null
+        }
+        Update: {
+          adresse?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          name?: string
+          telefon?: string | null
         }
         Relationships: []
       }
