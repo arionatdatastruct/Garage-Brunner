@@ -110,6 +110,8 @@ export function ArbeitsrapportForm() {
       let fahrzeugId = form.fahrzeug?.id;
 
       if (!fahrzeugId) {
+        // New vehicle - use customer data from dialog or form
+        const kundeData = form.fahrzeug;
         const { data: newCar, error: carError } = await supabase
           .from('fahrzeuge')
           .insert({
@@ -117,10 +119,10 @@ export function ArbeitsrapportForm() {
             marke: form.marke || null,
             modell: form.modell || null,
             jahrgang: form.jahrgang || null,
-            kunde_name: form.fahrzeug?.kunde_name || null,
-            kunde_telefon: form.fahrzeug?.kunde_telefon || null,
-            kunde_adresse: form.fahrzeug?.kunde_adresse || null,
-            kunde_email: form.fahrzeug?.kunde_email || null,
+            kunde_name: kundeData?.kunde_name || null,
+            kunde_telefon: kundeData?.kunde_telefon || null,
+            kunde_adresse: kundeData?.kunde_adresse || null,
+            kunde_email: kundeData?.kunde_email || null,
           })
           .select('id')
           .single();

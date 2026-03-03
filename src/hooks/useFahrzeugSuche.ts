@@ -56,5 +56,9 @@ export function useFahrzeugSuche() {
     setHistorieLoading(false);
   }, []);
 
-  return { results, searching, search, setResults, historie, historieLoading, loadHistorie };
+  const clearHistorie = useCallback(() => {
+    setHistorie([]);
+  }, []);
+
+  return { results, searching, search, setResults, historie, historieLoading, loadHistorie, clearHistorie };
 }
