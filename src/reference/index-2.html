@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Garage Arbeitsrapport</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔧 Arbeitsrapport</h1>
+            <p>Erfasse deine Arbeit schnell und einfach</p>
+        </div>
+
+        <div class="error-message" id="errorMessage"></div>
+
+        <form id="arbeitsForm">
+            <div class="card">
+                <div class="card-title">Datum</div>
+                <div class="date-display" id="currentDate"></div>
+                <input type="hidden" id="datum" name="datum">
+            </div>
+
+            <div class="card">
+                <div class="card-title">Fahrzeug & Kunde</div>
+
+                <div class="form-group autocomplete-wrapper">
+                    <label for="nummernschild">Nummernschild</label>
+                    <input type="text" id="nummernschild" name="nummernschild" placeholder="z.B. AG538963" autocomplete="off" required>
+                    <div class="autocomplete-results" id="autocompleteResults"></div>
+                </div>
+
+                <div class="customer-info" id="customerInfo">
+                    <h4>✓ Kunde gefunden</h4>
+                    <p id="customerDetails"></p>
+                </div>
+
+                <div class="historie-box" id="historieBox">
+                    <div class="historie-header">
+                        <span>📋 Letzte Arbeiten</span>
+                        <span class="historie-toggle" onclick="toggleHistorie()">▼</span>
+                    </div>
+                    <div class="historie-content" id="historieContent">
+                        <div class="historie-loading" id="historieLoading">Lade Historie...</div>
+                        <div class="historie-list" id="historieList"></div>
+                        <div class="historie-empty" id="historieEmpty">Keine früheren Arbeiten gefunden.</div>
+                    </div>
+                </div>
+
+                <input type="hidden" id="car_id" name="car_id">
+                <input type="hidden" id="kunde_name" name="kunde_name">
+                <input type="hidden" id="kunde_adresse" name="kunde_adresse">
+                <input type="hidden" id="kunde_telefon" name="kunde_telefon">
+                <input type="hidden" id="kunde_email" name="kunde_email">
+
+                <div class="row" style="margin-top: 16px;">
+                    <div class="form-group">
+                        <label for="marke">Marke</label>
+                        <input type="text" id="marke" name="marke" placeholder="BMW" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="modell">Modell</label>
+                        <input type="text" id="modell" name="modell" placeholder="M4 F82" required>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="form-group">
+                        <label for="jahrgang">Jahrgang</label>
+                        <input type="text" id="jahrgang" name="jahrgang" inputmode="numeric" pattern="[0-9]*" placeholder="2020" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="kmstand">KM-Stand</label>
+                        <input type="text" id="kmstand" name="kmstand" inputmode="numeric" pattern="[0-9]*" placeholder="45000" required>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Art der Arbeit</div>
+                <div class="category-buttons">
+                    <button type="button" class="category-btn" data-category="service"><span class="icon">🛠️</span>Service</button>
+                    <button type="button" class="category-btn" data-category="reparatur"><span class="icon">🔩</span>Reparatur</button>
+                    <button type="button" class="category-btn" data-category="reifen"><span class="icon">🛞</span>Reifen</button>
+                </div>
+                <input type="hidden" id="kategorien" name="kategorien">
+
+                <div class="conditional-section" id="serviceSection">
+                    <div class="form-group" style="margin-top: 16px;">
+                        <label>Schnellauswahl</label>
+                        <div class="quick-presets">
+                            <button type="button" class="preset-btn" onclick="applyPreset('oelwechsel', event)">🛢️ Ölwechsel</button>
+                            <button type="button" class="preset-btn" onclick="applyPreset('kleinerService', event)">🔧 Kleiner Service</button>
+                            <button type="button" class="preset-btn" onclick="applyPreset('grosserService', event)">⚙️ Grosser Service</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="serviceNotiz">Service-Beschreibung</label>
+                        <textarea id="serviceNotiz" name="serviceNotiz" placeholder="Was wurde gemacht?"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Verwendetes Material</label>
+                        <div class="material-badges" id="serviceMaterial">
+                            <label class="badge-item"><input type="checkbox" name="mat_service" value="Ölfilter"><span>Ölfilter</span></label>
+                            <label class="badge-item"><input type="checkbox" name="mat_service" value="Luftfilter"><span>Luftfilter</span></label>
+                            <label class="badge-item"><input type="checkbox" name="mat_service" value="Innenraumfilter"><span>Innenraumfilter</span></label>
+                            <label class="badge-item"><input type="checkbox" name="mat_service" value="Kraftstofffilter"><span>Kraftstofffilter</span></label>
+                            <label class="badge-item"><input type="checkbox" name="mat_service" value="Zündkerzen"><span>Zündkerzen</span></label>
+                            <label class="badge-item"><input type="checkbox" name="mat_service" value="Scheibenwischer"><span>Scheibenwischer</span></label>
+                            <label class="badge-item"><input type="checkbox" name="mat_service" value="Bremsflüssigkeit"><span>Bremsflüssigkeit</span></label>
+                            <label class="badge-item"><input type="checkbox" name="mat_service" value="Kühlflüssigkeit"><span>Kühlflüssigkeit</span></label>
+                            <label class="badge-item badge-with-input">
+                                <input type="checkbox" name="mat_service" value="Motoröl" id="checkMotoroel">
+                                <span>Motoröl</span>
+                                <input type="text" id="motoroelLiter" inputmode="decimal" placeholder="L" class="badge-input">
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="conditional-section" id="reparaturSection">
+                    <div class="form-group" style="margin-top: 16px;">
+                        <label for="schadenBeschreibung">Schadensbeschreibung</label>
+                        <textarea id="schadenBeschreibung" name="schadenBeschreibung" placeholder="Beschreibung..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Verwendetes Material</label>
+                        <div class="material-badges" id="reparaturMaterial">
+                            <label class="badge-item"><input type="checkbox" name="mat_reparatur" value="Bremsbeläge"><span>Bremsbeläge</span></label>
+                            <label class="badge-item"><input type="checkbox" name="mat_reparatur" value="Bremsscheiben"><span>Bremsscheiben</span></label>
+                            <label class="badge-item"><input type="checkbox" name="mat_reparatur" value="Batterie"><span>Batterie</span></label>
+                            <label class="badge-item"><input type="checkbox" name="mat_reparatur" value="Leuchtmittel"><span>Leuchtmittel</span></label>
+                            <label class="badge-item"><input type="checkbox" name="mat_reparatur" value="Auspuff"><span>Auspuff</span></label>
+                            <label class="badge-item"><input type="checkbox" name="mat_reparatur" value="Stoßdämpfer"><span>Stoßdämpfer</span></label>
+                            <label class="badge-item"><input type="checkbox" name="mat_reparatur" value="Sicherung"><span>Sicherung</span></label>
+                            <label class="badge-item"><input type="checkbox" name="mat_reparatur" value="Kleinmaterial"><span>Kleinmaterial</span></label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="fotos">Fotos (werden auf PDF gedruckt)</label>
+                        <input type="file" id="fotos" name="fotos" accept="image/*" multiple style="padding: 12px;">
+                    </div>
+                </div>
+
+                <div class="conditional-section" id="reifenSection">
+                    <div class="form-group" style="margin-top: 16px;">
+                        <label>Reifenzustand</label>
+                        <div class="tire-status">
+                            <label class="good"><input type="radio" name="reifenZustand" value="gut"><span>✓ Gut</span></label>
+                            <label class="medium"><input type="radio" name="reifenZustand" value="mittel"><span>⚠ Mittel</span></label>
+                            <label class="bad"><input type="radio" name="reifenZustand" value="schlecht"><span>✗ Schlecht</span></label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Verwendetes Material</label>
+                        <div class="material-badges" id="reifenMaterial">
+                            <label class="badge-item"><input type="checkbox" name="mat_reifen" value="Ventile"><span>Ventile</span></label>
+                            <label class="badge-item"><input type="checkbox" name="mat_reifen" value="Wuchtgewichte"><span>Wuchtgewichte</span></label>
+                            <label class="badge-item"><input type="checkbox" name="mat_reifen" value="Altreifenentsorgung"><span>Altreifenentsorgung</span></label>
+                            <label class="badge-item"><input type="checkbox" name="mat_reifen" value="RDKS-Sensor"><span>RDKS-Sensor</span></label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="reifenNotiz">Reifen-Notiz</label>
+                        <textarea id="reifenNotiz" name="reifenNotiz" placeholder="z.B. Wechsel So/Wi"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">🚦 Sicherheits-Check</div>
+                <div class="safety-checks">
+                    <div class="safety-item">
+                        <span class="safety-label">Bremsen vorne</span>
+                        <div class="ampel-group" data-name="check_bremsen_vorne">
+                            <button type="button" class="ampel-btn green" data-value="gruen">✓</button>
+                            <button type="button" class="ampel-btn yellow" data-value="gelb">⚠</button>
+                            <button type="button" class="ampel-btn red" data-value="rot">✗</button>
+                        </div>
+                        <input type="hidden" name="check_bremsen_vorne" id="check_bremsen_vorne">
+                    </div>
+                    <div class="safety-item">
+                        <span class="safety-label">Bremsen hinten</span>
+                        <div class="ampel-group" data-name="check_bremsen_hinten">
+                            <button type="button" class="ampel-btn green" data-value="gruen">✓</button>
+                            <button type="button" class="ampel-btn yellow" data-value="gelb">⚠</button>
+                            <button type="button" class="ampel-btn red" data-value="rot">✗</button>
+                        </div>
+                        <input type="hidden" name="check_bremsen_hinten" id="check_bremsen_hinten">
+                    </div>
+                    <div class="safety-item">
+                        <span class="safety-label">Beleuchtung</span>
+                        <div class="ampel-group" data-name="check_beleuchtung">
+                            <button type="button" class="ampel-btn green" data-value="gruen">✓</button>
+                            <button type="button" class="ampel-btn yellow" data-value="gelb">⚠</button>
+                            <button type="button" class="ampel-btn red" data-value="rot">✗</button>
+                        </div>
+                        <input type="hidden" name="check_beleuchtung" id="check_beleuchtung">
+                    </div>
+                    <div class="safety-item">
+                        <span class="safety-label">Flüssigkeitsstände</span>
+                        <div class="ampel-group" data-name="check_fluessigkeiten">
+                            <button type="button" class="ampel-btn green" data-value="gruen">✓</button>
+                            <button type="button" class="ampel-btn yellow" data-value="gelb">⚠</button>
+                            <button type="button" class="ampel-btn red" data-value="rot">✗</button>
+                        </div>
+                        <input type="hidden" name="check_fluessigkeiten" id="check_fluessigkeiten">
+                    </div>
+                    <div class="safety-item">
+                        <span class="safety-label">Unterboden/Auspuff</span>
+                        <div class="ampel-group" data-name="check_unterboden">
+                            <button type="button" class="ampel-btn green" data-value="gruen">✓</button>
+                            <button type="button" class="ampel-btn yellow" data-value="gelb">⚠</button>
+                            <button type="button" class="ampel-btn red" data-value="rot">✗</button>
+                        </div>
+                        <input type="hidden" name="check_unterboden" id="check_unterboden">
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Arbeitszeit & Mechaniker</div>
+                <div class="row">
+                    <div class="form-group">
+                        <label for="arbeitszeit">Stunden</label>
+                        <input type="text" id="arbeitszeit" name="arbeitszeit" inputmode="decimal" placeholder="1.5" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="mechaniker">Mechaniker (Kürzel)</label>
+                        <input type="text" id="mechaniker" name="mechaniker" placeholder="z.B. MS" maxlength="10">
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">📅 Nächster Service / MFK</div>
+                <div class="row">
+                    <div class="form-group">
+                        <label for="naechster_service_datum">Nächster Service (Datum)</label>
+                        <input type="date" id="naechster_service_datum" name="naechster_service_datum">
+                    </div>
+                    <div class="form-group">
+                        <label for="naechster_service_km">Nächster Service (KM)</label>
+                        <input type="text" id="naechster_service_km" name="naechster_service_km" inputmode="numeric" pattern="[0-9]*" placeholder="z.B. 60000">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="mfk_datum">MFK fällig am</label>
+                    <input type="date" id="mfk_datum" name="mfk_datum">
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Interne Notizen</div>
+                <div class="form-group">
+                    <textarea id="notizen" name="notizen" placeholder="Bemerkungen..."></textarea>
+                </div>
+            </div>
+
+            <button type="button" class="submit-btn" onclick="openPreview()">👁️ Vorschau & PDF erstellen</button>
+        </form>
+
+        <div class="success-message" id="successMessage">
+            <div class="success-icon">✓</div>
+            <h2>Gespeichert!</h2>
+            <p>Daten wurden an das Büro gesendet.</p>
+            <button type="button" class="new-btn" onclick="resetForm()">+ Neuer Rapport</button>
+        </div>
+    </div>
+
+    <div class="preview-overlay" id="previewOverlay">
+        <div class="a4-paper">
+            <div class="preview-header">
+                <div>
+                    <h1 style="margin:0; font-size:24px;">Arbeitsrapport</h1>
+                    <p style="margin:5px 0 0 0; color:#666;" id="prev_datum"></p>
+                </div>
+                <div style="text-align:right;">
+                    <h2 style="margin:0; font-size:18px; color:#333;" id="prev_carid"></h2>
+                </div>
+            </div>
+
+            <div class="preview-section">
+                <div class="preview-label">Kunde & Fahrzeug</div>
+                <div class="preview-value">
+                    <strong id="prev_kunde"></strong><br>
+                    <span id="prev_auto"></span> (<span id="prev_schild"></span>)<br>
+                    KM: <span id="prev_km"></span>
+                </div>
+            </div>
+
+            <div class="preview-section">
+                <div class="preview-label">Arbeitszeit</div>
+                <div class="preview-value">
+                    <span id="prev_zeit"></span>
+                    <span id="prev_mechaniker_wrap" style="display:none;"> · Mechaniker: <strong id="prev_mechaniker"></strong></span>
+                </div>
+            </div>
+
+            <div class="preview-section" id="box_service" style="display:none;">
+                <div class="preview-label">Service Arbeiten</div>
+                <div class="preview-value" id="prev_service"></div>
+                <div class="preview-material" id="prev_service_material"></div>
+            </div>
+
+            <div class="preview-section" id="box_reparatur" style="display:none;">
+                <div class="preview-label">Reparatur / Schaden</div>
+                <div class="preview-value" id="prev_reparatur"></div>
+                <div class="preview-material" id="prev_reparatur_material"></div>
+            </div>
+
+            <div class="preview-section" id="box_fotos" style="display:none;">
+                <div class="preview-label">Fotos</div>
+                <div class="preview-gallery" id="prev_fotos_container"></div>
+            </div>
+
+            <div class="preview-section" id="box_reifen" style="display:none;">
+                <div class="preview-label">Reifen</div>
+                <div class="preview-value">
+                    Zustand: <span id="prev_reifen_zustand"></span><br>
+                    Notiz: <span id="prev_reifen_notiz"></span>
+                </div>
+                <div class="preview-material" id="prev_reifen_material"></div>
+            </div>
+
+            <div class="preview-section" id="box_sicherheit">
+                <div class="preview-label">🚦 Sicherheits-Check</div>
+                <div class="preview-safety" id="prev_sicherheit"></div>
+            </div>
+
+            <div class="preview-section" id="box_termine" style="display:none;">
+                <div class="preview-label">📅 Nächste Termine</div>
+                <div class="preview-value preview-termine" id="prev_termine"></div>
+            </div>
+
+            <div class="preview-section">
+                <div class="preview-label">Interne Notizen</div>
+                <div class="preview-value" id="prev_notiz"></div>
+            </div>
+        </div>
+
+        <div class="preview-actions">
+            <button type="button" class="btn-action btn-back" onclick="closePreview()">← Zurück</button>
+            <button type="button" class="btn-action btn-print" onclick="window.print()">🖨️ PDF / Drucken</button>
+            <button type="button" class="btn-action btn-send" id="finalSubmitBtn" onclick="sendData()">✓ Daten an Büro senden</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
