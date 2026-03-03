@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useFahrzeugSuche, type Fahrzeug } from '@/hooks/useFahrzeugSuche';
+import { NeuerKundeDialog } from './NeuerKundeDialog';
 import type { FormData } from './ArbeitsrapportForm';
 
 interface Props {
@@ -8,15 +9,23 @@ interface Props {
 }
 
 export function FahrzeugKundeCard({ form, update }: Props) {
-  const { results, searching, search, setResults, historie, historieLoading, loadHistorie } = useFahrzeugSuche();
+  const { results, searching, search, setResults, historie, historieLoading, loadHistorie, clearHistorie } = useFahrzeugSuche();
   const [showResults, setShowResults] = useState(false);
   const [historieCollapsed, setHistorieCollapsed] = useState(false);
   const [customerFound, setCustomerFound] = useState(false);
+  const [showNeuerKunde, setShowNeuerKunde] = useState(false);
 
   const handleSearch = (val: string) => {
     update('kennzeichen', val);
     search(val.toUpperCase().trim());
     setShowResults(true);
+
+    // Reset previous selection when user types again
+    if (customerFound) {
+      setCustomerFound(false);
+      update('fahrzeug', null);
+      clearHistorie();
+    }
   };
 
   const selectFahrzeug = (f: Fahrzeug) => {
@@ -29,6 +38,25 @@ export function FahrzeugKundeCard({ form, update }: Props) {
     setResults([]);
     setCustomerFound(true);
     loadHistorie(f.id);
+  };
+
+  const handleNeuerKunde = (kunde: { name: string; adresse: string; telefon: string; email: string }) => {
+    const newFahrzeug: Fahrzeug = {
+      id: '', // empty = will be created on submit
+      kennzeichen: form.kennzeichen,
+      marke: form.marke || null,
+      modell: form.modell || null,
+      jahrgang: form.jahrgang || null,
+      kunde_name: kunde.name || null,
+      kunde_telefon: kunde.telefon || null,
+      kunde_adresse: kunde.adresse || null,
+      kunde_email: kunde.email || null,
+    };
+    update('fahrzeug', newFahrzeug);
+    setCustomerFound(true);
+    setShowNeuerKunde(false);
+    setShowResults(false);
+    clearHistorie();
   };
 
   return (
@@ -45,8 +73,8 @@ export function FahrzeugKundeCard({ form, update }: Props) {
           autoComplete="off"
           className="garage-input"
         />
-        {showResults && results.length > 0 && (
-          <div className="absolute top-full left-0 right-0 bg-secondary border-2 border-primary border-t-0 rounded-b-xl max-h-[200px] overflow-y-auto z-[100]">
+        {showResults && (results.length > 0 || (form.kennzeichen.length >= 2 && !searching)) && (
+          <div className="absolute top-full left-0 right-0 bg-secondary border-2 border-primary border-t-0 rounded-b-xl max-h-[250px] overflow-y-auto z-[100]">
             {searching && <div className="p-3 text-muted-foreground text-sm">Suche...</div>}
             {results.map((r) => (
               <div
@@ -58,19 +86,47 @@ export function FahrzeugKundeCard({ form, update }: Props) {
                 <div className="text-xs text-muted-foreground">{r.kunde_name || 'Unbekannt'}</div>
               </div>
             ))}
+            {!searching && results.length === 0 && form.kennzeichen.length >= 2 && (
+              <div className="p-3 text-muted-foreground text-sm">Kein Fahrzeug gefunden.</div>
+            )}
+            {!searching && form.kennzeichen.length >= 2 && (
+              <div
+                onClick={() => setShowNeuerKunde(true)}
+                className="p-3 cursor-pointer border-t border-border hover:bg-[hsl(var(--garage-green))]/20 transition-colors flex items-center gap-2"
+              >
+                <span className="text-[hsl(var(--garage-green))] font-semibold text-sm">+ Neuen Kunden anlegen</span>
+              </div>
+            )}
           </div>
         )}
       </div>
 
       {customerFound && form.fahrzeug && (
         <div className="rounded-xl bg-primary/10 border border-primary/30 p-4 mb-3 animate-in fade-in">
-          <h4 className="text-sm font-semibold text-primary mb-1">✓ Kunde gefunden</h4>
-          <p className="text-sm text-foreground">
-            <strong>{form.fahrzeug.kunde_name}</strong><br />
-            {form.fahrzeug.kunde_adresse && <>{form.fahrzeug.kunde_adresse}<br /></>}
-            {form.fahrzeug.kunde_telefon && <>📞 {form.fahrzeug.kunde_telefon}<br /></>}
-            {form.fahrzeug.kunde_email && <>✉️ {form.fahrzeug.kunde_email}</>}
-          </p>
+          <div className="flex justify-between items-start">
+            <div>
+              <h4 className="text-sm font-semibold text-primary mb-1">
+                {form.fahrzeug.id ? '✓ Kunde gefunden' : '✓ Neuer Kunde'}
+              </h4>
+              <p className="text-sm text-foreground">
+                <strong>{form.fahrzeug.kunde_name || 'Unbekannt'}</strong><br />
+                {form.fahrzeug.kunde_adresse && <>{form.fahrzeug.kunde_adresse}<br /></>}
+                {form.fahrzeug.kunde_telefon && <>📞 {form.fahrzeug.kunde_telefon}<br /></>}
+                {form.fahrzeug.kunde_email && <>✉️ {form.fahrzeug.kunde_email}</>}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setCustomerFound(false);
+                update('fahrzeug', null);
+                clearHistorie();
+              }}
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              ✕
+            </button>
+          </div>
         </div>
       )}
 
@@ -121,6 +177,16 @@ export function FahrzeugKundeCard({ form, update }: Props) {
         </div>
       )}
 
+      {!customerFound && !showResults && form.kennzeichen.length >= 2 && (
+        <button
+          type="button"
+          onClick={() => setShowNeuerKunde(true)}
+          className="w-full mb-3 p-3 rounded-xl border-2 border-dashed border-[hsl(var(--garage-green))]/40 bg-[hsl(var(--garage-green))]/5 text-[hsl(var(--garage-green))] text-sm font-medium cursor-pointer hover:bg-[hsl(var(--garage-green))]/10 transition-colors"
+        >
+          + Neuen Kunden anlegen
+        </button>
+      )}
+
       <div className="grid grid-cols-2 gap-3 mt-4">
         <div>
           <label className="garage-label">Marke</label>
@@ -141,6 +207,13 @@ export function FahrzeugKundeCard({ form, update }: Props) {
           <input className="garage-input" value={form.kmStand} onChange={(e) => update('kmStand', e.target.value)} placeholder="45000" inputMode="numeric" />
         </div>
       </div>
+
+      <NeuerKundeDialog
+        open={showNeuerKunde}
+        onClose={() => setShowNeuerKunde(false)}
+        onSave={handleNeuerKunde}
+        kennzeichen={form.kennzeichen}
+      />
     </div>
   );
 }
