@@ -270,6 +270,25 @@ export default function Wochenplan() {
     setDialogOpen(true);
   };
 
+  const updateStunden = (id: string, h: number | null) => {
+    setRapports((prev) => prev.map((r) => (r.id === id ? { ...r, arbeitszeit_stunden: h } : r)));
+  };
+
+  // Wochen-Gesamtauslastung
+  const weekTotalH = days.reduce((sum, d) => {
+    const key = format(d, "yyyy-MM-dd");
+    return sum + rapports
+      .filter((r) => r.geplantes_datum === key)
+      .reduce((s, r) => s + (r.arbeitszeit_stunden ?? 0), 0);
+  }, 0);
+  const weekKap = days.reduce((sum, d) => sum + kapazitaetFuer(d), 0);
+  const weekPct = weekKap > 0 ? Math.round((weekTotalH / weekKap) * 100) : 0;
+  const weekColor = auslastungsFarbe(weekTotalH, weekKap);
+  const weekBar =
+    weekColor === "over" ? "bg-red-500" : weekColor === "warn" ? "bg-amber-500" : "bg-emerald-500";
+  const weekText =
+    weekColor === "over" ? "text-red-500" : weekColor === "warn" ? "text-amber-500" : "text-emerald-500";
+
   return (
     <div className="p-4 md:p-6">
       <header className="flex items-center justify-between mb-4 flex-wrap gap-3">
@@ -307,7 +326,7 @@ export default function Wochenplan() {
             const dayRapports = rapports.filter((r) => r.geplantes_datum === key);
             return (
               <div key={key} className="bg-muted/30 rounded-lg flex flex-col">
-                <DayColumn date={d} rapports={dayRapports} onAdd={() => openDialog(d)} />
+                <DayColumn date={d} rapports={dayRapports} onAdd={() => openDialog(d)} onUpdateStunden={updateStunden} />
               </div>
             );
           })}
