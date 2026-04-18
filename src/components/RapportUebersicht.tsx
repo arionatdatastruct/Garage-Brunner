@@ -15,26 +15,19 @@ interface Rapport {
   auftragswert_chf: number | null;
   notizen: string | null;
   sicherheitscheck: Record<string, unknown> | null;
-}
-
-interface Fahrzeug {
-  kennzeichen: string;
+  // Snapshot Kunde
+  kunde_name: string | null;
+  kunde_ort: string | null;
+  kunde_telefon: string | null;
+  // Snapshot Fahrzeug
+  kennzeichen: string | null;
   marke: string | null;
   modell: string | null;
   chassis_nr: string | null;
 }
 
-interface Kunde {
-  name: string;
-  ort: string | null;
-  telefon: string | null;
-  email: string | null;
-}
-
 interface Props {
   rapport: Rapport;
-  fahrzeug: Fahrzeug | null;
-  kunde: Kunde | null;
 }
 
 const CHECK_LABELS: Record<string, string> = {
@@ -51,7 +44,7 @@ const STATUS_ICON: Record<string, JSX.Element> = {
   rot: <AlertTriangle className="h-4 w-4 text-red-500" />,
 };
 
-export function RapportUebersicht({ rapport, fahrzeug, kunde }: Props) {
+export function RapportUebersicht({ rapport }: Props) {
   const checks = (rapport.sicherheitscheck as Record<string, string>) || {};
 
   return (
@@ -91,20 +84,20 @@ export function RapportUebersicht({ rapport, fahrzeug, kunde }: Props) {
       <div className="grid grid-cols-2 gap-4 text-sm">
         <div>
           <div className="text-xs text-muted-foreground mb-1">Kunde</div>
-          <div className="font-medium">{kunde?.name ?? "—"}</div>
-          {kunde?.ort && <div className="text-muted-foreground">{kunde.ort}</div>}
-          {kunde?.telefon && <div className="text-muted-foreground">{kunde.telefon}</div>}
+          <div className="font-medium">{rapport.kunde_name ?? "—"}</div>
+          {rapport.kunde_ort && <div className="text-muted-foreground">{rapport.kunde_ort}</div>}
+          {rapport.kunde_telefon && <div className="text-muted-foreground">{rapport.kunde_telefon}</div>}
         </div>
         <div>
           <div className="text-xs text-muted-foreground mb-1">Fahrzeug</div>
-          <div className="font-medium">{fahrzeug?.kennzeichen ?? "—"}</div>
-          {(fahrzeug?.marke || fahrzeug?.modell) && (
+          <div className="font-medium">{rapport.kennzeichen ?? "—"}</div>
+          {(rapport.marke || rapport.modell) && (
             <div className="text-muted-foreground">
-              {[fahrzeug?.marke, fahrzeug?.modell].filter(Boolean).join(" ")}
+              {[rapport.marke, rapport.modell].filter(Boolean).join(" ")}
             </div>
           )}
-          {fahrzeug?.chassis_nr && (
-            <div className="text-muted-foreground text-xs">FIN: {fahrzeug.chassis_nr}</div>
+          {rapport.chassis_nr && (
+            <div className="text-muted-foreground text-xs">FIN: {rapport.chassis_nr}</div>
           )}
         </div>
       </div>

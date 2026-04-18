@@ -29,10 +29,8 @@ interface Rapport {
   status: string;
   mechaniker_zuweisung: string | null;
   arbeitszeit_stunden: number | null;
-  fahrzeug: {
-    kennzeichen: string;
-    marke: string | null;
-  } | null;
+  kennzeichen: string | null;
+  marke: string | null;
 }
 
 const MECH_COLOR: Record<string, string> = {
@@ -97,12 +95,12 @@ function RapportCard({ r, onUpdate }: { r: Rapport; onUpdate: (id: string, h: nu
     >
       <div className="flex items-start justify-between gap-2 mb-1">
         <span className="font-mono font-semibold text-sm">
-          {r.fahrzeug?.kennzeichen ?? "—"}
+          {r.kennzeichen ?? "—"}
         </span>
         <span className={`h-2 w-2 rounded-full mt-1.5 ${STATUS_DOT[r.status] ?? "bg-muted-foreground"}`} />
       </div>
       <div className="text-xs text-muted-foreground truncate">
-        {r.fahrzeug?.marke ?? "Kein Fahrzeug"}
+        {r.marke ?? "Kein Fahrzeug"}
       </div>
       <div className="flex items-center justify-between mt-2 gap-2">
         <span className="text-[10px] text-muted-foreground font-mono">
@@ -233,7 +231,7 @@ export default function Wochenplan() {
     const to = format(addDays(weekStart, 4), "yyyy-MM-dd");
     const { data, error } = await (supabase as any)
       .from("arbeitsrapporte")
-      .select("id, rapport_nummer, auftragsnummer, geplantes_datum, status, mechaniker_zuweisung, arbeitszeit_stunden, fahrzeug:fahrzeuge(kennzeichen, marke)")
+      .select("id, rapport_nummer, auftragsnummer, geplantes_datum, status, mechaniker_zuweisung, arbeitszeit_stunden, kennzeichen, marke")
       .in("status", ["geplant", "in_arbeit"])
       .gte("geplantes_datum", from)
       .lte("geplantes_datum", to)

@@ -16,178 +16,102 @@ export type Database = {
     Tables: {
       arbeitsrapporte: {
         Row: {
-          ampel_status: string | null
           arbeit_beschreibung: string | null
           arbeitszeit_stunden: number | null
           auftragsnummer: string | null
           auftragswert_chf: number | null
+          chassis_nr: string | null
           created_at: string
-          datum: string | null
-          fahrzeug_id: string | null
           fotos: string[] | null
           geplantes_datum: string
           id: string
+          jahrgang: string | null
           kategorie: string | null
+          kennzeichen: string | null
           km_stand: number | null
+          kunde_email: string | null
+          kunde_name: string | null
+          kunde_ort: string | null
+          kunde_plz: string | null
+          kunde_strasse: string | null
+          kunde_telefon: string | null
+          marke: string | null
           material_liste: Json | null
-          mechaniker: string | null
           mechaniker_zuweisung:
             | Database["public"]["Enums"]["mechaniker_name"]
             | null
-          mfk_datum: string | null
-          naechster_service_datum: string | null
-          naechster_service_km: number | null
+          modell: string | null
           notizen: string | null
           pdf_url: string | null
           rapport_nummer: string | null
-          reifen_zustand: string | null
           sicherheitscheck: Json | null
           status: Database["public"]["Enums"]["rapport_status"]
           updated_at: string
         }
         Insert: {
-          ampel_status?: string | null
           arbeit_beschreibung?: string | null
           arbeitszeit_stunden?: number | null
           auftragsnummer?: string | null
           auftragswert_chf?: number | null
+          chassis_nr?: string | null
           created_at?: string
-          datum?: string | null
-          fahrzeug_id?: string | null
           fotos?: string[] | null
           geplantes_datum?: string
           id?: string
+          jahrgang?: string | null
           kategorie?: string | null
+          kennzeichen?: string | null
           km_stand?: number | null
+          kunde_email?: string | null
+          kunde_name?: string | null
+          kunde_ort?: string | null
+          kunde_plz?: string | null
+          kunde_strasse?: string | null
+          kunde_telefon?: string | null
+          marke?: string | null
           material_liste?: Json | null
-          mechaniker?: string | null
           mechaniker_zuweisung?:
             | Database["public"]["Enums"]["mechaniker_name"]
             | null
-          mfk_datum?: string | null
-          naechster_service_datum?: string | null
-          naechster_service_km?: number | null
+          modell?: string | null
           notizen?: string | null
           pdf_url?: string | null
           rapport_nummer?: string | null
-          reifen_zustand?: string | null
           sicherheitscheck?: Json | null
           status?: Database["public"]["Enums"]["rapport_status"]
           updated_at?: string
         }
         Update: {
-          ampel_status?: string | null
           arbeit_beschreibung?: string | null
           arbeitszeit_stunden?: number | null
           auftragsnummer?: string | null
           auftragswert_chf?: number | null
+          chassis_nr?: string | null
           created_at?: string
-          datum?: string | null
-          fahrzeug_id?: string | null
           fotos?: string[] | null
           geplantes_datum?: string
           id?: string
+          jahrgang?: string | null
           kategorie?: string | null
+          kennzeichen?: string | null
           km_stand?: number | null
+          kunde_email?: string | null
+          kunde_name?: string | null
+          kunde_ort?: string | null
+          kunde_plz?: string | null
+          kunde_strasse?: string | null
+          kunde_telefon?: string | null
+          marke?: string | null
           material_liste?: Json | null
-          mechaniker?: string | null
           mechaniker_zuweisung?:
             | Database["public"]["Enums"]["mechaniker_name"]
             | null
-          mfk_datum?: string | null
-          naechster_service_datum?: string | null
-          naechster_service_km?: number | null
+          modell?: string | null
           notizen?: string | null
           pdf_url?: string | null
           rapport_nummer?: string | null
-          reifen_zustand?: string | null
           sicherheitscheck?: Json | null
           status?: Database["public"]["Enums"]["rapport_status"]
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "arbeitsrapporte_fahrzeug_id_fkey"
-            columns: ["fahrzeug_id"]
-            isOneToOne: false
-            referencedRelation: "fahrzeuge"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      fahrzeuge: {
-        Row: {
-          chassis_nr: string | null
-          created_at: string
-          id: string
-          jahrgang: string | null
-          kennzeichen: string
-          kunde_id: string | null
-          marke: string | null
-          modell: string | null
-          updated_at: string
-        }
-        Insert: {
-          chassis_nr?: string | null
-          created_at?: string
-          id?: string
-          jahrgang?: string | null
-          kennzeichen: string
-          kunde_id?: string | null
-          marke?: string | null
-          modell?: string | null
-          updated_at?: string
-        }
-        Update: {
-          chassis_nr?: string | null
-          created_at?: string
-          id?: string
-          jahrgang?: string | null
-          kennzeichen?: string
-          kunde_id?: string | null
-          marke?: string | null
-          modell?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fahrzeuge_kunde_id_fkey"
-            columns: ["kunde_id"]
-            isOneToOne: false
-            referencedRelation: "kunden"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      kunden: {
-        Row: {
-          adresse: string | null
-          created_at: string
-          email: string | null
-          id: string
-          name: string
-          ort: string | null
-          telefon: string | null
-          updated_at: string
-        }
-        Insert: {
-          adresse?: string | null
-          created_at?: string
-          email?: string | null
-          id?: string
-          name: string
-          ort?: string | null
-          telefon?: string | null
-          updated_at?: string
-        }
-        Update: {
-          adresse?: string | null
-          created_at?: string
-          email?: string | null
-          id?: string
-          name?: string
-          ort?: string | null
-          telefon?: string | null
           updated_at?: string
         }
         Relationships: []
