@@ -79,6 +79,8 @@ export function NeuerAuftragDialog({ open, onOpenChange, onCreated, defaultDate 
         await supabase.functions.invoke("notify-n8n", {
           body: {
             rapport_id: rap.id,
+            fahrzeug_id: fz.id,
+            kunde_id: ku.id,
             pdf_url: pub.publicUrl,
             kennzeichen: platzhalterKennzeichen,
           },
