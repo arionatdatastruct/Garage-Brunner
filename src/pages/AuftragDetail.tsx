@@ -151,11 +151,34 @@ export default function AuftragDetail() {
 
   const PdfPane = () =>
     rapport.pdf_url ? (
-      <iframe
-        src={rapport.pdf_url}
-        title="Beleg"
-        className="w-full h-full min-h-[60vh] rounded-md border border-border bg-muted"
-      />
+      <div className="w-full h-full min-h-[60vh] flex flex-col gap-2">
+        <object
+          data={`${rapport.pdf_url}#toolbar=1&view=FitH`}
+          type="application/pdf"
+          className="w-full flex-1 min-h-[55vh] rounded-md border border-border bg-muted"
+        >
+          <div className="flex flex-col items-center justify-center h-full p-6 text-center text-muted-foreground gap-3">
+            <FileText className="h-8 w-8" />
+            <p className="text-sm">Vorschau nicht verfügbar in diesem Browser.</p>
+            <a
+              href={rapport.pdf_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary underline text-sm"
+            >
+              PDF in neuem Tab öffnen
+            </a>
+          </div>
+        </object>
+        <a
+          href={rapport.pdf_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1 self-start"
+        >
+          <FileText className="h-3 w-3" /> In neuem Tab öffnen
+        </a>
+      </div>
     ) : (
       <div className="flex flex-col items-center justify-center min-h-[40vh] text-muted-foreground border border-dashed border-border rounded-md">
         <FileText className="h-8 w-8 mb-2" />
