@@ -200,7 +200,7 @@ export function NeuerAuftragDialog({ open, onOpenChange, onCreated, defaultDate 
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>
             Abbrechen
           </Button>
-          <Button onClick={submit} disabled={busy || !pdfFile}>
+          <Button onClick={submit} disabled={busy || !pdfFile || !istArbeitstag(datum)}>
             {busy && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             Anlegen
           </Button>
