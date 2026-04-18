@@ -209,9 +209,9 @@ export default function AuftragDetail() {
       {/* Mobile: Tabs */}
       <div className="md:hidden">
         <Tabs defaultValue="daten">
-          <TabsList className="grid grid-cols-2 w-full">
-            <TabsTrigger value="daten">Daten</TabsTrigger>
-            <TabsTrigger value="beleg">Beleg</TabsTrigger>
+          <TabsList className="sticky top-12 z-20 grid grid-cols-2 w-full bg-card/95 backdrop-blur border border-border h-11">
+            <TabsTrigger value="daten" className="text-sm">Daten</TabsTrigger>
+            <TabsTrigger value="beleg" className="text-sm">Beleg</TabsTrigger>
           </TabsList>
           <TabsContent value="daten" className="mt-3 space-y-4">
             <AuftragForm rapport={rapport} kunde={kunde} onSaved={load} />
@@ -221,7 +221,7 @@ export default function AuftragDetail() {
               onSaved={load}
             />
           </TabsContent>
-          <TabsContent value="beleg" className="mt-3 h-[70vh]">
+          <TabsContent value="beleg" className="mt-3 min-h-[75vh]">
             <PdfPane />
           </TabsContent>
         </Tabs>

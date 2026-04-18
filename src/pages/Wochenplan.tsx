@@ -247,6 +247,13 @@ export default function Wochenplan() {
 
   useEffect(() => { load(); }, [load]);
 
+  // Mobile FAB öffnet denselben Dialog
+  useEffect(() => {
+    const handler = () => openDialog();
+    window.addEventListener("open-neuer-auftrag", handler);
+    return () => window.removeEventListener("open-neuer-auftrag", handler);
+  }, []);
+
   const onDragEnd = async (e: DragEndEvent) => {
     const { active, over } = e;
     if (!over) return;
@@ -290,11 +297,11 @@ export default function Wochenplan() {
     weekColor === "over" ? "text-red-500" : weekColor === "warn" ? "text-amber-500" : "text-emerald-500";
 
   return (
-    <div className="p-4 md:p-6">
+    <div className="p-3 md:p-6">
       <header className="flex items-center justify-between mb-4 flex-wrap gap-3">
         <div>
           <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="text-2xl font-bold">Wochenplan</h1>
+            <h1 className="hidden md:block text-2xl font-bold">Wochenplan</h1>
             <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-primary/10 text-primary text-sm font-semibold">
               KW {getISOWeek(weekStart)} · {getISOWeekYear(weekStart)}
             </span>
@@ -303,17 +310,17 @@ export default function Wochenplan() {
             {format(weekStart, "d. MMM", { locale: de })} – {format(addDays(weekStart, 4), "d. MMM yyyy", { locale: de })}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button size="icon" variant="outline" onClick={() => setWeekStart((d) => addDays(d, -7))} title="Vorherige Woche">
+        <div className="flex items-center gap-2 ml-auto">
+          <Button size="icon" variant="outline" onClick={() => setWeekStart((d) => addDays(d, -7))} title="Vorherige Woche" aria-label="Vorherige Woche">
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <Button variant="outline" onClick={() => setWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))}>
+          <Button variant="outline" size="sm" onClick={() => setWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))}>
             Heute
           </Button>
-          <Button size="icon" variant="outline" onClick={() => setWeekStart((d) => addDays(d, 7))} title="Nächste Woche">
+          <Button size="icon" variant="outline" onClick={() => setWeekStart((d) => addDays(d, 7))} title="Nächste Woche" aria-label="Nächste Woche">
             <ChevronRight className="h-4 w-4" />
           </Button>
-          <Button onClick={() => openDialog()}>
+          <Button onClick={() => openDialog()} className="hidden sm:inline-flex">
             <Plus className="h-4 w-4 mr-1" /> Neuer Auftrag
           </Button>
         </div>
