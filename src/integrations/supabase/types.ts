@@ -19,70 +19,91 @@ export type Database = {
           ampel_status: string | null
           arbeit_beschreibung: string | null
           arbeitszeit_stunden: number | null
-          created_at: string | null
-          datum: string
-          fahrzeug_id: string
+          auftragsnummer: string | null
+          auftragswert_chf: number | null
+          created_at: string
+          datum: string | null
+          fahrzeug_id: string | null
           fotos: string[] | null
+          geplantes_datum: string
           id: string
           kategorie: string | null
           km_stand: number | null
-          kunde_benachrichtigt: string | null
           material_liste: Json | null
           mechaniker: string | null
+          mechaniker_zuweisung:
+            | Database["public"]["Enums"]["mechaniker_name"]
+            | null
           mfk_datum: string | null
           naechster_service_datum: string | null
           naechster_service_km: number | null
           notizen: string | null
+          pdf_url: string | null
           rapport_nummer: string | null
           reifen_zustand: string | null
-          Reparaturbenachrichtigung: string | null
           sicherheitscheck: Json | null
+          status: Database["public"]["Enums"]["rapport_status"]
+          updated_at: string
         }
         Insert: {
           ampel_status?: string | null
           arbeit_beschreibung?: string | null
           arbeitszeit_stunden?: number | null
-          created_at?: string | null
-          datum?: string
-          fahrzeug_id: string
+          auftragsnummer?: string | null
+          auftragswert_chf?: number | null
+          created_at?: string
+          datum?: string | null
+          fahrzeug_id?: string | null
           fotos?: string[] | null
+          geplantes_datum?: string
           id?: string
           kategorie?: string | null
           km_stand?: number | null
-          kunde_benachrichtigt?: string | null
           material_liste?: Json | null
           mechaniker?: string | null
+          mechaniker_zuweisung?:
+            | Database["public"]["Enums"]["mechaniker_name"]
+            | null
           mfk_datum?: string | null
           naechster_service_datum?: string | null
           naechster_service_km?: number | null
           notizen?: string | null
+          pdf_url?: string | null
           rapport_nummer?: string | null
           reifen_zustand?: string | null
-          Reparaturbenachrichtigung?: string | null
           sicherheitscheck?: Json | null
+          status?: Database["public"]["Enums"]["rapport_status"]
+          updated_at?: string
         }
         Update: {
           ampel_status?: string | null
           arbeit_beschreibung?: string | null
           arbeitszeit_stunden?: number | null
-          created_at?: string | null
-          datum?: string
-          fahrzeug_id?: string
+          auftragsnummer?: string | null
+          auftragswert_chf?: number | null
+          created_at?: string
+          datum?: string | null
+          fahrzeug_id?: string | null
           fotos?: string[] | null
+          geplantes_datum?: string
           id?: string
           kategorie?: string | null
           km_stand?: number | null
-          kunde_benachrichtigt?: string | null
           material_liste?: Json | null
           mechaniker?: string | null
+          mechaniker_zuweisung?:
+            | Database["public"]["Enums"]["mechaniker_name"]
+            | null
           mfk_datum?: string | null
           naechster_service_datum?: string | null
           naechster_service_km?: number | null
           notizen?: string | null
+          pdf_url?: string | null
           rapport_nummer?: string | null
           reifen_zustand?: string | null
-          Reparaturbenachrichtigung?: string | null
           sicherheitscheck?: Json | null
+          status?: Database["public"]["Enums"]["rapport_status"]
+          updated_at?: string
         }
         Relationships: [
           {
@@ -96,31 +117,34 @@ export type Database = {
       }
       fahrzeuge: {
         Row: {
-          created_at: string | null
+          created_at: string
           id: string
           jahrgang: string | null
           kennzeichen: string
           kunde_id: string | null
           marke: string | null
           modell: string | null
+          updated_at: string
         }
         Insert: {
-          created_at?: string | null
+          created_at?: string
           id?: string
           jahrgang?: string | null
           kennzeichen: string
           kunde_id?: string | null
           marke?: string | null
           modell?: string | null
+          updated_at?: string
         }
         Update: {
-          created_at?: string | null
+          created_at?: string
           id?: string
           jahrgang?: string | null
           kennzeichen?: string
           kunde_id?: string | null
           marke?: string | null
           modell?: string | null
+          updated_at?: string
         }
         Relationships: [
           {
@@ -135,27 +159,30 @@ export type Database = {
       kunden: {
         Row: {
           adresse: string | null
-          created_at: string | null
+          created_at: string
           email: string | null
           id: string
           name: string
           telefon: string | null
+          updated_at: string
         }
         Insert: {
           adresse?: string | null
-          created_at?: string | null
+          created_at?: string
           email?: string | null
           id?: string
           name: string
           telefon?: string | null
+          updated_at?: string
         }
         Update: {
           adresse?: string | null
-          created_at?: string | null
+          created_at?: string
           email?: string | null
           id?: string
           name?: string
           telefon?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -167,7 +194,8 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      mechaniker_name: "Roman" | "Pascal"
+      rapport_status: "geplant" | "in_arbeit" | "erledigt" | "archiviert"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -294,6 +322,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      mechaniker_name: ["Roman", "Pascal"],
+      rapport_status: ["geplant", "in_arbeit", "erledigt", "archiviert"],
+    },
   },
 } as const
