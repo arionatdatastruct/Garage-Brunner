@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AuftragStatusBar } from "@/components/AuftragStatusBar";
 import { AuftragForm } from "@/components/AuftragForm";
+import { SicherheitsCheck } from "@/components/SicherheitsCheck";
 import { ArrowLeft, FileText, Loader2 } from "lucide-react";
 
 interface Fahrzeug {
@@ -38,6 +39,7 @@ interface Rapport {
   auftragswert_chf: number | null;
   notizen: string | null;
   fahrzeug_id: string | null;
+  sicherheitscheck: Record<string, unknown> | null;
 }
 
 export default function AuftragDetail() {
@@ -218,8 +220,13 @@ export default function AuftragDetail() {
         <div className="overflow-hidden">
           <PdfPane />
         </div>
-        <div className="overflow-y-auto pr-1">
+        <div className="overflow-y-auto pr-1 space-y-4">
           <AuftragForm rapport={rapport} kunde={kunde} onSaved={load} />
+          <SicherheitsCheck
+            rapportId={rapport.id}
+            initial={rapport.sicherheitscheck}
+            onSaved={load}
+          />
         </div>
       </div>
 
@@ -230,8 +237,13 @@ export default function AuftragDetail() {
             <TabsTrigger value="daten">Daten</TabsTrigger>
             <TabsTrigger value="beleg">Beleg</TabsTrigger>
           </TabsList>
-          <TabsContent value="daten" className="mt-3">
+          <TabsContent value="daten" className="mt-3 space-y-4">
             <AuftragForm rapport={rapport} kunde={kunde} onSaved={load} />
+            <SicherheitsCheck
+              rapportId={rapport.id}
+              initial={rapport.sicherheitscheck}
+              onSaved={load}
+            />
           </TabsContent>
           <TabsContent value="beleg" className="mt-3 h-[70vh]">
             <PdfPane />

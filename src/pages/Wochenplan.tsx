@@ -26,6 +26,7 @@ interface Rapport {
   geplantes_datum: string;
   status: string;
   mechaniker_zuweisung: string | null;
+  arbeitszeit_stunden: number | null;
   fahrzeug: {
     kennzeichen: string;
     marke: string | null;
@@ -98,6 +99,7 @@ function DayColumn({
   const id = format(date, "yyyy-MM-dd");
   const { setNodeRef, isOver } = useDroppable({ id });
   const isToday = isSameDay(date, new Date());
+  const totalH = rapports.reduce((sum, r) => sum + (r.arbeitszeit_stunden ?? 0), 0);
 
   return (
     <div className="min-w-[240px] md:min-w-0 flex-1 flex flex-col">
@@ -115,6 +117,18 @@ function DayColumn({
             <Plus className="h-4 w-4" />
           </Button>
         </div>
+        {rapports.length > 0 && (
+          <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-medium">
+              {rapports.length} {rapports.length === 1 ? "Auftrag" : "Aufträge"}
+            </span>
+            {totalH > 0 && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">
+                {totalH.toLocaleString("de-CH", { maximumFractionDigits: 2 })} h
+              </span>
+            )}
+          </div>
+        )}
       </div>
       <div
         ref={setNodeRef}
@@ -149,7 +163,7 @@ export default function Wochenplan() {
     const to = format(addDays(weekStart, 5), "yyyy-MM-dd");
     const { data, error } = await (supabase as any)
       .from("arbeitsrapporte")
-      .select("id, rapport_nummer, auftragsnummer, geplantes_datum, status, mechaniker_zuweisung, fahrzeug:fahrzeuge(kennzeichen, marke)")
+      .select("id, rapport_nummer, auftragsnummer, geplantes_datum, status, mechaniker_zuweisung, arbeitszeit_stunden, fahrzeug:fahrzeuge(kennzeichen, marke)")
       .in("status", ["geplant", "in_arbeit"])
       .gte("geplantes_datum", from)
       .lte("geplantes_datum", to)
