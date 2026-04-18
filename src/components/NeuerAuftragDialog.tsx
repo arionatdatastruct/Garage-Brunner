@@ -109,7 +109,7 @@ export function NeuerAuftragDialog({ open, onOpenChange, onCreated, defaultDate 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Neuer Auftrag</DialogTitle>
         </DialogHeader>
@@ -135,17 +135,42 @@ export function NeuerAuftragDialog({ open, onOpenChange, onCreated, defaultDate 
             <div>
               <Label>Datum</Label>
               <Input type="date" value={datum} onChange={(e) => setDatum(e.target.value)} />
+              <div className="text-[11px] text-muted-foreground mt-1">
+                {zeitfensterFuer(datum)}
+              </div>
             </div>
             <div>
-              <Label>Mechaniker</Label>
-              <Select value={mechaniker} onValueChange={(v) => setMechaniker(v as any)}>
-                <SelectTrigger><SelectValue placeholder="Optional" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Roman">Roman</SelectItem>
-                  <SelectItem value="Pascal">Pascal</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label>Geplante Dauer (h)</Label>
+              <Input
+                type="number"
+                step="0.25"
+                min="0"
+                value={stunden}
+                onChange={(e) => setStunden(e.target.value)}
+              />
             </div>
+          </div>
+
+          {!istArbeitstag(datum) && (
+            <div className="text-xs text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded px-2 py-1.5">
+              Achtung: gewählter Tag ist kein Arbeitstag (Sa/So).
+            </div>
+          )}
+
+          <WochenAuslastung
+            selectedDate={datum}
+            zusatzStunden={Number(stunden) || 0}
+          />
+
+          <div>
+            <Label>Mechaniker</Label>
+            <Select value={mechaniker} onValueChange={(v) => setMechaniker(v as any)}>
+              <SelectTrigger><SelectValue placeholder="Optional" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Roman">Roman</SelectItem>
+                <SelectItem value="Pascal">Pascal</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div>
