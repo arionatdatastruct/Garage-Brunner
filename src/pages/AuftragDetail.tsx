@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AuftragStatusBar } from "@/components/AuftragStatusBar";
 import { AuftragForm } from "@/components/AuftragForm";
+import { SicherheitsCheck } from "@/components/SicherheitsCheck";
 import { ArrowLeft, FileText, Loader2 } from "lucide-react";
 
 interface Fahrzeug {
