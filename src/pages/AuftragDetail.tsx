@@ -5,7 +5,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AuftragStatusBar } from "@/components/AuftragStatusBar";
 import { AuftragForm } from "@/components/AuftragForm";
 import { SicherheitsCheck } from "@/components/SicherheitsCheck";
-import { ArrowLeft, FileText, Loader2 } from "lucide-react";
+import { RapportUebersicht } from "@/components/RapportUebersicht";
+import { ArrowLeft, FileText, Loader2, ExternalLink } from "lucide-react";
 
 interface Fahrzeug {
   id: string;
@@ -151,42 +152,42 @@ export default function AuftragDetail() {
     ? [fahrzeug.kennzeichen, fahrzeug.marke, fahrzeug.modell].filter(Boolean).join(" · ")
     : "—";
 
-  const PdfPane = () =>
-    rapport.pdf_url ? (
-      <div className="w-full h-full min-h-[60vh] flex flex-col gap-2">
-        <object
-          data={`${rapport.pdf_url}#toolbar=1&view=FitH`}
-          type="application/pdf"
-          className="w-full flex-1 min-h-[55vh] rounded-md border border-border bg-muted"
-        >
-          <div className="flex flex-col items-center justify-center h-full p-6 text-center text-muted-foreground gap-3">
-            <FileText className="h-8 w-8" />
-            <p className="text-sm">Vorschau nicht verfügbar in diesem Browser.</p>
+  const isErledigt = rapport.status === "erledigt" || rapport.status === "archiviert";
+
+  const PdfPane = () => (
+    <div className="w-full h-full min-h-[60vh] flex flex-col gap-3">
+      {isErledigt && (
+        <RapportUebersicht rapport={rapport} fahrzeug={fahrzeug} kunde={kunde} />
+      )}
+      {rapport.pdf_url ? (
+        <>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
+              <FileText className="h-3 w-3" /> Original-Beleg
+            </span>
             <a
               href={rapport.pdf_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-primary underline text-sm"
+              className="text-xs text-primary hover:underline inline-flex items-center gap-1"
             >
-              PDF in neuem Tab öffnen
+              <ExternalLink className="h-3 w-3" /> Neuer Tab
             </a>
           </div>
-        </object>
-        <a
-          href={rapport.pdf_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1 self-start"
-        >
-          <FileText className="h-3 w-3" /> In neuem Tab öffnen
-        </a>
-      </div>
-    ) : (
-      <div className="flex flex-col items-center justify-center min-h-[40vh] text-muted-foreground border border-dashed border-border rounded-md">
-        <FileText className="h-8 w-8 mb-2" />
-        Kein PDF
-      </div>
-    );
+          <iframe
+            src={`${rapport.pdf_url}#toolbar=1&view=FitH`}
+            title="Beleg PDF"
+            className="w-full flex-1 min-h-[55vh] rounded-md border border-border bg-muted"
+          />
+        </>
+      ) : (
+        <div className="flex flex-col items-center justify-center min-h-[40vh] text-muted-foreground border border-dashed border-border rounded-md">
+          <FileText className="h-8 w-8 mb-2" />
+          Kein PDF
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-4">
