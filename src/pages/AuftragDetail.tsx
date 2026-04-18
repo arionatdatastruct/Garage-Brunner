@@ -6,7 +6,8 @@ import { AuftragStatusBar } from "@/components/AuftragStatusBar";
 import { AuftragForm } from "@/components/AuftragForm";
 import { SicherheitsCheck } from "@/components/SicherheitsCheck";
 import { RapportUebersicht } from "@/components/RapportUebersicht";
-import { ArrowLeft, FileText, Loader2, ExternalLink } from "lucide-react";
+import { BelegPreview } from "@/components/BelegPreview";
+import { ArrowLeft, Loader2 } from "lucide-react";
 
 interface Fahrzeug {
   id: string;
@@ -159,33 +160,7 @@ export default function AuftragDetail() {
       {isErledigt && (
         <RapportUebersicht rapport={rapport} fahrzeug={fahrzeug} kunde={kunde} />
       )}
-      {rapport.pdf_url ? (
-        <>
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
-              <FileText className="h-3 w-3" /> Original-Beleg
-            </span>
-            <a
-              href={rapport.pdf_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-primary hover:underline inline-flex items-center gap-1"
-            >
-              <ExternalLink className="h-3 w-3" /> Neuer Tab
-            </a>
-          </div>
-          <iframe
-            src={`${rapport.pdf_url}#toolbar=1&view=FitH`}
-            title="Beleg PDF"
-            className="w-full flex-1 min-h-[55vh] rounded-md border border-border bg-muted"
-          />
-        </>
-      ) : (
-        <div className="flex flex-col items-center justify-center min-h-[40vh] text-muted-foreground border border-dashed border-border rounded-md">
-          <FileText className="h-8 w-8 mb-2" />
-          Kein PDF
-        </div>
-      )}
+      <BelegPreview pdfUrl={rapport.pdf_url} />
     </div>
   );
 
