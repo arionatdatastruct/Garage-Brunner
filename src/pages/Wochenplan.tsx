@@ -352,7 +352,43 @@ export default function Wochenplan() {
       </div>
 
       <DndContext sensors={sensors} onDragEnd={onDragEnd}>
-        <div className="flex md:grid md:grid-cols-5 gap-3 overflow-x-auto pb-4 -mx-4 px-4 md:mx-0 md:px-0">
+        {/* Mobile: Snap-Karussell, eine Spalte pro Screen */}
+        <div
+          className="md:hidden flex gap-3 overflow-x-auto snap-x snap-mandatory pb-4 -mx-3 px-3 scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          style={{ scrollPaddingInline: "0.75rem" }}
+        >
+          {days.map((d) => {
+            const key = format(d, "yyyy-MM-dd");
+            const dayRapports = rapports.filter((r) => r.geplantes_datum === key);
+            return (
+              <div
+                key={key}
+                className="snap-center shrink-0 w-[calc(100vw-1.5rem)] bg-muted/30 rounded-lg flex flex-col"
+              >
+                <DayColumn date={d} rapports={dayRapports} onAdd={() => openDialog(d)} onUpdateStunden={updateStunden} />
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Mobile: Pagination Dots */}
+        <div className="md:hidden flex justify-center gap-1.5 -mt-2 mb-2">
+          {days.map((d) => {
+            const isToday = isSameDay(d, new Date());
+            return (
+              <span
+                key={format(d, "yyyy-MM-dd")}
+                className={cn(
+                  "h-1.5 w-1.5 rounded-full",
+                  isToday ? "bg-primary" : "bg-muted-foreground/30"
+                )}
+              />
+            );
+          })}
+        </div>
+
+        {/* Desktop: Grid */}
+        <div className="hidden md:grid md:grid-cols-5 gap-3">
           {days.map((d) => {
             const key = format(d, "yyyy-MM-dd");
             const dayRapports = rapports.filter((r) => r.geplantes_datum === key);
