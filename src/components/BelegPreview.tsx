@@ -47,7 +47,7 @@ export function BelegPreview({ pdfUrl }: BelegPreviewProps) {
 
   useEffect(() => {
     const element = previewRef.current;
-    if (!element) return;
+    if (!element || !pdfData) return;
 
     const updateWidth = () => setPreviewWidth(element.clientWidth);
     updateWidth();
@@ -56,7 +56,7 @@ export function BelegPreview({ pdfUrl }: BelegPreviewProps) {
     observer.observe(element);
 
     return () => observer.disconnect();
-  }, []);
+  }, [pdfData]);
 
   useEffect(() => {
     let active = true;
