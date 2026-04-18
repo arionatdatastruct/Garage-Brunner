@@ -45,8 +45,8 @@ export function NeuerAuftragDialog({ open, onOpenChange, onCreated, defaultDate 
         .single();
       if (kuErr) throw kuErr;
 
-      // 1b. Fahrzeug anlegen (Platzhalter, KI füllt später nach)
-      const platzhalterKennzeichen = kennzeichen.trim() || `TMP-${Date.now().toString().slice(-6)}`;
+      // 1b. Fahrzeug anlegen (Platzhalter, KI füllt Kennzeichen + Marke nach)
+      const platzhalterKennzeichen = `TMP-${Date.now().toString().slice(-6)}`;
       const { data: fz, error: fzErr } = await (supabase as any)
         .from("fahrzeuge")
         .insert({ kennzeichen: platzhalterKennzeichen, kunde_id: ku.id })
