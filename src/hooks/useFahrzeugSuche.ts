@@ -1,27 +1,21 @@
 import { useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
-export interface Kunde {
-  id: string;
-  name: string;
-  adresse: string | null;
-  telefon: string | null;
-  email: string | null;
-}
-
 export interface Fahrzeug {
-  id: string;
+  id: string; // = neuester rapport.id für dieses Kennzeichen
   kennzeichen: string;
   marke: string | null;
   modell: string | null;
   jahrgang: string | null;
-  kunde_id: string | null;
-  kunde: Kunde | null;
+  kunde_name: string | null;
+  kunde_ort: string | null;
+  kunde_telefon: string | null;
+  kunde_email: string | null;
 }
 
 export interface HistorieItem {
   id: string;
-  datum: string;
+  geplantes_datum: string;
   kategorie: string | null;
   km_stand: number | null;
   material_liste: any;
@@ -40,32 +34,46 @@ export function useFahrzeugSuche() {
     if (query.length < 2) { setResults([]); return; }
     setSearching(true);
     timeoutRef.current = setTimeout(async () => {
-      const { data } = await supabase
-        .from('fahrzeuge')
-        .select('id, kennzeichen, marke, modell, jahrgang, kunde_id, kunden(id, name, adresse, telefon, email)')
+      // Suche flach in arbeitsrapporte; jüngsten Eintrag pro Kennzeichen behalten
+      const { data } = await (supabase as any)
+        .from('arbeitsrapporte')
+        .select('id, kennzeichen, marke, modell, jahrgang, kunde_name, kunde_ort, kunde_telefon, kunde_email, created_at')
         .ilike('kennzeichen', `%${query}%`)
-        .limit(10);
-      const mapped: Fahrzeug[] = (data || []).map((d: any) => ({
-        id: d.id,
-        kennzeichen: d.kennzeichen,
-        marke: d.marke,
-        modell: d.modell,
-        jahrgang: d.jahrgang,
-        kunde_id: d.kunde_id,
-        kunde: d.kunden || null,
-      }));
+        .not('kennzeichen', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      const seen = new Set<string>();
+      const mapped: Fahrzeug[] = [];
+      for (const d of (data || [])) {
+        const key = (d.kennzeichen || '').toUpperCase();
+        if (!key || seen.has(key)) continue;
+        seen.add(key);
+        mapped.push({
+          id: d.id,
+          kennzeichen: d.kennzeichen,
+          marke: d.marke,
+          modell: d.modell,
+          jahrgang: d.jahrgang,
+          kunde_name: d.kunde_name,
+          kunde_ort: d.kunde_ort,
+          kunde_telefon: d.kunde_telefon,
+          kunde_email: d.kunde_email,
+        });
+        if (mapped.length >= 10) break;
+      }
       setResults(mapped);
       setSearching(false);
     }, 300);
   }, []);
 
-  const loadHistorie = useCallback(async (fahrzeugId: string) => {
+  const loadHistorie = useCallback(async (kennzeichen: string) => {
     setHistorieLoading(true);
-    const { data } = await supabase
+    const { data } = await (supabase as any)
       .from('arbeitsrapporte')
-      .select('id, datum, kategorie, km_stand, material_liste, arbeit_beschreibung')
-      .eq('fahrzeug_id', fahrzeugId)
-      .order('datum', { ascending: false })
+      .select('id, geplantes_datum, kategorie, km_stand, material_liste, arbeit_beschreibung')
+      .eq('kennzeichen', kennzeichen)
+      .order('geplantes_datum', { ascending: false })
       .limit(5);
     setHistorie((data as HistorieItem[]) || []);
     setHistorieLoading(false);

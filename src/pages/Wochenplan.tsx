@@ -29,10 +29,8 @@ interface Rapport {
   status: string;
   mechaniker_zuweisung: string | null;
   arbeitszeit_stunden: number | null;
-  fahrzeug: {
-    kennzeichen: string;
-    marke: string | null;
-  } | null;
+  kennzeichen: string | null;
+  marke: string | null;
 }
 
 const MECH_COLOR: Record<string, string> = {

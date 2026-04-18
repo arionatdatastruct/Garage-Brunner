@@ -9,23 +9,6 @@ import { RapportUebersicht } from "@/components/RapportUebersicht";
 import { BelegPreview } from "@/components/BelegPreview";
 import { ArrowLeft, Loader2 } from "lucide-react";
 
-interface Fahrzeug {
-  id: string;
-  kennzeichen: string;
-  marke: string | null;
-  modell: string | null;
-  chassis_nr: string | null;
-  kunde_id: string | null;
-}
-
-interface Kunde {
-  id: string;
-  name: string;
-  ort: string | null;
-  telefon: string | null;
-  email: string | null;
-}
-
 interface Rapport {
   id: string;
   rapport_nummer: string | null;
@@ -40,15 +23,25 @@ interface Rapport {
   mechaniker_zuweisung: "Roman" | "Pascal" | null;
   auftragswert_chf: number | null;
   notizen: string | null;
-  fahrzeug_id: string | null;
   sicherheitscheck: Record<string, unknown> | null;
+  // Snapshot Kunde
+  kunde_name: string | null;
+  kunde_ort: string | null;
+  kunde_strasse: string | null;
+  kunde_plz: string | null;
+  kunde_telefon: string | null;
+  kunde_email: string | null;
+  // Snapshot Fahrzeug
+  kennzeichen: string | null;
+  marke: string | null;
+  modell: string | null;
+  jahrgang: string | null;
+  chassis_nr: string | null;
 }
 
 export default function AuftragDetail() {
   const { id } = useParams();
   const [rapport, setRapport] = useState<Rapport | null>(null);
-  const [fahrzeug, setFahrzeug] = useState<Fahrzeug | null>(null);
-  const [kunde, setKunde] = useState<Kunde | null>(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -63,23 +56,6 @@ export default function AuftragDetail() {
       return;
     }
     setRapport(rap as Rapport);
-
-    if (rap.fahrzeug_id) {
-      const { data: fz } = await (supabase as any)
-        .from("fahrzeuge")
-        .select("*")
-        .eq("id", rap.fahrzeug_id)
-        .single();
-      setFahrzeug(fz as Fahrzeug);
-      if (fz?.kunde_id) {
-        const { data: ku } = await (supabase as any)
-          .from("kunden")
-          .select("*")
-          .eq("id", fz.kunde_id)
-          .single();
-        setKunde(ku as Kunde);
-      }
-    }
     setLoading(false);
   }, [id]);
 
@@ -103,33 +79,6 @@ export default function AuftragDetail() {
     };
   }, [id, load]);
 
-  // Realtime auf Fahrzeug & Kunde (n8n schreibt dort auch)
-  useEffect(() => {
-    if (!fahrzeug?.id) return;
-    const ch = supabase
-      .channel(`fz-${fahrzeug.id}`)
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "fahrzeuge", filter: `id=eq.${fahrzeug.id}` },
-        () => load()
-      )
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
-  }, [fahrzeug?.id, load]);
-
-  useEffect(() => {
-    if (!kunde?.id) return;
-    const ch = supabase
-      .channel(`ku-${kunde.id}`)
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "kunden", filter: `id=eq.${kunde.id}` },
-        () => load()
-      )
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
-  }, [kunde?.id, load]);
-
   if (loading) {
     return (
       <div className="p-6 flex items-center gap-2 text-muted-foreground">
@@ -149,17 +98,15 @@ export default function AuftragDetail() {
     );
   }
 
-  const fahrzeugLabel = fahrzeug
-    ? [fahrzeug.kennzeichen, fahrzeug.marke, fahrzeug.modell].filter(Boolean).join(" · ")
-    : "—";
+  const fahrzeugLabel = [rapport.kennzeichen, rapport.marke, rapport.modell]
+    .filter(Boolean)
+    .join(" · ") || "—";
 
   const isErledigt = rapport.status === "erledigt" || rapport.status === "archiviert";
 
   const PdfPane = () => (
     <div className="w-full h-full min-h-[60vh] flex flex-col gap-3">
-      {isErledigt && (
-        <RapportUebersicht rapport={rapport} fahrzeug={fahrzeug} kunde={kunde} />
-      )}
+      {isErledigt && <RapportUebersicht rapport={rapport} />}
       <BelegPreview pdfUrl={rapport.pdf_url} />
     </div>
   );
@@ -185,7 +132,7 @@ export default function AuftragDetail() {
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             {fahrzeugLabel}
-            {kunde?.name && kunde.name !== "(wird ergänzt)" && ` · ${kunde.name}`}
+            {rapport.kunde_name && ` · ${rapport.kunde_name}`}
           </p>
         </div>
         <AuftragStatusBar rapportId={rapport.id} status={rapport.status} onChanged={load} />
@@ -197,7 +144,7 @@ export default function AuftragDetail() {
           <PdfPane />
         </div>
         <div className="overflow-y-auto pr-1 space-y-4">
-          <AuftragForm rapport={rapport} kunde={kunde} onSaved={load} />
+          <AuftragForm rapport={rapport} onSaved={load} />
           <SicherheitsCheck
             rapportId={rapport.id}
             initial={rapport.sicherheitscheck}
@@ -214,7 +161,7 @@ export default function AuftragDetail() {
             <TabsTrigger value="beleg" className="text-sm">Beleg</TabsTrigger>
           </TabsList>
           <TabsContent value="daten" className="mt-3 space-y-4">
-            <AuftragForm rapport={rapport} kunde={kunde} onSaved={load} />
+            <AuftragForm rapport={rapport} onSaved={load} />
             <SicherheitsCheck
               rapportId={rapport.id}
               initial={rapport.sicherheitscheck}

@@ -37,56 +37,41 @@ export function NeuerAuftragDialog({ open, onOpenChange, onCreated, defaultDate 
     }
     setBusy(true);
     try {
-      // 1a. Kunde-Platzhalter anlegen (KI füllt name/ort später nach)
-      const { data: ku, error: kuErr } = await (supabase as any)
-        .from("kunden")
-        .insert({ name: "(wird ergänzt)" })
+      // 1. Rapport anlegen (flach — alle Snapshot-Felder erstmal leer, KI füllt nach)
+      const stundenNum = stunden ? Number(stunden) : null;
+      const { data: rap, error: rapErr } = await (supabase as any)
+        .from("arbeitsrapporte")
+        .insert({
+          status: "geplant",
+          geplantes_datum: datum,
+          mechaniker_zuweisung: mechaniker || null,
+          arbeitszeit_stunden: stundenNum,
+        })
         .select()
         .single();
-      if (kuErr) throw kuErr;
+      if (rapErr) throw rapErr;
 
-      // 1b. Fahrzeug anlegen (Platzhalter, KI füllt Kennzeichen + Marke nach)
-      const platzhalterKennzeichen = `TMP-${Date.now().toString().slice(-6)}`;
-      const { data: fz, error: fzErr } = await (supabase as any)
-        .from("fahrzeuge")
-        .insert({ kennzeichen: platzhalterKennzeichen, kunde_id: ku.id })
-        .select()
-        .single();
-      if (fzErr) throw fzErr;
-
-      // 2. PDF in belege-Bucket
-      const path = `${fz.id}/${Date.now()}-${pdfFile.name}`;
+      // 2. PDF in belege-Bucket (Pfad mit rapport.id)
+      const path = `${rap.id}/${Date.now()}-${pdfFile.name}`;
       const { error: upErr } = await supabase.storage.from("belege").upload(path, pdfFile, {
         contentType: "application/pdf",
       });
       if (upErr) throw upErr;
       const { data: pub } = supabase.storage.from("belege").getPublicUrl(path);
 
-      // 3. Rapport anlegen
-      const stundenNum = stunden ? Number(stunden) : null;
-      const { data: rap, error: rapErr } = await (supabase as any)
+      // 3. pdf_url nachtragen
+      const { error: updErr } = await (supabase as any)
         .from("arbeitsrapporte")
-        .insert({
-          fahrzeug_id: fz.id,
-          status: "geplant",
-          geplantes_datum: datum,
-          mechaniker_zuweisung: mechaniker || null,
-          arbeitszeit_stunden: stundenNum,
-          pdf_url: pub.publicUrl,
-        })
-        .select()
-        .single();
-      if (rapErr) throw rapErr;
+        .update({ pdf_url: pub.publicUrl })
+        .eq("id", rap.id);
+      if (updErr) throw updErr;
 
-      // 4. n8n Webhook (KI extrahiert auftragsnummer & co)
+      // 4. n8n Webhook (KI extrahiert alle Felder direkt in arbeitsrapporte)
       try {
         await supabase.functions.invoke("notify-n8n", {
           body: {
             rapport_id: rap.id,
-            fahrzeug_id: fz.id,
-            kunde_id: ku.id,
             pdf_url: pub.publicUrl,
-            kennzeichen: platzhalterKennzeichen,
           },
         });
       } catch (whErr) {

@@ -17,51 +17,47 @@ interface Rapport {
   mechaniker_zuweisung: "Roman" | "Pascal" | null;
   auftragswert_chf: number | null;
   notizen: string | null;
-}
-
-interface Kunde {
-  id: string;
-  name: string;
-  ort: string | null;
-  telefon: string | null;
-  email: string | null;
+  // Kunde-Snapshot
+  kunde_name: string | null;
+  kunde_ort: string | null;
+  kunde_strasse: string | null;
+  kunde_plz: string | null;
+  kunde_telefon: string | null;
+  kunde_email: string | null;
+  // Fahrzeug-Snapshot
+  kennzeichen: string | null;
+  marke: string | null;
+  modell: string | null;
+  jahrgang: string | null;
+  chassis_nr: string | null;
 }
 
 interface Props {
   rapport: Rapport;
-  kunde: Kunde | null;
   onSaved: () => void;
 }
 
 const KATEGORIEN = ["Service", "Reparatur", "MFK", "Reifen", "Sonstiges"];
 type SaveState = "idle" | "saving" | "saved";
 
-export function AuftragForm({ rapport, kunde, onSaved }: Props) {
+export function AuftragForm({ rapport, onSaved }: Props) {
   const [r, setR] = useState(rapport);
-  const [k, setK] = useState<Kunde | null>(kunde);
-  const [rState, setRState] = useState<SaveState>("idle");
-  const [kState, setKState] = useState<SaveState>("idle");
+  const [state, setState] = useState<SaveState>("idle");
 
-  const rTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const kTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const rDirty = useRef(false);
-  const kDirty = useRef(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dirty = useRef(false);
 
   useEffect(() => {
     setR(rapport);
-    rDirty.current = false;
+    dirty.current = false;
   }, [rapport]);
-  useEffect(() => {
-    setK(kunde);
-    kDirty.current = false;
-  }, [kunde]);
 
-  // Auto-save Rapport
+  // Auto-save (alle Felder in einem Update — ein Tabellen-Target)
   useEffect(() => {
-    if (!rDirty.current) return;
-    if (rTimer.current) clearTimeout(rTimer.current);
-    setRState("saving");
-    rTimer.current = setTimeout(async () => {
+    if (!dirty.current) return;
+    if (timer.current) clearTimeout(timer.current);
+    setState("saving");
+    timer.current = setTimeout(async () => {
       try {
         const { error } = await (supabase as any)
           .from("arbeitsrapporte")
@@ -73,57 +69,37 @@ export function AuftragForm({ rapport, kunde, onSaved }: Props) {
             mechaniker_zuweisung: r.mechaniker_zuweisung,
             auftragswert_chf: r.auftragswert_chf,
             notizen: r.notizen,
+            kunde_name: r.kunde_name,
+            kunde_ort: r.kunde_ort,
+            kunde_strasse: r.kunde_strasse,
+            kunde_plz: r.kunde_plz,
+            kunde_telefon: r.kunde_telefon,
+            kunde_email: r.kunde_email,
+            kennzeichen: r.kennzeichen,
+            marke: r.marke,
+            modell: r.modell,
+            jahrgang: r.jahrgang,
+            chassis_nr: r.chassis_nr,
           })
           .eq("id", r.id);
         if (error) throw error;
-        setRState("saved");
+        setState("saved");
         onSaved();
-        setTimeout(() => setRState("idle"), 1500);
+        setTimeout(() => setState("idle"), 1500);
       } catch (e: any) {
-        setRState("idle");
+        setState("idle");
         toast.error(e.message ?? "Fehler beim Speichern");
       }
     }, 700);
     return () => {
-      if (rTimer.current) clearTimeout(rTimer.current);
+      if (timer.current) clearTimeout(timer.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [r]);
 
-  // Auto-save Kunde
-  useEffect(() => {
-    if (!kDirty.current || !k) return;
-    if (kTimer.current) clearTimeout(kTimer.current);
-    setKState("saving");
-    kTimer.current = setTimeout(async () => {
-      try {
-        const { error } = await (supabase as any)
-          .from("kunden")
-          .update({ name: k.name, ort: k.ort, telefon: k.telefon, email: k.email })
-          .eq("id", k.id);
-        if (error) throw error;
-        setKState("saved");
-        onSaved();
-        setTimeout(() => setKState("idle"), 1500);
-      } catch (e: any) {
-        setKState("idle");
-        toast.error(e.message ?? "Fehler beim Speichern");
-      }
-    }, 700);
-    return () => {
-      if (kTimer.current) clearTimeout(kTimer.current);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [k]);
-
-  const updR = (patch: Partial<Rapport>) => {
-    rDirty.current = true;
+  const upd = (patch: Partial<Rapport>) => {
+    dirty.current = true;
     setR((prev) => ({ ...prev, ...patch }));
-  };
-  const updK = (patch: Partial<Kunde>) => {
-    if (!k) return;
-    kDirty.current = true;
-    setK({ ...k, ...patch });
   };
 
   const num = (v: string) => (v === "" ? null : Number(v));
@@ -145,10 +121,56 @@ export function AuftragForm({ rapport, kunde, onSaved }: Props) {
 
   return (
     <div className="space-y-4">
+      {/* Fahrzeug */}
+      <Card>
+        <CardHeader className="flex-row items-center justify-between space-y-0">
+          <CardTitle className="text-base">Fahrzeug</CardTitle>
+          <SaveIndicator state={state} />
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Kennzeichen</Label>
+              <Input
+                value={r.kennzeichen ?? ""}
+                onChange={(e) => upd({ kennzeichen: e.target.value })}
+                className="font-mono"
+              />
+            </div>
+            <div>
+              <Label>Jahrgang</Label>
+              <Input
+                value={r.jahrgang ?? ""}
+                onChange={(e) => upd({ jahrgang: e.target.value })}
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Marke</Label>
+              <Input value={r.marke ?? ""} onChange={(e) => upd({ marke: e.target.value })} />
+            </div>
+            <div>
+              <Label>Modell</Label>
+              <Input value={r.modell ?? ""} onChange={(e) => upd({ modell: e.target.value })} />
+            </div>
+          </div>
+          <div>
+            <Label>Chassis-Nr.</Label>
+            <Input
+              value={r.chassis_nr ?? ""}
+              onChange={(e) => upd({ chassis_nr: e.target.value })}
+              className="font-mono text-xs"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Auftrag */}
       <Card>
         <CardHeader className="flex-row items-center justify-between space-y-0">
           <CardTitle className="text-base">Auftrag</CardTitle>
-          <SaveIndicator state={rState} />
+          <SaveIndicator state={state} />
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
@@ -156,7 +178,7 @@ export function AuftragForm({ rapport, kunde, onSaved }: Props) {
               <Label>Kategorie</Label>
               <Select
                 value={r.kategorie ?? ""}
-                onValueChange={(v) => updR({ kategorie: v })}
+                onValueChange={(v) => upd({ kategorie: v })}
               >
                 <SelectTrigger><SelectValue placeholder="Wählen" /></SelectTrigger>
                 <SelectContent>
@@ -168,7 +190,7 @@ export function AuftragForm({ rapport, kunde, onSaved }: Props) {
               <Label>Mechaniker</Label>
               <Select
                 value={r.mechaniker_zuweisung ?? ""}
-                onValueChange={(v) => updR({ mechaniker_zuweisung: v as "Roman" | "Pascal" })}
+                onValueChange={(v) => upd({ mechaniker_zuweisung: v as "Roman" | "Pascal" })}
               >
                 <SelectTrigger><SelectValue placeholder="Wählen" /></SelectTrigger>
                 <SelectContent>
@@ -185,7 +207,7 @@ export function AuftragForm({ rapport, kunde, onSaved }: Props) {
               <Input
                 type="number"
                 value={r.km_stand ?? ""}
-                onChange={(e) => updR({ km_stand: num(e.target.value) })}
+                onChange={(e) => upd({ km_stand: num(e.target.value) })}
               />
             </div>
             <div>
@@ -194,7 +216,7 @@ export function AuftragForm({ rapport, kunde, onSaved }: Props) {
                 type="number"
                 step="0.25"
                 value={r.arbeitszeit_stunden ?? ""}
-                onChange={(e) => updR({ arbeitszeit_stunden: num(e.target.value) })}
+                onChange={(e) => upd({ arbeitszeit_stunden: num(e.target.value) })}
               />
             </div>
           </div>
@@ -205,7 +227,7 @@ export function AuftragForm({ rapport, kunde, onSaved }: Props) {
               type="number"
               step="0.05"
               value={r.auftragswert_chf ?? ""}
-              onChange={(e) => updR({ auftragswert_chf: num(e.target.value) })}
+              onChange={(e) => upd({ auftragswert_chf: num(e.target.value) })}
             />
           </div>
 
@@ -214,7 +236,7 @@ export function AuftragForm({ rapport, kunde, onSaved }: Props) {
             <Textarea
               rows={3}
               value={r.arbeit_beschreibung ?? ""}
-              onChange={(e) => updR({ arbeit_beschreibung: e.target.value })}
+              onChange={(e) => upd({ arbeit_beschreibung: e.target.value })}
             />
           </div>
 
@@ -223,44 +245,68 @@ export function AuftragForm({ rapport, kunde, onSaved }: Props) {
             <Textarea
               rows={2}
               value={r.notizen ?? ""}
-              onChange={(e) => updR({ notizen: e.target.value })}
+              onChange={(e) => upd({ notizen: e.target.value })}
             />
           </div>
         </CardContent>
       </Card>
 
-      {k && (
-        <Card>
-          <CardHeader className="flex-row items-center justify-between space-y-0">
-            <CardTitle className="text-base">Kunde</CardTitle>
-            <SaveIndicator state={kState} />
-          </CardHeader>
-          <CardContent className="space-y-3">
+      {/* Kunde */}
+      <Card>
+        <CardHeader className="flex-row items-center justify-between space-y-0">
+          <CardTitle className="text-base">Kunde</CardTitle>
+          <SaveIndicator state={state} />
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div>
+            <Label>Name</Label>
+            <Input
+              value={r.kunde_name ?? ""}
+              onChange={(e) => upd({ kunde_name: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label>Strasse</Label>
+            <Input
+              value={r.kunde_strasse ?? ""}
+              onChange={(e) => upd({ kunde_strasse: e.target.value })}
+            />
+          </div>
+          <div className="grid grid-cols-3 gap-3">
             <div>
-              <Label>Name</Label>
-              <Input value={k.name ?? ""} onChange={(e) => updK({ name: e.target.value })} />
+              <Label>PLZ</Label>
+              <Input
+                value={r.kunde_plz ?? ""}
+                onChange={(e) => upd({ kunde_plz: e.target.value })}
+              />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Ort</Label>
-                <Input value={k.ort ?? ""} onChange={(e) => updK({ ort: e.target.value })} />
-              </div>
-              <div>
-                <Label>Telefon</Label>
-                <Input value={k.telefon ?? ""} onChange={(e) => updK({ telefon: e.target.value })} />
-              </div>
+            <div className="col-span-2">
+              <Label>Ort</Label>
+              <Input
+                value={r.kunde_ort ?? ""}
+                onChange={(e) => upd({ kunde_ort: e.target.value })}
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Telefon</Label>
+              <Input
+                value={r.kunde_telefon ?? ""}
+                onChange={(e) => upd({ kunde_telefon: e.target.value })}
+              />
             </div>
             <div>
               <Label>E-Mail</Label>
               <Input
                 type="email"
-                value={k.email ?? ""}
-                onChange={(e) => updK({ email: e.target.value })}
+                value={r.kunde_email ?? ""}
+                onChange={(e) => upd({ kunde_email: e.target.value })}
               />
             </div>
-          </CardContent>
-        </Card>
-      )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
