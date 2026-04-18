@@ -319,6 +319,31 @@ export default function Wochenplan() {
         </div>
       </header>
 
+      <div className="mb-4 rounded-lg border border-border bg-card p-4 shadow-sm">
+        <div className="flex items-end justify-between gap-4 flex-wrap">
+          <div>
+            <div className="text-xs text-muted-foreground uppercase tracking-wider">Wochen-Auslastung</div>
+            <div className="flex items-baseline gap-2 mt-0.5">
+              <span className="text-3xl font-bold font-mono">
+                {weekTotalH.toLocaleString("de-CH", { maximumFractionDigits: 2 })}
+                <span className="text-muted-foreground text-xl">/{weekKap}h</span>
+              </span>
+              <span className={cn("text-2xl font-bold", weekText)}>{weekPct}%</span>
+            </div>
+          </div>
+          <div className="text-right text-xs text-muted-foreground">
+            <div>{rapports.length} {rapports.length === 1 ? "Auftrag" : "Aufträge"} geplant</div>
+            <div>Mo–Do je 9 h · Fr 8 h</div>
+          </div>
+        </div>
+        <div className="h-2 mt-3 rounded-full bg-muted overflow-hidden">
+          <div
+            className={cn("h-full transition-all", weekBar)}
+            style={{ width: `${Math.min(100, weekPct)}%` }}
+          />
+        </div>
+      </div>
+
       <DndContext sensors={sensors} onDragEnd={onDragEnd}>
         <div className="flex md:grid md:grid-cols-5 gap-3 overflow-x-auto pb-4 -mx-4 px-4 md:mx-0 md:px-0">
           {days.map((d) => {
