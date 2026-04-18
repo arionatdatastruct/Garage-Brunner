@@ -26,6 +26,7 @@ export type Database = {
           id: string
           kategorie: string | null
           km_stand: number | null
+          kunde_benachrichtigt: string | null
           material_liste: Json | null
           mechaniker: string | null
           mfk_datum: string | null
@@ -34,6 +35,7 @@ export type Database = {
           notizen: string | null
           rapport_nummer: string | null
           reifen_zustand: string | null
+          Reparaturbenachrichtigung: string | null
           sicherheitscheck: Json | null
         }
         Insert: {
@@ -47,6 +49,7 @@ export type Database = {
           id?: string
           kategorie?: string | null
           km_stand?: number | null
+          kunde_benachrichtigt?: string | null
           material_liste?: Json | null
           mechaniker?: string | null
           mfk_datum?: string | null
@@ -55,6 +58,7 @@ export type Database = {
           notizen?: string | null
           rapport_nummer?: string | null
           reifen_zustand?: string | null
+          Reparaturbenachrichtigung?: string | null
           sicherheitscheck?: Json | null
         }
         Update: {
@@ -68,6 +72,7 @@ export type Database = {
           id?: string
           kategorie?: string | null
           km_stand?: number | null
+          kunde_benachrichtigt?: string | null
           material_liste?: Json | null
           mechaniker?: string | null
           mfk_datum?: string | null
@@ -76,6 +81,7 @@ export type Database = {
           notizen?: string | null
           rapport_nummer?: string | null
           reifen_zustand?: string | null
+          Reparaturbenachrichtigung?: string | null
           sicherheitscheck?: Json | null
         }
         Relationships: [
