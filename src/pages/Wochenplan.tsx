@@ -18,6 +18,8 @@ import { Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import { NeuerAuftragDialog } from "@/components/NeuerAuftragDialog";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { kapazitaetFuer, auslastungsFarbe } from "@/lib/arbeitszeiten";
+import { cn } from "@/lib/utils";
 
 interface Rapport {
   id: string;
