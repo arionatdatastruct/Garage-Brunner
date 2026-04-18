@@ -7,6 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Upload, Loader2 } from "lucide-react";
+import { WochenAuslastung } from "@/components/WochenAuslastung";
+import { zeitfensterFuer, istArbeitstag } from "@/lib/arbeitszeiten";
 
 interface Props {
   open: boolean;
