@@ -26,6 +26,7 @@ interface Rapport {
   geplantes_datum: string;
   status: string;
   mechaniker_zuweisung: string | null;
+  arbeitszeit_stunden: number | null;
   fahrzeug: {
     kennzeichen: string;
     marke: string | null;
