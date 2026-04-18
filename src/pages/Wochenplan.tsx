@@ -116,6 +116,18 @@ function DayColumn({
             <Plus className="h-4 w-4" />
           </Button>
         </div>
+        {rapports.length > 0 && (
+          <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-medium">
+              {rapports.length} {rapports.length === 1 ? "Auftrag" : "Aufträge"}
+            </span>
+            {totalH > 0 && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">
+                {totalH.toLocaleString("de-CH", { maximumFractionDigits: 2 })} h
+              </span>
+            )}
+          </div>
+        )}
       </div>
       <div
         ref={setNodeRef}
