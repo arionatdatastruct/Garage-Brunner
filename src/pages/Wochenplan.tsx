@@ -10,7 +10,7 @@ import {
   useDraggable,
 } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
-import { format, startOfWeek, addDays, isSameDay, parseISO } from "date-fns";
+import { format, startOfWeek, addDays, isSameDay, parseISO, getISOWeek, getISOWeekYear } from "date-fns";
 import { de } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -190,19 +190,24 @@ export default function Wochenplan() {
     <div className="p-4 md:p-6">
       <header className="flex items-center justify-between mb-4 flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Wochenplan</h1>
-          <p className="text-sm text-muted-foreground">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-2xl font-bold">Wochenplan</h1>
+            <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-primary/10 text-primary text-sm font-semibold">
+              KW {getISOWeek(weekStart)} · {getISOWeekYear(weekStart)}
+            </span>
+          </div>
+          <p className="text-sm text-muted-foreground mt-1">
             {format(weekStart, "d. MMM", { locale: de })} – {format(addDays(weekStart, 5), "d. MMM yyyy", { locale: de })}
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button size="icon" variant="outline" onClick={() => setWeekStart((d) => addDays(d, -7))}>
+          <Button size="icon" variant="outline" onClick={() => setWeekStart((d) => addDays(d, -7))} title="Vorherige Woche">
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <Button variant="outline" onClick={() => setWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))}>
             Heute
           </Button>
-          <Button size="icon" variant="outline" onClick={() => setWeekStart((d) => addDays(d, 7))}>
+          <Button size="icon" variant="outline" onClick={() => setWeekStart((d) => addDays(d, 7))} title="Nächste Woche">
             <ChevronRight className="h-4 w-4" />
           </Button>
           <Button onClick={() => openDialog()}>
