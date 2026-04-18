@@ -150,7 +150,7 @@ export default function Wochenplan() {
     const to = format(addDays(weekStart, 5), "yyyy-MM-dd");
     const { data, error } = await (supabase as any)
       .from("arbeitsrapporte")
-      .select("id, rapport_nummer, auftragsnummer, geplantes_datum, status, mechaniker_zuweisung, fahrzeug:fahrzeuge(kennzeichen, marke)")
+      .select("id, rapport_nummer, auftragsnummer, geplantes_datum, status, mechaniker_zuweisung, arbeitszeit_stunden, fahrzeug:fahrzeuge(kennzeichen, marke)")
       .in("status", ["geplant", "in_arbeit"])
       .gte("geplantes_datum", from)
       .lte("geplantes_datum", to)
