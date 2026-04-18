@@ -1,100 +1,50 @@
 
-Tabula rasa + neuer Aufbau. Webhook-URL ist da, ich speichere sie als Secret und rufe sie via Edge Function auf (damit sie nicht im Frontend liegt).
 
-## Phase 1 — DB & Storage zurücksetzen
+User entfernt 3 Felder aus dem geplanten `AuftragForm.tsx`: `naechster_service_datum`, `naechster_service_km`, `mfk_datum`. Rest von Phase 5 bleibt gleich.
 
-**SQL-Migration:**
-```sql
--- Alles löschen
-DROP TABLE IF EXISTS arbeitsrapporte CASCADE;
-DROP TABLE IF EXISTS fahrzeuge CASCADE;
-DROP TABLE IF EXISTS kunden CASCADE;
-DROP SEQUENCE IF EXISTS rapport_nummer_seq;
-DROP FUNCTION IF EXISTS generate_rapport_nummer();
+## Phase 5 — Auftragsdetailseite `/auftrag/:id` (angepasst)
 
--- Storage zurücksetzen
-DELETE FROM storage.objects WHERE bucket_id IN ('fotos','belege');
-DELETE FROM storage.buckets WHERE id IN ('fotos','belege');
+### 1. Mini-Migration
+- `fahrzeuge.chassis_nr` (TEXT, nullable)
+- `kunden.ort` (TEXT, nullable)
 
--- Enum für Status
-CREATE TYPE rapport_status AS ENUM ('geplant','in_arbeit','erledigt','archiviert');
-CREATE TYPE mechaniker_name AS ENUM ('Roman','Pascal');
+### 2. `NeuerAuftragDialog.tsx` + `notify-n8n` Edge Function
+- Payload um `fahrzeug_id` und `kunde_id` erweitern, damit n8n diese Rows updaten kann.
 
--- Neue Tabellen
-CREATE TABLE kunden (...);
-CREATE TABLE fahrzeuge (... kunde_id UUID REFERENCES kunden);
-CREATE TABLE arbeitsrapporte (
-  id, rapport_nummer, fahrzeug_id REFERENCES fahrzeuge,
-  status rapport_status DEFAULT 'geplant',
-  mechaniker_zuweisung mechaniker_name,
-  geplantes_datum DATE DEFAULT CURRENT_DATE,
-  pdf_url TEXT,
-  auftragswert_chf NUMERIC,
-  datum, km_stand, kategorie, arbeit_beschreibung,
-  material_liste JSONB, sicherheitscheck JSONB,
-  arbeitszeit_stunden, mechaniker, reifen_zustand,
-  naechster_service_datum, naechster_service_km, mfk_datum,
-  notizen, fotos TEXT[], ampel_status,
-  created_at, updated_at
-);
+### 3. `AuftragDetail.tsx` (Neuaufbau)
+- Joined Query: Rapport + Fahrzeug + Kunde
+- **Realtime-Subscription** auf `arbeitsrapporte` → Felder erscheinen live, wenn n8n schreibt
+- Header: Rapport-Nr., Kennzeichen, Fahrzeug, Status-Badge, Zurück-Link
+- Desktop (`md:`): 2-Spalten-Grid `[PDF iframe | StatusBar + Form]`
+- Mobile: `<Tabs>` „Beleg" / „Daten"
 
--- Sequence + Trigger für RAP-XXXX
--- updated_at Trigger
--- Storage Buckets: 'belege' (public) + 'fotos' (public) mit RLS
--- RLS-Policies: vorerst offen (wie bisher, kein Auth)
-```
+### 4. `AuftragStatusBar.tsx` (neu)
+| Button | → status | Sichtbar wenn |
+|---|---|---|
+| In Arbeit | `in_arbeit` | status ∈ {geplant, erledigt} |
+| Erledigt | `erledigt` | status ∈ {in_arbeit, geplant} |
+| Archivieren | `archiviert` | status = erledigt |
 
-**Storage Buckets neu:**
-- `belege` — public, für PDF-Belege
-- `fotos` — public, für Fahrzeugfotos
+### 5. `AuftragForm.tsx` (neu) — reduziert
+Editierbare Felder mit Speichern-Button:
+- `kategorie` (Select: Service / Reparatur / MFK / Reifen / Sonstiges)
+- `km_stand`
+- `arbeit_beschreibung`
+- `arbeitszeit_stunden`
+- `mechaniker_zuweisung` (Select: Roman / Pascal)
+- `auftragswert_chf` (von n8n vorbefüllt, editierbar)
+- `notizen`
+- Kunden-Block (anzeigen + editieren): `name`, `ort`, `telefon`, `email`
 
-## Phase 2 — Layout & Routing
+**Entfernt:** ~~naechster_service_datum~~, ~~naechster_service_km~~, ~~mfk_datum~~
 
-- `App.tsx`: Routes ersetzen → `/` (Wochenplan), `/archiv`, `/statistiken`, `/auftrag/:id`. **NotFound bleibt**, altes Formular **gelöscht**.
-- `AppLayout.tsx`: Sidebar Desktop (`md:`), BottomNav Mobile
-- `pages/Index.tsx` → wird Wochenplan-Seite
-- Placeholder-Seiten für Archiv & Statistiken (kommen in späteren Phasen)
+### Was du parallel in n8n ergänzt
+- **Supabase-Node B** `fahrzeuge` Update (`kennzeichen`, `marke`, `chassis_nr`) mit Filter auf `fahrzeug_id`
+- **Supabase-Node C** `kunden` Update (`name`, `ort`) mit Filter auf `kunde_id`
 
-## Phase 3 — Wochenplan (Mo–Sa)
+### Nicht in dieser Iteration
+Fotos-Upload, Material-Liste-Editor, Sicherheitscheck-UI, PDF-Export, Archiv, Statistiken, Mail.
 
-- Lib: `@dnd-kit/core` + `@dnd-kit/sortable`
-- Touch-Sensor mit `delay: 200, tolerance: 5` für Mobile
-- 6 Spalten, horizontal scrollbar auf Mobile, Grid auf Desktop
-- Karte: Kennzeichen, Marke, Mechaniker-Badge (Roman blau / Pascal grün), Status-Punkt
-- Drop → Update `geplantes_datum`
-- Filtert nur `status IN ('geplant','in_arbeit')`
+### Ergebnis
+Karte im Wochenplan klicken → Detailseite → PDF links, Formular rechts → n8n-Felder vorausgefüllt → Status-Buttons funktionieren → Rest manuell ergänzen + speichern.
 
-## Phase 4 — Neuer-Auftrag-Dialog + n8n Webhook
-
-- Dialog: PDF-Upload (Drop-Zone), Datum-Picker, Mechaniker-Dropdown
-- Flow: PDF → Storage `belege` → Insert `arbeitsrapporte` mit `status='geplant'` → Edge Function `notify-n8n` aufrufen
-- **Edge Function `notify-n8n`**: nimmt `{ rapport_id, pdf_url, kennzeichen? }`, POSTet an `N8N_PDF_WEBHOOK_URL` (Secret)
-- Secret `N8N_PDF_WEBHOOK_URL` = `https://automation.datastruct.ch/webhook-test/ff316044-bf19-49e1-b8a4-5483ff9db6a8`
-
-## Phase 5 — Auftragsdetail `/auftrag/:id`
-
-- Desktop: Split-View (links `<iframe src={pdf_url}>`, rechts Formular)
-- Mobile: Tabs „Beleg" / „Daten"
-- Bestehende Karten wiederverwenden (DatumCard, FahrzeugKundeCard, ArtDerArbeitCard, SicherheitsCheckCard, ArbeitszeitCard, TermineCard, NotizenCard)
-- Mechaniker-Dropdown (Roman/Pascal) statt freies Textfeld
-- Buttons: „In Arbeit", „Als erledigt markieren" → ändert `status`
-
-## Phase 6 — Archiv & Statistiken
-
-- **Archiv**: Liste `status IN ('erledigt','archiviert')`, Live-Suche (Kennzeichen / Marke / Kunde / Rapport-Nr.)
-- **Statistiken** (recharts): Pie Marken, Bar Stunden pro Mechaniker, KPI-Karten
-
-## Diese Iteration liefere ich
-
-**Phasen 1 + 2 + 3 + 4** in einem Rutsch:
-1. SQL-Migration (Drop + Neuaufbau + Buckets + Policies)
-2. Webhook-Secret + Edge Function `notify-n8n`
-3. AppLayout + Sidebar + BottomNav + Routing
-4. Wochenplan mit Drag & Drop
-5. „Neuer Auftrag"-Dialog mit PDF-Upload + Webhook-Trigger
-
-Phase 5 (Detailseite) und Phase 6 (Archiv/Statistiken) folgen direkt danach in der nächsten Iteration.
-
-## Wichtiger Hinweis
-
-Da alle Tabellen gelöscht werden, gehen alle bestehenden Test-Rapporte / Fahrzeuge / Kunden **unwiderruflich verloren**. Du hast bestätigt, dass nichts produktiv ist — ich starte sauber.
