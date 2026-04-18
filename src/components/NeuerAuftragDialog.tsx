@@ -40,6 +40,10 @@ export function NeuerAuftragDialog({ open, onOpenChange, onCreated, defaultDate 
       toast.error("Bitte PDF auswählen");
       return;
     }
+    if (!istArbeitstag(datum)) {
+      toast.error("Aufträge können nur Mo–Fr geplant werden");
+      return;
+    }
     setBusy(true);
     try {
       // 1. Rapport anlegen (flach — alle Snapshot-Felder erstmal leer, KI füllt nach)
@@ -122,7 +126,37 @@ export function NeuerAuftragDialog({ open, onOpenChange, onCreated, defaultDate 
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>Datum</Label>
-              <Input type="date" value={datum} onChange={(e) => setDatum(e.target.value)} />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal mt-1",
+                      !datum && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {datum
+                      ? format(parseISO(datum), "EEE, d. MMM yyyy", { locale: de })
+                      : "Datum wählen"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={datum ? parseISO(datum) : undefined}
+                    onSelect={(d) => d && setDatum(format(d, "yyyy-MM-dd"))}
+                    disabled={(date) => {
+                      const day = getDay(date);
+                      return day === 0 || day === 6;
+                    }}
+                    weekStartsOn={1}
+                    locale={de}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
               <div className="text-[11px] text-muted-foreground mt-1">
                 {zeitfensterFuer(datum)}
               </div>
@@ -140,8 +174,8 @@ export function NeuerAuftragDialog({ open, onOpenChange, onCreated, defaultDate 
           </div>
 
           {!istArbeitstag(datum) && (
-            <div className="text-xs text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded px-2 py-1.5">
-              Achtung: gewählter Tag ist kein Arbeitstag (Sa/So).
+            <div className="text-xs text-destructive bg-destructive/10 border border-destructive/30 rounded px-2 py-1.5">
+              Sa/So sind keine Arbeitstage — bitte Mo–Fr wählen.
             </div>
           )}
 
