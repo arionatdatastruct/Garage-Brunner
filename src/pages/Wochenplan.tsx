@@ -171,7 +171,7 @@ function DayColumn({
     color === "over" ? "bg-red-500" : color === "warn" ? "bg-amber-500" : "bg-emerald-500";
 
   return (
-    <div className="min-w-[240px] md:min-w-0 flex-1 flex flex-col">
+    <div className="w-full flex-1 flex flex-col">
       <div className={`px-3 py-2 border-b border-border ${isToday ? "bg-primary/5" : ""}`}>
         <div className="flex items-center justify-between">
           <div>
