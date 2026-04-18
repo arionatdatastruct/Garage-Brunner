@@ -46,15 +46,44 @@ const STATUS_DOT: Record<string, string> = {
   erledigt: "bg-emerald-500",
 };
 
-function RapportCard({ r }: { r: Rapport }) {
+function RapportCard({ r, onUpdate }: { r: Rapport; onUpdate: (id: string, h: number | null) => void }) {
   const navigate = useNavigate();
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: r.id,
   });
+  const [editing, setEditing] = useState(false);
+  const [val, setVal] = useState<string>(
+    r.arbeitszeit_stunden != null ? String(r.arbeitszeit_stunden) : ""
+  );
 
   const style = {
     transform: CSS.Translate.toString(transform),
     opacity: isDragging ? 0.4 : 1,
+  };
+
+  const startEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setVal(r.arbeitszeit_stunden != null ? String(r.arbeitszeit_stunden) : "");
+    setEditing(true);
+  };
+
+  const commit = async () => {
+    const num = val === "" ? null : Number(val);
+    if (num !== null && (Number.isNaN(num) || num < 0)) {
+      setEditing(false);
+      return;
+    }
+    setEditing(false);
+    if (num === r.arbeitszeit_stunden) return;
+    const { error } = await (supabase as any)
+      .from("arbeitsrapporte")
+      .update({ arbeitszeit_stunden: num })
+      .eq("id", r.id);
+    if (error) {
+      toast.error("Update fehlgeschlagen");
+      return;
+    }
+    onUpdate(r.id, num);
   };
 
   return (
@@ -63,7 +92,7 @@ function RapportCard({ r }: { r: Rapport }) {
       style={style}
       {...attributes}
       {...listeners}
-      onClick={() => !isDragging && navigate(`/auftrag/${r.id}`)}
+      onClick={() => !isDragging && !editing && navigate(`/auftrag/${r.id}`)}
       className="bg-card border border-border rounded-md p-3 mb-2 cursor-grab active:cursor-grabbing shadow-sm hover:shadow-md transition touch-none"
     >
       <div className="flex items-start justify-between gap-2 mb-1">
@@ -79,11 +108,35 @@ function RapportCard({ r }: { r: Rapport }) {
         <span className="text-[10px] text-muted-foreground font-mono">
           {r.auftragsnummer ?? r.rapport_nummer}
         </span>
-        <div className="flex items-center gap-1.5">
-          {r.arbeitszeit_stunden != null && r.arbeitszeit_stunden > 0 && (
-            <span className="text-[10px] font-mono text-muted-foreground">
-              {r.arbeitszeit_stunden.toLocaleString("de-CH", { maximumFractionDigits: 2 })}h
-            </span>
+        <div className="flex items-center gap-1.5" onPointerDown={(e) => editing && e.stopPropagation()}>
+          {editing ? (
+            <input
+              type="number"
+              step="0.25"
+              min="0"
+              autoFocus
+              value={val}
+              onChange={(e) => setVal(e.target.value)}
+              onBlur={commit}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") commit();
+                if (e.key === "Escape") setEditing(false);
+              }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-12 h-5 text-[10px] font-mono px-1 rounded border border-primary bg-background focus:outline-none"
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={startEdit}
+              onPointerDown={(e) => e.stopPropagation()}
+              className="text-[10px] font-mono text-muted-foreground hover:text-foreground hover:bg-muted px-1.5 py-0.5 rounded transition"
+              title="Stunden bearbeiten"
+            >
+              {r.arbeitszeit_stunden != null && r.arbeitszeit_stunden > 0
+                ? `${r.arbeitszeit_stunden.toLocaleString("de-CH", { maximumFractionDigits: 2 })}h`
+                : "+ h"}
+            </button>
           )}
           {r.mechaniker_zuweisung && (
             <span className={`text-[10px] px-1.5 py-0.5 rounded border ${MECH_COLOR[r.mechaniker_zuweisung] ?? ""}`}>
