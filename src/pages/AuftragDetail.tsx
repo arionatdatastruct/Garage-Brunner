@@ -220,8 +220,13 @@ export default function AuftragDetail() {
         <div className="overflow-hidden">
           <PdfPane />
         </div>
-        <div className="overflow-y-auto pr-1">
+        <div className="overflow-y-auto pr-1 space-y-4">
           <AuftragForm rapport={rapport} kunde={kunde} onSaved={load} />
+          <SicherheitsCheck
+            rapportId={rapport.id}
+            initial={rapport.sicherheitscheck}
+            onSaved={load}
+          />
         </div>
       </div>
 
@@ -232,8 +237,13 @@ export default function AuftragDetail() {
             <TabsTrigger value="daten">Daten</TabsTrigger>
             <TabsTrigger value="beleg">Beleg</TabsTrigger>
           </TabsList>
-          <TabsContent value="daten" className="mt-3">
+          <TabsContent value="daten" className="mt-3 space-y-4">
             <AuftragForm rapport={rapport} kunde={kunde} onSaved={load} />
+            <SicherheitsCheck
+              rapportId={rapport.id}
+              initial={rapport.sicherheitscheck}
+              onSaved={load}
+            />
           </TabsContent>
           <TabsContent value="beleg" className="mt-3 h-[70vh]">
             <PdfPane />
