@@ -22,12 +22,10 @@ export function NeuerAuftragDialog({ open, onOpenChange, onCreated, defaultDate 
   const [datum, setDatum] = useState(defaultDate ?? new Date().toISOString().slice(0, 10));
   const [stunden, setStunden] = useState<string>("1");
   const [mechaniker, setMechaniker] = useState<"Roman" | "Pascal" | "">("");
-  const [kennzeichen, setKennzeichen] = useState("");
   const [busy, setBusy] = useState(false);
 
   const reset = () => {
     setPdfFile(null);
-    setKennzeichen("");
     setMechaniker("");
     setStunden("1");
   };
@@ -171,15 +169,6 @@ export function NeuerAuftragDialog({ open, onOpenChange, onCreated, defaultDate 
                 <SelectItem value="Pascal">Pascal</SelectItem>
               </SelectContent>
             </Select>
-          </div>
-
-          <div>
-            <Label>Kennzeichen (optional)</Label>
-            <Input
-              value={kennzeichen}
-              onChange={(e) => setKennzeichen(e.target.value.toUpperCase())}
-              placeholder="Wird sonst von KI ergänzt"
-            />
           </div>
         </div>
 
