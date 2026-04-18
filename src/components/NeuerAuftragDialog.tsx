@@ -7,6 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Upload, Loader2 } from "lucide-react";
+import { WochenAuslastung } from "@/components/WochenAuslastung";
+import { zeitfensterFuer, istArbeitstag } from "@/lib/arbeitszeiten";
 
 interface Props {
   open: boolean;
@@ -18,6 +20,7 @@ interface Props {
 export function NeuerAuftragDialog({ open, onOpenChange, onCreated, defaultDate }: Props) {
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [datum, setDatum] = useState(defaultDate ?? new Date().toISOString().slice(0, 10));
+  const [stunden, setStunden] = useState<string>("1");
   const [mechaniker, setMechaniker] = useState<"Roman" | "Pascal" | "">("");
   const [kennzeichen, setKennzeichen] = useState("");
   const [busy, setBusy] = useState(false);
@@ -26,6 +29,7 @@ export function NeuerAuftragDialog({ open, onOpenChange, onCreated, defaultDate 
     setPdfFile(null);
     setKennzeichen("");
     setMechaniker("");
+    setStunden("1");
   };
 
   const submit = async () => {
@@ -61,6 +65,7 @@ export function NeuerAuftragDialog({ open, onOpenChange, onCreated, defaultDate 
       const { data: pub } = supabase.storage.from("belege").getPublicUrl(path);
 
       // 3. Rapport anlegen
+      const stundenNum = stunden ? Number(stunden) : null;
       const { data: rap, error: rapErr } = await (supabase as any)
         .from("arbeitsrapporte")
         .insert({
@@ -68,6 +73,7 @@ export function NeuerAuftragDialog({ open, onOpenChange, onCreated, defaultDate 
           status: "geplant",
           geplantes_datum: datum,
           mechaniker_zuweisung: mechaniker || null,
+          arbeitszeit_stunden: stundenNum,
           pdf_url: pub.publicUrl,
         })
         .select()
@@ -103,7 +109,7 @@ export function NeuerAuftragDialog({ open, onOpenChange, onCreated, defaultDate 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Neuer Auftrag</DialogTitle>
         </DialogHeader>
@@ -129,17 +135,42 @@ export function NeuerAuftragDialog({ open, onOpenChange, onCreated, defaultDate 
             <div>
               <Label>Datum</Label>
               <Input type="date" value={datum} onChange={(e) => setDatum(e.target.value)} />
+              <div className="text-[11px] text-muted-foreground mt-1">
+                {zeitfensterFuer(datum)}
+              </div>
             </div>
             <div>
-              <Label>Mechaniker</Label>
-              <Select value={mechaniker} onValueChange={(v) => setMechaniker(v as any)}>
-                <SelectTrigger><SelectValue placeholder="Optional" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Roman">Roman</SelectItem>
-                  <SelectItem value="Pascal">Pascal</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label>Geplante Dauer (h)</Label>
+              <Input
+                type="number"
+                step="0.25"
+                min="0"
+                value={stunden}
+                onChange={(e) => setStunden(e.target.value)}
+              />
             </div>
+          </div>
+
+          {!istArbeitstag(datum) && (
+            <div className="text-xs text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded px-2 py-1.5">
+              Achtung: gewählter Tag ist kein Arbeitstag (Sa/So).
+            </div>
+          )}
+
+          <WochenAuslastung
+            selectedDate={datum}
+            zusatzStunden={Number(stunden) || 0}
+          />
+
+          <div>
+            <Label>Mechaniker</Label>
+            <Select value={mechaniker} onValueChange={(v) => setMechaniker(v as any)}>
+              <SelectTrigger><SelectValue placeholder="Optional" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Roman">Roman</SelectItem>
+                <SelectItem value="Pascal">Pascal</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div>

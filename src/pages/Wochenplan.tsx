@@ -18,6 +18,8 @@ import { Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import { NeuerAuftragDialog } from "@/components/NeuerAuftragDialog";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { kapazitaetFuer, auslastungsFarbe } from "@/lib/arbeitszeiten";
+import { cn } from "@/lib/utils";
 
 interface Rapport {
   id: string;
@@ -77,11 +79,18 @@ function RapportCard({ r }: { r: Rapport }) {
         <span className="text-[10px] text-muted-foreground font-mono">
           {r.auftragsnummer ?? r.rapport_nummer}
         </span>
-        {r.mechaniker_zuweisung && (
-          <span className={`text-[10px] px-1.5 py-0.5 rounded border ${MECH_COLOR[r.mechaniker_zuweisung] ?? ""}`}>
-            {r.mechaniker_zuweisung}
-          </span>
-        )}
+        <div className="flex items-center gap-1.5">
+          {r.arbeitszeit_stunden != null && r.arbeitszeit_stunden > 0 && (
+            <span className="text-[10px] font-mono text-muted-foreground">
+              {r.arbeitszeit_stunden.toLocaleString("de-CH", { maximumFractionDigits: 2 })}h
+            </span>
+          )}
+          {r.mechaniker_zuweisung && (
+            <span className={`text-[10px] px-1.5 py-0.5 rounded border ${MECH_COLOR[r.mechaniker_zuweisung] ?? ""}`}>
+              {r.mechaniker_zuweisung}
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -100,6 +109,11 @@ function DayColumn({
   const { setNodeRef, isOver } = useDroppable({ id });
   const isToday = isSameDay(date, new Date());
   const totalH = rapports.reduce((sum, r) => sum + (r.arbeitszeit_stunden ?? 0), 0);
+  const kap = kapazitaetFuer(date);
+  const pct = kap > 0 ? Math.min(100, (totalH / kap) * 100) : 0;
+  const color = auslastungsFarbe(totalH, kap);
+  const barColor =
+    color === "over" ? "bg-red-500" : color === "warn" ? "bg-amber-500" : "bg-emerald-500";
 
   return (
     <div className="min-w-[240px] md:min-w-0 flex-1 flex flex-col">
@@ -117,18 +131,19 @@ function DayColumn({
             <Plus className="h-4 w-4" />
           </Button>
         </div>
-        {rapports.length > 0 && (
-          <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-medium">
+        <div className="mt-1.5 space-y-1">
+          <div className="flex items-center justify-between text-[10px]">
+            <span className="text-muted-foreground">
               {rapports.length} {rapports.length === 1 ? "Auftrag" : "Aufträge"}
             </span>
-            {totalH > 0 && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">
-                {totalH.toLocaleString("de-CH", { maximumFractionDigits: 2 })} h
-              </span>
-            )}
+            <span className="font-mono font-medium">
+              {totalH.toLocaleString("de-CH", { maximumFractionDigits: 2 })}/{kap}h
+            </span>
           </div>
-        )}
+          <div className="h-1 rounded-full bg-muted overflow-hidden">
+            <div className={cn("h-full transition-all", barColor)} style={{ width: `${pct}%` }} />
+          </div>
+        </div>
       </div>
       <div
         ref={setNodeRef}
@@ -151,7 +166,7 @@ export default function Wochenplan() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogDate, setDialogDate] = useState<string | undefined>();
 
-  const days = Array.from({ length: 6 }, (_, i) => addDays(weekStart, i));
+  const days = Array.from({ length: 5 }, (_, i) => addDays(weekStart, i));
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -160,7 +175,7 @@ export default function Wochenplan() {
 
   const load = useCallback(async () => {
     const from = format(weekStart, "yyyy-MM-dd");
-    const to = format(addDays(weekStart, 5), "yyyy-MM-dd");
+    const to = format(addDays(weekStart, 4), "yyyy-MM-dd");
     const { data, error } = await (supabase as any)
       .from("arbeitsrapporte")
       .select("id, rapport_nummer, auftragsnummer, geplantes_datum, status, mechaniker_zuweisung, arbeitszeit_stunden, fahrzeug:fahrzeuge(kennzeichen, marke)")
@@ -211,7 +226,7 @@ export default function Wochenplan() {
             </span>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
-            {format(weekStart, "d. MMM", { locale: de })} – {format(addDays(weekStart, 5), "d. MMM yyyy", { locale: de })}
+            {format(weekStart, "d. MMM", { locale: de })} – {format(addDays(weekStart, 4), "d. MMM yyyy", { locale: de })}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -231,7 +246,7 @@ export default function Wochenplan() {
       </header>
 
       <DndContext sensors={sensors} onDragEnd={onDragEnd}>
-        <div className="flex md:grid md:grid-cols-6 gap-3 overflow-x-auto pb-4 -mx-4 px-4 md:mx-0 md:px-0">
+        <div className="flex md:grid md:grid-cols-5 gap-3 overflow-x-auto pb-4 -mx-4 px-4 md:mx-0 md:px-0">
           {days.map((d) => {
             const key = format(d, "yyyy-MM-dd");
             const dayRapports = rapports.filter((r) => r.geplantes_datum === key);
