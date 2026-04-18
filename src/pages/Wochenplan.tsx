@@ -10,7 +10,7 @@ import {
   useDraggable,
 } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
-import { format, startOfWeek, addDays, isSameDay, parseISO } from "date-fns";
+import { format, startOfWeek, addDays, isSameDay, parseISO, getISOWeek, getISOWeekYear } from "date-fns";
 import { de } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
