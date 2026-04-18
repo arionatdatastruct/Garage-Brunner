@@ -79,11 +79,18 @@ function RapportCard({ r }: { r: Rapport }) {
         <span className="text-[10px] text-muted-foreground font-mono">
           {r.auftragsnummer ?? r.rapport_nummer}
         </span>
-        {r.mechaniker_zuweisung && (
-          <span className={`text-[10px] px-1.5 py-0.5 rounded border ${MECH_COLOR[r.mechaniker_zuweisung] ?? ""}`}>
-            {r.mechaniker_zuweisung}
-          </span>
-        )}
+        <div className="flex items-center gap-1.5">
+          {r.arbeitszeit_stunden != null && r.arbeitszeit_stunden > 0 && (
+            <span className="text-[10px] font-mono text-muted-foreground">
+              {r.arbeitszeit_stunden.toLocaleString("de-CH", { maximumFractionDigits: 2 })}h
+            </span>
+          )}
+          {r.mechaniker_zuweisung && (
+            <span className={`text-[10px] px-1.5 py-0.5 rounded border ${MECH_COLOR[r.mechaniker_zuweisung] ?? ""}`}>
+              {r.mechaniker_zuweisung}
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );
