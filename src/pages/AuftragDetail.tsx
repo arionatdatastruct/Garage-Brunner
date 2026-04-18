@@ -39,6 +39,7 @@ interface Rapport {
   auftragswert_chf: number | null;
   notizen: string | null;
   fahrzeug_id: string | null;
+  sicherheitscheck: Record<string, unknown> | null;
 }
 
 export default function AuftragDetail() {
