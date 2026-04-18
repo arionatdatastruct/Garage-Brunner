@@ -65,6 +65,7 @@ export function NeuerAuftragDialog({ open, onOpenChange, onCreated, defaultDate 
       const { data: pub } = supabase.storage.from("belege").getPublicUrl(path);
 
       // 3. Rapport anlegen
+      const stundenNum = stunden ? Number(stunden) : null;
       const { data: rap, error: rapErr } = await (supabase as any)
         .from("arbeitsrapporte")
         .insert({
@@ -72,6 +73,7 @@ export function NeuerAuftragDialog({ open, onOpenChange, onCreated, defaultDate 
           status: "geplant",
           geplantes_datum: datum,
           mechaniker_zuweisung: mechaniker || null,
+          arbeitszeit_stunden: stundenNum,
           pdf_url: pub.publicUrl,
         })
         .select()
