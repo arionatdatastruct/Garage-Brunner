@@ -35,11 +35,19 @@ export function NeuerAuftragDialog({ open, onOpenChange, onCreated, defaultDate 
     }
     setBusy(true);
     try {
-      // 1. Fahrzeug anlegen (Platzhalter, KI füllt später nach)
+      // 1a. Kunde-Platzhalter anlegen (KI füllt name/ort später nach)
+      const { data: ku, error: kuErr } = await (supabase as any)
+        .from("kunden")
+        .insert({ name: "(wird ergänzt)" })
+        .select()
+        .single();
+      if (kuErr) throw kuErr;
+
+      // 1b. Fahrzeug anlegen (Platzhalter, KI füllt später nach)
       const platzhalterKennzeichen = kennzeichen.trim() || `TMP-${Date.now().toString().slice(-6)}`;
       const { data: fz, error: fzErr } = await (supabase as any)
         .from("fahrzeuge")
-        .insert({ kennzeichen: platzhalterKennzeichen })
+        .insert({ kennzeichen: platzhalterKennzeichen, kunde_id: ku.id })
         .select()
         .single();
       if (fzErr) throw fzErr;
@@ -71,6 +79,8 @@ export function NeuerAuftragDialog({ open, onOpenChange, onCreated, defaultDate 
         await supabase.functions.invoke("notify-n8n", {
           body: {
             rapport_id: rap.id,
+            fahrzeug_id: fz.id,
+            kunde_id: ku.id,
             pdf_url: pub.publicUrl,
             kennzeichen: platzhalterKennzeichen,
           },

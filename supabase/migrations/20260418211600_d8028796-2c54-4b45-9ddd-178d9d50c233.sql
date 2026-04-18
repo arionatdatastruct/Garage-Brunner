@@ -1,0 +1,2 @@
+ALTER TABLE public.fahrzeuge ADD COLUMN IF NOT EXISTS chassis_nr TEXT;
+ALTER TABLE public.kunden ADD COLUMN IF NOT EXISTS ort TEXT;
