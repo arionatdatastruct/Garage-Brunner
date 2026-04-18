@@ -20,6 +20,7 @@ interface Props {
 export function NeuerAuftragDialog({ open, onOpenChange, onCreated, defaultDate }: Props) {
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [datum, setDatum] = useState(defaultDate ?? new Date().toISOString().slice(0, 10));
+  const [stunden, setStunden] = useState<string>("1");
   const [mechaniker, setMechaniker] = useState<"Roman" | "Pascal" | "">("");
   const [kennzeichen, setKennzeichen] = useState("");
   const [busy, setBusy] = useState(false);
@@ -28,6 +29,7 @@ export function NeuerAuftragDialog({ open, onOpenChange, onCreated, defaultDate 
     setPdfFile(null);
     setKennzeichen("");
     setMechaniker("");
+    setStunden("1");
   };
 
   const submit = async () => {
