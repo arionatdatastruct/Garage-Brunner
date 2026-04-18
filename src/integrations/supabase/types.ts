@@ -117,6 +117,7 @@ export type Database = {
       }
       fahrzeuge: {
         Row: {
+          chassis_nr: string | null
           created_at: string
           id: string
           jahrgang: string | null
@@ -127,6 +128,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          chassis_nr?: string | null
           created_at?: string
           id?: string
           jahrgang?: string | null
@@ -137,6 +139,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          chassis_nr?: string | null
           created_at?: string
           id?: string
           jahrgang?: string | null
@@ -163,6 +166,7 @@ export type Database = {
           email: string | null
           id: string
           name: string
+          ort: string | null
           telefon: string | null
           updated_at: string
         }
@@ -172,6 +176,7 @@ export type Database = {
           email?: string | null
           id?: string
           name: string
+          ort?: string | null
           telefon?: string | null
           updated_at?: string
         }
@@ -181,6 +186,7 @@ export type Database = {
           email?: string | null
           id?: string
           name?: string
+          ort?: string | null
           telefon?: string | null
           updated_at?: string
         }
