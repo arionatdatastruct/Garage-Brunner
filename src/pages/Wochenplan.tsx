@@ -109,6 +109,11 @@ function DayColumn({
   const { setNodeRef, isOver } = useDroppable({ id });
   const isToday = isSameDay(date, new Date());
   const totalH = rapports.reduce((sum, r) => sum + (r.arbeitszeit_stunden ?? 0), 0);
+  const kap = kapazitaetFuer(date);
+  const pct = kap > 0 ? Math.min(100, (totalH / kap) * 100) : 0;
+  const color = auslastungsFarbe(totalH, kap);
+  const barColor =
+    color === "over" ? "bg-red-500" : color === "warn" ? "bg-amber-500" : "bg-emerald-500";
 
   return (
     <div className="min-w-[240px] md:min-w-0 flex-1 flex flex-col">
@@ -126,18 +131,19 @@ function DayColumn({
             <Plus className="h-4 w-4" />
           </Button>
         </div>
-        {rapports.length > 0 && (
-          <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-medium">
+        <div className="mt-1.5 space-y-1">
+          <div className="flex items-center justify-between text-[10px]">
+            <span className="text-muted-foreground">
               {rapports.length} {rapports.length === 1 ? "Auftrag" : "Aufträge"}
             </span>
-            {totalH > 0 && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">
-                {totalH.toLocaleString("de-CH", { maximumFractionDigits: 2 })} h
-              </span>
-            )}
+            <span className="font-mono font-medium">
+              {totalH.toLocaleString("de-CH", { maximumFractionDigits: 2 })}/{kap}h
+            </span>
           </div>
-        )}
+          <div className="h-1 rounded-full bg-muted overflow-hidden">
+            <div className={cn("h-full transition-all", barColor)} style={{ width: `${pct}%` }} />
+          </div>
+        </div>
       </div>
       <div
         ref={setNodeRef}
