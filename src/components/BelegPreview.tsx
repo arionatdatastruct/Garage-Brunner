@@ -144,7 +144,7 @@ export function BelegPreview({ pdfUrl }: BelegPreviewProps) {
         />
       ) : (
         <div className="flex flex-col items-center justify-center gap-2 min-h-[40vh] text-muted-foreground border border-dashed border-border rounded-md px-6 text-center">
-          <TriangleAlert className="h-8 w-8 text-amber-500" />
+          <TriangleAlert className="h-8 w-8 text-destructive" />
           <p className="text-sm">Der Beleg konnte im Browser nicht direkt angezeigt werden.</p>
           <p className="text-xs">Bitte öffne ihn im neuen Tab. Falls ein Werbeblocker aktiv ist, erlaube Supabase-Dateien.</p>
           {error && <p className="text-[11px] text-muted-foreground/80 break-all">{error}</p>}
