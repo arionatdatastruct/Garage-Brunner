@@ -4,11 +4,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Upload, Loader2 } from "lucide-react";
+import { Upload, Loader2, CalendarIcon } from "lucide-react";
 import { WochenAuslastung } from "@/components/WochenAuslastung";
 import { zeitfensterFuer, istArbeitstag } from "@/lib/arbeitszeiten";
+import { format, parseISO, getDay } from "date-fns";
+import { de } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 
 interface Props {
   open: boolean;
@@ -33,6 +38,10 @@ export function NeuerAuftragDialog({ open, onOpenChange, onCreated, defaultDate 
   const submit = async () => {
     if (!pdfFile) {
       toast.error("Bitte PDF auswählen");
+      return;
+    }
+    if (!istArbeitstag(datum)) {
+      toast.error("Aufträge können nur Mo–Fr geplant werden");
       return;
     }
     setBusy(true);
@@ -117,7 +126,37 @@ export function NeuerAuftragDialog({ open, onOpenChange, onCreated, defaultDate 
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>Datum</Label>
-              <Input type="date" value={datum} onChange={(e) => setDatum(e.target.value)} />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal mt-1",
+                      !datum && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {datum
+                      ? format(parseISO(datum), "EEE, d. MMM yyyy", { locale: de })
+                      : "Datum wählen"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={datum ? parseISO(datum) : undefined}
+                    onSelect={(d) => d && setDatum(format(d, "yyyy-MM-dd"))}
+                    disabled={(date) => {
+                      const day = getDay(date);
+                      return day === 0 || day === 6;
+                    }}
+                    weekStartsOn={1}
+                    locale={de}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
               <div className="text-[11px] text-muted-foreground mt-1">
                 {zeitfensterFuer(datum)}
               </div>
@@ -135,8 +174,8 @@ export function NeuerAuftragDialog({ open, onOpenChange, onCreated, defaultDate 
           </div>
 
           {!istArbeitstag(datum) && (
-            <div className="text-xs text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded px-2 py-1.5">
-              Achtung: gewählter Tag ist kein Arbeitstag (Sa/So).
+            <div className="text-xs text-destructive bg-destructive/10 border border-destructive/30 rounded px-2 py-1.5">
+              Sa/So sind keine Arbeitstage — bitte Mo–Fr wählen.
             </div>
           )}
 
@@ -161,7 +200,7 @@ export function NeuerAuftragDialog({ open, onOpenChange, onCreated, defaultDate 
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>
             Abbrechen
           </Button>
-          <Button onClick={submit} disabled={busy || !pdfFile}>
+          <Button onClick={submit} disabled={busy || !pdfFile || !istArbeitstag(datum)}>
             {busy && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             Anlegen
           </Button>
