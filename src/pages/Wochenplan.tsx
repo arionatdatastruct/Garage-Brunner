@@ -99,6 +99,7 @@ function DayColumn({
   const id = format(date, "yyyy-MM-dd");
   const { setNodeRef, isOver } = useDroppable({ id });
   const isToday = isSameDay(date, new Date());
+  const totalH = rapports.reduce((sum, r) => sum + (r.arbeitszeit_stunden ?? 0), 0);
 
   return (
     <div className="min-w-[240px] md:min-w-0 flex-1 flex flex-col">
