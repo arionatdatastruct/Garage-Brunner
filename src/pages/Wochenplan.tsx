@@ -175,7 +175,7 @@ export default function Wochenplan() {
 
   const load = useCallback(async () => {
     const from = format(weekStart, "yyyy-MM-dd");
-    const to = format(addDays(weekStart, 5), "yyyy-MM-dd");
+    const to = format(addDays(weekStart, 4), "yyyy-MM-dd");
     const { data, error } = await (supabase as any)
       .from("arbeitsrapporte")
       .select("id, rapport_nummer, auftragsnummer, geplantes_datum, status, mechaniker_zuweisung, arbeitszeit_stunden, fahrzeug:fahrzeuge(kennzeichen, marke)")
@@ -226,7 +226,7 @@ export default function Wochenplan() {
             </span>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
-            {format(weekStart, "d. MMM", { locale: de })} – {format(addDays(weekStart, 5), "d. MMM yyyy", { locale: de })}
+            {format(weekStart, "d. MMM", { locale: de })} – {format(addDays(weekStart, 4), "d. MMM yyyy", { locale: de })}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -246,7 +246,7 @@ export default function Wochenplan() {
       </header>
 
       <DndContext sensors={sensors} onDragEnd={onDragEnd}>
-        <div className="flex md:grid md:grid-cols-6 gap-3 overflow-x-auto pb-4 -mx-4 px-4 md:mx-0 md:px-0">
+        <div className="flex md:grid md:grid-cols-5 gap-3 overflow-x-auto pb-4 -mx-4 px-4 md:mx-0 md:px-0">
           {days.map((d) => {
             const key = format(d, "yyyy-MM-dd");
             const dayRapports = rapports.filter((r) => r.geplantes_datum === key);
