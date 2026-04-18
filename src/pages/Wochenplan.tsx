@@ -166,7 +166,7 @@ export default function Wochenplan() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogDate, setDialogDate] = useState<string | undefined>();
 
-  const days = Array.from({ length: 6 }, (_, i) => addDays(weekStart, i));
+  const days = Array.from({ length: 5 }, (_, i) => addDays(weekStart, i));
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
