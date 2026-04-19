@@ -31,13 +31,13 @@ interface Rapport {
   auftragsnummer: string | null;
   geplantes_datum: string;
   status: string;
+  mechaniker_zuweisung: string | null;
   arbeitszeit_stunden: number | null;
+  kategorie: string | null;
   kennzeichen: string | null;
   marke: string | null;
-  mechaniker_zuweisung?: string | null;
-  kategorie?: string | null;
-  kundennummer?: string | null;
-  kunde_name?: string | null;
+  kundennummer: string | null;
+  kunde_name: string | null;
 }
 
 interface Props {
