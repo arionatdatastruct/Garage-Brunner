@@ -150,15 +150,16 @@ export function NeuerAuftragDialog({ open, onOpenChange, onCreated, defaultDate 
                       const day = getDay(date);
                       return day === 0 || day === 6;
                     }}
-                    hidden={(date) => {
-                      const day = getDay(date);
-                      return day === 0 || day === 6;
-                    }}
-                    ISOWeek
                     weekStartsOn={1}
                     locale={de}
                     initialFocus
-                    className={cn("p-3 pointer-events-auto")}
+                    className={cn(
+                      "p-3 pointer-events-auto",
+                      // Sa/So-Spalten komplett ausblenden (Header + Zellen)
+                      "[&_table]:border-separate",
+                      "[&_thead_tr>th:nth-child(6)]:hidden [&_thead_tr>th:nth-child(7)]:hidden",
+                      "[&_tbody_tr>td:nth-child(6)]:hidden [&_tbody_tr>td:nth-child(7)]:hidden"
+                    )}
                   />
                 </PopoverContent>
               </Popover>
