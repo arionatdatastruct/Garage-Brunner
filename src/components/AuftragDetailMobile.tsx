@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { Maximize2, Minimize2, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Accordion,
@@ -111,6 +112,7 @@ export function AuftragDetailMobile({ rapport, onChanged, onDelete, deleting }: 
   const [erledigenRapport, setErledigenRapport] = useState<any>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [belegExpanded, setBelegExpanded] = useState(false);
 
   const isErledigt = rapport.status === "erledigt" || rapport.status === "archiviert";
   const sCfg = STATUS_CFG[rapport.status];
@@ -242,8 +244,42 @@ export function AuftragDetailMobile({ rapport, onChanged, onDelete, deleting }: 
           )}
         </div>
 
+        {/* PROMINENT: Beleg (PDF) – immer sichtbar, expandierbar */}
+        <div className="rounded-xl border-2 border-primary/30 bg-card overflow-hidden">
+          <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-primary/5">
+            <span className="flex items-center gap-2 text-sm font-semibold">
+              <FileText className="h-4 w-4 text-primary" />
+              Beleg / Arbeitsauftrag
+            </span>
+            <div className="flex items-center gap-1">
+              {rapport.pdf_url && (
+                <a
+                  href={rapport.pdf_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="h-8 w-8 flex items-center justify-center rounded-md hover:bg-muted text-muted-foreground active:scale-95"
+                  aria-label="In neuem Tab öffnen"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                </a>
+              )}
+              <button
+                type="button"
+                onClick={() => setBelegExpanded((v) => !v)}
+                className="h-8 w-8 flex items-center justify-center rounded-md hover:bg-muted text-muted-foreground active:scale-95"
+                aria-label={belegExpanded ? "Verkleinern" : "Vergrössern"}
+              >
+                {belegExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+              </button>
+            </div>
+          </div>
+          <div className={cn("p-2 transition-all", belegExpanded ? "min-h-[85vh]" : "min-h-[50vh]")}>
+            <BelegPreview pdfUrl={rapport.pdf_url} />
+          </div>
+        </div>
+
         {/* Akkordeon */}
-        <Accordion type="multiple" defaultValue={["form"]} className="space-y-3">
+        <Accordion type="multiple" defaultValue={[]} className="space-y-3">
           <AccordionItem value="form" className="border-0 rounded-xl bg-transparent">
             <AccordionTrigger className="px-3 py-3 rounded-xl border border-border bg-card hover:no-underline data-[state=open]:rounded-b-none">
               <span className="flex items-center gap-2 text-sm font-semibold">
@@ -288,19 +324,6 @@ export function AuftragDetailMobile({ rapport, onChanged, onDelete, deleting }: 
               </AccordionContent>
             </AccordionItem>
           )}
-
-          <AccordionItem value="beleg" className="border-0 rounded-xl bg-transparent">
-            <AccordionTrigger className="px-3 py-3 rounded-xl border border-border bg-card hover:no-underline data-[state=open]:rounded-b-none">
-              <span className="flex items-center gap-2 text-sm font-semibold">
-                <FileText className="h-4 w-4 text-primary" /> Original-Beleg (PDF)
-              </span>
-            </AccordionTrigger>
-            <AccordionContent className="border border-t-0 border-border rounded-b-xl bg-card -mt-px">
-              <div className="p-2 min-h-[60vh]">
-                <BelegPreview pdfUrl={rapport.pdf_url} />
-              </div>
-            </AccordionContent>
-          </AccordionItem>
         </Accordion>
       </div>
 
