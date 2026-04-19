@@ -312,6 +312,7 @@ export default function Wochenplan() {
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const [otherWeeksCount, setOtherWeeksCount] = useState(0);
   const [nextOtherDate, setNextOtherDate] = useState<string | null>(null);
+  const [nextOthers, setNextOthers] = useState<Array<{ id: string; geplantes_datum: string; kennzeichen: string | null; rapport_nummer: string | null }>>([]);
 
   const days = Array.from({ length: 5 }, (_, i) => addDays(weekStart, i));
 
