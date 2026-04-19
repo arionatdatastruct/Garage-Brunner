@@ -3,6 +3,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
+import { AuthGate } from "@/components/AuthGate";
 import Wochenplan from "./pages/Wochenplan";
 import Archiv from "./pages/Archiv";
 import Statistiken from "./pages/Statistiken";
@@ -16,8 +17,9 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
-      <BrowserRouter>
-        <Routes>
+      <AuthGate>
+        <BrowserRouter>
+          <Routes>
           <Route element={<AppLayout />}>
             <Route path="/" element={<Wochenplan />} />
             <Route path="/archiv" element={<Archiv />} />
@@ -25,9 +27,10 @@ const App = () => (
             <Route path="/auftrag/:id" element={<AuftragDetail />} />
             <Route path="/kunde/:nummer" element={<KundeDetail />} />
           </Route>
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </AuthGate>
     </TooltipProvider>
   </QueryClientProvider>
 );
