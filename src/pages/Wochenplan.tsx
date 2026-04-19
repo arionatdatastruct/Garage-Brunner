@@ -537,13 +537,61 @@ export default function Wochenplan() {
         </div>
       </div>
 
-      {/* Hinweis-Banner: Aufträge in anderen Wochen */}
-      {otherWeeksCount > 0 && nextOtherDate && (
-        <Tooltip delayDuration={150}>
-          <TooltipTrigger asChild>
+      {/* Warn-Banner: überfällige geplante Aufträge */}
+      {overdue.length > 0 && (
+        <Popover>
+          <PopoverTrigger asChild>
             <button
               type="button"
-              onClick={() => setWeekStart(startOfWeek(parseISO(nextOtherDate), { weekStartsOn: 1 }))}
+              className="w-full mb-3 flex items-center justify-between gap-3 rounded-lg border border-destructive/40 bg-destructive/10 hover:bg-destructive/15 transition px-4 py-2.5 text-left"
+            >
+              <span className="flex items-center gap-2 text-sm">
+                <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
+                <span>
+                  <span className="font-semibold text-destructive">{overdue.length}</span>{" "}
+                  überfällige{overdue.length === 1 ? "r Auftrag" : " Aufträge"}
+                  <span className="text-muted-foreground ml-2">
+                    · ältester: {format(parseISO(overdue[0].geplantes_datum), "EEE, d. MMM", { locale: de })}
+                  </span>
+                </span>
+              </span>
+              <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive shrink-0">
+                Anzeigen <ArrowRight className="h-3.5 w-3.5" />
+              </span>
+            </button>
+          </PopoverTrigger>
+          <PopoverContent side="bottom" align="start" className="p-0 w-72">
+            <div className="px-3 py-2 border-b border-border">
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                Überfällige Aufträge
+              </div>
+            </div>
+            <ul className="py-1 max-h-64 overflow-y-auto">
+              {overdue.slice(0, 10).map((o) => (
+                <li key={o.id}>
+                  <button
+                    type="button"
+                    onClick={() => jumpToRapport(o.geplantes_datum, o.id)}
+                    className="w-full px-3 py-1.5 flex items-center justify-between gap-3 hover:bg-muted text-left"
+                  >
+                    <span className="font-mono font-semibold text-sm">{o.kennzeichen ?? "—"}</span>
+                    <span className="text-xs text-destructive tabular-nums">
+                      {format(parseISO(o.geplantes_datum), "EEE, d. MMM", { locale: de })}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </PopoverContent>
+        </Popover>
+      )}
+
+      {/* Hinweis-Banner: Aufträge in anderen Wochen */}
+      {otherWeeksCount > 0 && nextOtherDate && (
+        <Popover>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
               className="w-full mb-4 flex items-center justify-between gap-3 rounded-lg border border-primary/30 bg-primary/5 hover:bg-primary/10 transition px-4 py-2.5 text-left"
             >
               <span className="text-sm">
@@ -554,11 +602,11 @@ export default function Wochenplan() {
                 </span>
               </span>
               <span className="inline-flex items-center gap-1 text-xs font-medium text-primary shrink-0">
-                Hinspringen <ArrowRight className="h-3.5 w-3.5" />
+                Anzeigen <ArrowRight className="h-3.5 w-3.5" />
               </span>
             </button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom" align="start" className="p-0 max-w-xs">
+          </PopoverTrigger>
+          <PopoverContent side="bottom" align="start" className="p-0 w-72">
             <div className="px-3 py-2 border-b border-border">
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
                 Nächste {nextOthers.length} {nextOthers.length === 1 ? "Auftrag" : "Aufträge"}
@@ -566,16 +614,22 @@ export default function Wochenplan() {
             </div>
             <ul className="py-1">
               {nextOthers.map((o) => (
-                <li key={o.id} className="px-3 py-1.5 flex items-center justify-between gap-3">
-                  <span className="font-mono font-semibold text-sm">{o.kennzeichen ?? "—"}</span>
-                  <span className="text-xs text-muted-foreground tabular-nums">
-                    {format(parseISO(o.geplantes_datum), "EEE, d. MMM", { locale: de })}
-                  </span>
+                <li key={o.id}>
+                  <button
+                    type="button"
+                    onClick={() => jumpToRapport(o.geplantes_datum, o.id)}
+                    className="w-full px-3 py-1.5 flex items-center justify-between gap-3 hover:bg-muted text-left"
+                  >
+                    <span className="font-mono font-semibold text-sm">{o.kennzeichen ?? "—"}</span>
+                    <span className="text-xs text-muted-foreground tabular-nums">
+                      {format(parseISO(o.geplantes_datum), "EEE, d. MMM", { locale: de })}
+                    </span>
+                  </button>
                 </li>
               ))}
             </ul>
-          </TooltipContent>
-        </Tooltip>
+          </PopoverContent>
+        </Popover>
       )}
 
       <DndContext sensors={sensors} onDragEnd={onDragEnd}>
