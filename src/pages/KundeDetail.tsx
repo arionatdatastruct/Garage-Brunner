@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2, FileText, ExternalLink, Banknote, Wrench, Car } from "lucide-react";
+import { kategorienLabels } from "@/lib/kategorien";
 
 interface Rapport {
   id: string;
@@ -191,7 +192,7 @@ export default function KundeDetail() {
                       <div className="font-mono">{r.kennzeichen || "—"}</div>
                       <div className="text-xs text-muted-foreground">{[r.marke, r.modell].filter(Boolean).join(" ")}</div>
                     </td>
-                    <td className="px-3 py-2 text-xs">{r.kategorie || "—"}</td>
+                    <td className="px-3 py-2 text-xs">{kategorienLabels(r.kategorie) || "—"}</td>
                     <td className="px-3 py-2 text-xs">{r.mechaniker_zuweisung || "—"}</td>
                     <td className="px-3 py-2 text-right font-mono text-xs">{r.arbeitszeit_stunden ?? "—"}</td>
                     <td className="px-3 py-2 text-right font-mono">{r.auftragswert_chf != null ? r.auftragswert_chf.toLocaleString("de-CH", { minimumFractionDigits: 2 }) : "—"}</td>

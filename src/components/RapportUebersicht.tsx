@@ -1,6 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Printer, CheckCircle2, AlertTriangle, Circle } from "lucide-react";
+import { kategorienLabels } from "@/lib/kategorien";
 
 interface Rapport {
   id: string;
@@ -106,7 +107,7 @@ export function RapportUebersicht({ rapport }: Props) {
       <div className="border-t border-border pt-3 grid grid-cols-2 gap-4 text-sm">
         <div>
           <div className="text-xs text-muted-foreground">Kategorie</div>
-          <div>{rapport.kategorie ?? "—"}</div>
+          <div>{kategorienLabels(rapport.kategorie) || "—"}</div>
         </div>
         <div>
           <div className="text-xs text-muted-foreground">Mechaniker</div>

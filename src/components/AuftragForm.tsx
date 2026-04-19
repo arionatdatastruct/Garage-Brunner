@@ -4,9 +4,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Check, Loader2 } from "lucide-react";
+import { Check, ChevronDown, Loader2 } from "lucide-react";
+import { KATEGORIEN, parseKategorien, formatKategorien } from "@/lib/kategorien";
 
 interface Rapport {
   id: string;
@@ -36,7 +41,6 @@ interface Props {
   onSaved: () => void;
 }
 
-const KATEGORIEN = ["Service", "Reparatur", "MFK", "Reifen", "Sonstiges"];
 type SaveState = "idle" | "saving" | "saved";
 
 export function AuftragForm({ rapport, onSaved }: Props) {
@@ -165,15 +169,59 @@ export function AuftragForm({ rapport, onSaved }: Props) {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>Kategorie</Label>
-              <Select
-                value={r.kategorie ?? ""}
-                onValueChange={(v) => upd({ kategorie: v })}
-              >
-                <SelectTrigger><SelectValue placeholder="Wählen" /></SelectTrigger>
-                <SelectContent>
-                  {KATEGORIEN.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              {(() => {
+                const selectedIds = parseKategorien(r.kategorie);
+                const toggle = (id: string) => {
+                  const next = selectedIds.includes(id)
+                    ? selectedIds.filter((x) => x !== id)
+                    : [...selectedIds, id];
+                  upd({ kategorie: formatKategorien(next) });
+                };
+                return (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full justify-between font-normal h-10"
+                      >
+                        <span className="flex flex-wrap gap-1 items-center min-h-[1.25rem]">
+                          {selectedIds.length === 0 ? (
+                            <span className="text-muted-foreground">Wählen</span>
+                          ) : (
+                            selectedIds.map((id) => {
+                              const k = KATEGORIEN.find((x) => x.id === id);
+                              return (
+                                <Badge key={id} variant="secondary" className="font-mono text-[10px]">
+                                  {id} {k?.label ?? ""}
+                                </Badge>
+                              );
+                            })
+                          )}
+                        </span>
+                        <ChevronDown className="h-4 w-4 opacity-50 shrink-0 ml-2" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[--radix-popover-trigger-width] p-1" align="start">
+                      {KATEGORIEN.map((k) => {
+                        const checked = selectedIds.includes(k.id);
+                        return (
+                          <button
+                            type="button"
+                            key={k.id}
+                            onClick={() => toggle(k.id)}
+                            className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent text-left"
+                          >
+                            <Checkbox checked={checked} className="pointer-events-none" />
+                            <span className="font-mono text-xs text-muted-foreground w-6">{k.id}</span>
+                            <span>{k.label}</span>
+                          </button>
+                        );
+                      })}
+                    </PopoverContent>
+                  </Popover>
+                );
+              })()}
             </div>
             <div>
               <Label>Mechaniker</Label>
