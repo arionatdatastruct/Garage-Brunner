@@ -3,63 +3,68 @@
 @tailwind utilities;
 
 @layer base {
+  /* Brand: Garage Brunner Wynigen
+     Akzent = Logo-Gelb #FFD100 ≈ hsl(49 100% 50%)
+     Hintergrund = sehr dunkles Anthrazit (passt zum schwarzen Logo-Hintergrund). */
   :root {
-    --background: 222 47% 14%;
-    --foreground: 213 31% 91%;
-    --card: 222 47% 16%;
-    --card-foreground: 213 31% 91%;
-    --popover: 222 47% 14%;
-    --popover-foreground: 213 31% 91%;
-    --primary: 217 91% 60%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 213 31% 91%;
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
-    --accent: 217 33% 17%;
-    --accent-foreground: 213 31% 91%;
-    --destructive: 0 84% 60%;
+    --background: 220 15% 9%;
+    --foreground: 0 0% 96%;
+    --card: 220 15% 12%;
+    --card-foreground: 0 0% 96%;
+    --popover: 220 15% 11%;
+    --popover-foreground: 0 0% 96%;
+
+    --primary: 49 100% 50%;            /* Brunner-Gelb #FFD100 */
+    --primary-foreground: 220 20% 10%; /* dunkler Text auf Gelb */
+
+    --secondary: 220 12% 18%;
+    --secondary-foreground: 0 0% 96%;
+    --muted: 220 12% 16%;
+    --muted-foreground: 220 8% 65%;
+    --accent: 49 100% 50%;
+    --accent-foreground: 220 20% 10%;
+    --destructive: 0 75% 55%;
     --destructive-foreground: 0 0% 100%;
-    --border: 217 33% 20%;
-    --input: 217 33% 20%;
-    --ring: 217 91% 60%;
+    --border: 220 12% 20%;
+    --input: 220 12% 18%;
+    --ring: 49 100% 50%;
     --radius: 0.75rem;
 
     --garage-green: 142 71% 45%;
-    --garage-yellow: 48 96% 53%;
-    --garage-red: 0 84% 60%;
-    --garage-amber: 48 96% 53%;
+    --garage-yellow: 49 100% 50%;
+    --garage-red: 0 75% 55%;
+    --garage-amber: 38 92% 55%;
 
-    --sidebar-background: 222 47% 14%;
-    --sidebar-foreground: 213 31% 91%;
-    --sidebar-primary: 217 91% 60%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 217 33% 17%;
-    --sidebar-accent-foreground: 213 31% 91%;
-    --sidebar-border: 217 33% 20%;
-    --sidebar-ring: 217 91% 60%;
+    --sidebar-background: 220 18% 7%;
+    --sidebar-foreground: 0 0% 96%;
+    --sidebar-primary: 49 100% 50%;
+    --sidebar-primary-foreground: 220 20% 10%;
+    --sidebar-accent: 220 12% 16%;
+    --sidebar-accent-foreground: 0 0% 96%;
+    --sidebar-border: 220 12% 18%;
+    --sidebar-ring: 49 100% 50%;
   }
 
   .dark {
-    --background: 222 47% 14%;
-    --foreground: 213 31% 91%;
-    --card: 222 47% 16%;
-    --card-foreground: 213 31% 91%;
-    --popover: 222 47% 14%;
-    --popover-foreground: 213 31% 91%;
-    --primary: 217 91% 60%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 213 31% 91%;
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
-    --accent: 217 33% 17%;
-    --accent-foreground: 213 31% 91%;
-    --destructive: 0 84% 60%;
+    --background: 220 15% 9%;
+    --foreground: 0 0% 96%;
+    --card: 220 15% 12%;
+    --card-foreground: 0 0% 96%;
+    --popover: 220 15% 11%;
+    --popover-foreground: 0 0% 96%;
+    --primary: 49 100% 50%;
+    --primary-foreground: 220 20% 10%;
+    --secondary: 220 12% 18%;
+    --secondary-foreground: 0 0% 96%;
+    --muted: 220 12% 16%;
+    --muted-foreground: 220 8% 65%;
+    --accent: 49 100% 50%;
+    --accent-foreground: 220 20% 10%;
+    --destructive: 0 75% 55%;
     --destructive-foreground: 0 0% 100%;
-    --border: 217 33% 20%;
-    --input: 217 33% 20%;
-    --ring: 217 91% 60%;
+    --border: 220 12% 20%;
+    --input: 220 12% 18%;
+    --ring: 49 100% 50%;
   }
 }
 
@@ -70,7 +75,7 @@
   body {
     @apply bg-background text-foreground;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: linear-gradient(135deg, hsl(222 47% 14%) 0%, hsl(215 44% 16%) 100%);
+    background: linear-gradient(135deg, hsl(220 18% 7%) 0%, hsl(220 15% 11%) 100%);
     min-height: 100vh;
   }
 }
