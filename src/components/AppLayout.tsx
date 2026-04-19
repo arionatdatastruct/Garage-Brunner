@@ -10,6 +10,12 @@ const navItems = [
   { to: "/statistiken", label: "Statistiken", icon: BarChart3 },
 ];
 
+// Mobile zeigt nur die Tagesübersicht — keine Statistiken, keine Suche
+const mobileNavItems = [
+  { to: "/", label: "Wochenplan", icon: Calendar },
+  { to: "/archiv", label: "Archiv", icon: Archive },
+];
+
 export function AppLayout() {
   const location = useLocation();
   const [pageTitle, setPageTitle] = useState("Werkstatt");
