@@ -14,13 +14,29 @@ import { format, startOfWeek, addDays, isSameDay, parseISO, getISOWeek, getISOWe
 import { de } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Plus, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import { NeuerAuftragDialog } from "@/components/NeuerAuftragDialog";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { kapazitaetFuer, auslastungsFarbe } from "@/lib/arbeitszeiten";
 import { cn } from "@/lib/utils";
 import { KategorieBadges } from "@/components/KategorieBadges";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Rapport {
   id: string;
@@ -48,7 +64,7 @@ const STATUS_DOT: Record<string, string> = {
   erledigt: "bg-emerald-500",
 };
 
-function RapportCard({ r, onUpdate }: { r: Rapport; onUpdate: (id: string, h: number | null) => void }) {
+function RapportCard({ r, onUpdate, onDelete }: { r: Rapport; onUpdate: (id: string, h: number | null) => void; onDelete: (r: Rapport) => void }) {
   const navigate = useNavigate();
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: r.id,
@@ -89,76 +105,88 @@ function RapportCard({ r, onUpdate }: { r: Rapport; onUpdate: (id: string, h: nu
   };
 
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      {...attributes}
-      {...listeners}
-      onClick={() => !isDragging && !editing && navigate(`/auftrag/${r.id}`)}
-      className="bg-card border border-border rounded-md p-3 mb-2 cursor-grab active:cursor-grabbing shadow-sm hover:shadow-md transition touch-none"
-    >
-      <div className="flex items-start justify-between gap-2 mb-1">
-        <span className="font-mono font-semibold text-sm">
-          {r.kennzeichen ?? "—"}
-        </span>
-        <span className={`h-2 w-2 rounded-full mt-1.5 ${STATUS_DOT[r.status] ?? "bg-muted-foreground"}`} />
-      </div>
-      <div className="text-xs text-muted-foreground truncate">
-        {r.marke ?? "Kein Fahrzeug"}
-      </div>
-      {(r.kunde_name || r.kundennummer) && (
-        <div className="text-[10px] text-muted-foreground truncate mt-0.5">
-          {r.kundennummer && <span className="font-mono mr-1">#{r.kundennummer}</span>}
-          {r.kunde_name}
-        </div>
-      )}
-      {r.kategorie && (
-        <div className="mt-1.5">
-          <KategorieBadges value={r.kategorie} size="xs" />
-        </div>
-      )}
-      <div className="flex items-center justify-between mt-2 gap-2">
-        <span className="text-[10px] text-muted-foreground font-mono">
-          {r.auftragsnummer ?? r.rapport_nummer}
-        </span>
-        <div className="flex items-center gap-1.5" onPointerDown={(e) => editing && e.stopPropagation()}>
-          {editing ? (
-            <input
-              type="number"
-              step="0.25"
-              min="0"
-              autoFocus
-              value={val}
-              onChange={(e) => setVal(e.target.value)}
-              onBlur={commit}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") commit();
-                if (e.key === "Escape") setEditing(false);
-              }}
-              onClick={(e) => e.stopPropagation()}
-              className="w-12 h-5 text-[10px] font-mono px-1 rounded border border-primary bg-background focus:outline-none"
-            />
-          ) : (
-            <button
-              type="button"
-              onClick={startEdit}
-              onPointerDown={(e) => e.stopPropagation()}
-              className="text-[10px] font-mono text-muted-foreground hover:text-foreground hover:bg-muted px-1.5 py-0.5 rounded transition"
-              title="Stunden bearbeiten"
-            >
-              {r.arbeitszeit_stunden != null && r.arbeitszeit_stunden > 0
-                ? `${r.arbeitszeit_stunden.toLocaleString("de-CH", { maximumFractionDigits: 2 })}h`
-                : "+ h"}
-            </button>
-          )}
-          {r.mechaniker_zuweisung && (
-            <span className={`text-[10px] px-1.5 py-0.5 rounded border ${MECH_COLOR[r.mechaniker_zuweisung] ?? ""}`}>
-              {r.mechaniker_zuweisung}
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        <div
+          ref={setNodeRef}
+          style={style}
+          {...attributes}
+          {...listeners}
+          onClick={() => !isDragging && !editing && navigate(`/auftrag/${r.id}`)}
+          className="bg-card border border-border rounded-md p-3 mb-2 cursor-grab active:cursor-grabbing shadow-sm hover:shadow-md transition touch-none"
+        >
+          <div className="flex items-start justify-between gap-2 mb-1">
+            <span className="font-mono font-semibold text-sm">
+              {r.kennzeichen ?? "—"}
             </span>
+            <span className={`h-2 w-2 rounded-full mt-1.5 ${STATUS_DOT[r.status] ?? "bg-muted-foreground"}`} />
+          </div>
+          <div className="text-xs text-muted-foreground truncate">
+            {r.marke ?? "Kein Fahrzeug"}
+          </div>
+          {(r.kunde_name || r.kundennummer) && (
+            <div className="text-[10px] text-muted-foreground truncate mt-0.5">
+              {r.kundennummer && <span className="font-mono mr-1">#{r.kundennummer}</span>}
+              {r.kunde_name}
+            </div>
           )}
+          {r.kategorie && (
+            <div className="mt-1.5">
+              <KategorieBadges value={r.kategorie} size="xs" />
+            </div>
+          )}
+          <div className="flex items-center justify-between mt-2 gap-2">
+            <span className="text-[10px] text-muted-foreground font-mono">
+              {r.auftragsnummer ?? r.rapport_nummer}
+            </span>
+            <div className="flex items-center gap-1.5" onPointerDown={(e) => editing && e.stopPropagation()}>
+              {editing ? (
+                <input
+                  type="number"
+                  step="0.25"
+                  min="0"
+                  autoFocus
+                  value={val}
+                  onChange={(e) => setVal(e.target.value)}
+                  onBlur={commit}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") commit();
+                    if (e.key === "Escape") setEditing(false);
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="w-12 h-5 text-[10px] font-mono px-1 rounded border border-primary bg-background focus:outline-none"
+                />
+              ) : (
+                <button
+                  type="button"
+                  onClick={startEdit}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  className="text-[10px] font-mono text-muted-foreground hover:text-foreground hover:bg-muted px-1.5 py-0.5 rounded transition"
+                  title="Stunden bearbeiten"
+                >
+                  {r.arbeitszeit_stunden != null && r.arbeitszeit_stunden > 0
+                    ? `${r.arbeitszeit_stunden.toLocaleString("de-CH", { maximumFractionDigits: 2 })}h`
+                    : "+ h"}
+                </button>
+              )}
+              {r.mechaniker_zuweisung && (
+                <span className={`text-[10px] px-1.5 py-0.5 rounded border ${MECH_COLOR[r.mechaniker_zuweisung] ?? ""}`}>
+                  {r.mechaniker_zuweisung}
+                </span>
+              )}
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
+      </ContextMenuTrigger>
+      <ContextMenuContent>
+        <ContextMenuItem
+          onSelect={() => onDelete(r)}
+          className="text-destructive focus:text-destructive"
+        >
+          <Trash2 className="h-4 w-4 mr-2" /> Auftrag löschen
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
   );
 }
 
@@ -167,11 +195,13 @@ function DayColumn({
   rapports,
   onAdd,
   onUpdateStunden,
+  onDelete,
 }: {
   date: Date;
   rapports: Rapport[];
   onAdd: () => void;
   onUpdateStunden: (id: string, h: number | null) => void;
+  onDelete: (r: Rapport) => void;
 }) {
   const id = format(date, "yyyy-MM-dd");
   const { setNodeRef, isOver } = useDroppable({ id });
@@ -218,7 +248,7 @@ function DayColumn({
         className={`flex-1 p-2 min-h-[200px] transition-colors ${isOver ? "bg-primary/10" : ""}`}
       >
         {rapports.map((r) => (
-          <RapportCard key={r.id} r={r} onUpdate={onUpdateStunden} />
+          <RapportCard key={r.id} r={r} onUpdate={onUpdateStunden} onDelete={onDelete} />
         ))}
         {rapports.length === 0 && (
           <div className="text-xs text-muted-foreground text-center py-6">Leer</div>
@@ -292,6 +322,37 @@ export default function Wochenplan() {
 
   const updateStunden = (id: string, h: number | null) => {
     setRapports((prev) => prev.map((r) => (r.id === id ? { ...r, arbeitszeit_stunden: h } : r)));
+  };
+
+  const [toDelete, setToDelete] = useState<Rapport | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const confirmDelete = async () => {
+    if (!toDelete) return;
+    setDeleting(true);
+    try {
+      for (const bucket of ["belege", "fotos"] as const) {
+        const { data: files } = await supabase.storage.from(bucket).list(toDelete.id);
+        if (files && files.length > 0) {
+          await supabase.storage
+            .from(bucket)
+            .remove(files.map((f) => `${toDelete.id}/${f.name}`));
+        }
+      }
+      const { error } = await (supabase as any)
+        .from("arbeitsrapporte")
+        .delete()
+        .eq("id", toDelete.id);
+      if (error) throw error;
+      setRapports((prev) => prev.filter((r) => r.id !== toDelete.id));
+      toast.success("Auftrag gelöscht");
+      setToDelete(null);
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e.message ?? "Fehler beim Löschen");
+    } finally {
+      setDeleting(false);
+    }
   };
 
   // Wochen-Gesamtauslastung
@@ -378,7 +439,7 @@ export default function Wochenplan() {
                 key={key}
                 className="snap-center shrink-0 w-[calc(100vw-1.5rem)] bg-muted/30 rounded-lg flex flex-col"
               >
-                <DayColumn date={d} rapports={dayRapports} onAdd={() => openDialog(d)} onUpdateStunden={updateStunden} />
+                <DayColumn date={d} rapports={dayRapports} onAdd={() => openDialog(d)} onUpdateStunden={updateStunden} onDelete={setToDelete} />
               </div>
             );
           })}
@@ -407,7 +468,7 @@ export default function Wochenplan() {
             const dayRapports = rapports.filter((r) => r.geplantes_datum === key);
             return (
               <div key={key} className="bg-muted/30 rounded-lg flex flex-col">
-                <DayColumn date={d} rapports={dayRapports} onAdd={() => openDialog(d)} onUpdateStunden={updateStunden} />
+                <DayColumn date={d} rapports={dayRapports} onAdd={() => openDialog(d)} onUpdateStunden={updateStunden} onDelete={setToDelete} />
               </div>
             );
           })}
@@ -420,6 +481,27 @@ export default function Wochenplan() {
         onCreated={load}
         defaultDate={dialogDate}
       />
+
+      <AlertDialog open={!!toDelete} onOpenChange={(o) => !o && !deleting && setToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Auftrag löschen?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {toDelete?.rapport_nummer ?? "Auftrag"} wird unwiderruflich gelöscht — inkl. PDF und Fotos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Abbrechen</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); confirmDelete(); }}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Löschen
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
