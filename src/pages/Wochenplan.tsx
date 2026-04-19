@@ -117,6 +117,7 @@ function RapportCard({ r, onUpdate, onDelete, highlight, overdue }: { r: Rapport
             "group relative bg-card/60 hover:bg-card border border-border/60 hover:border-border",
             "rounded-lg pl-3 pr-2.5 py-2.5 mb-2 cursor-grab active:cursor-grabbing transition-all touch-none",
             "overflow-hidden",
+            overdue && "border-destructive/60 bg-destructive/5 hover:border-destructive",
             highlight && "ring-2 ring-primary border-primary animate-pulse"
           )}
           data-rapport-id={r.id}
