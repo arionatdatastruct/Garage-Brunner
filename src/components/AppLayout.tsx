@@ -95,7 +95,7 @@ export function AppLayout() {
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
         aria-label="Hauptnavigation"
       >
-        {navItems.map(({ to, label, icon: Icon }) => (
+        {mobileNavItems.map(({ to, label, icon: Icon }) => (
           <NavLink
             key={to}
             to={to}
