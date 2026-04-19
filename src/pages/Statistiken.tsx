@@ -232,6 +232,8 @@ export default function Statistiken() {
           )}
         </CardContent>
       </Card>
+
+      <Card>
         <CardHeader>
           <CardTitle className="text-base">Top-Kunden</CardTitle>
         </CardHeader>
