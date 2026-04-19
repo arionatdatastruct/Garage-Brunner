@@ -23,6 +23,16 @@ export function zeitfensterFuer(date: Date | string): string {
   return "07:30–12:00 · 13:30–18:00";
 }
 
+/** Liefert den nächsten Werktag (Mo–Fr) ab heute (oder ab `from`). Heute selbst zählt, falls Mo–Fr. */
+export function naechsterWerktag(from: Date = new Date()): Date {
+  const d = new Date(from);
+  d.setHours(0, 0, 0, 0);
+  while (!istArbeitstag(d)) {
+    d.setDate(d.getDate() + 1);
+  }
+  return d;
+}
+
 export function auslastungsFarbe(verplant: number, kapazitaet: number): "ok" | "warn" | "over" {
   if (kapazitaet === 0) return "ok";
   const pct = verplant / kapazitaet;
