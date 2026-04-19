@@ -7,6 +7,7 @@ import Wochenplan from "./pages/Wochenplan";
 import Archiv from "./pages/Archiv";
 import Statistiken from "./pages/Statistiken";
 import AuftragDetail from "./pages/AuftragDetail";
+import KundeDetail from "./pages/KundeDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,6 +23,7 @@ const App = () => (
             <Route path="/archiv" element={<Archiv />} />
             <Route path="/statistiken" element={<Statistiken />} />
             <Route path="/auftrag/:id" element={<AuftragDetail />} />
+            <Route path="/kunde/:nummer" element={<KundeDetail />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
