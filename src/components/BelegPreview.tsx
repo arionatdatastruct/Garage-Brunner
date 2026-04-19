@@ -3,9 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { ExternalLink, FileText, Loader2, TriangleAlert } from "lucide-react";
 import { Document, Page, pdfjs } from "react-pdf";
 
-// Use a CDN worker that matches the exact API version bundled with react-pdf
-// to avoid "API version does not match Worker version" errors.
-pdfjs.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  "pdfjs-dist/build/pdf.worker.min.mjs",
+  import.meta.url
+).toString();
 
 interface BelegPreviewProps {
   pdfUrl: string | null;
@@ -43,6 +44,11 @@ export function BelegPreview({ pdfUrl }: BelegPreviewProps) {
     if (!pdfUrl) return null;
     return getStorageTarget(pdfUrl);
   }, [pdfUrl]);
+
+  const documentFile = useMemo(() => {
+    if (!pdfData) return null;
+    return { data: pdfData };
+  }, [pdfData]);
 
   useEffect(() => {
     const element = previewRef.current;
@@ -101,12 +107,13 @@ export function BelegPreview({ pdfUrl }: BelegPreviewProps) {
 
         if (!active || !pdfBlob) return;
 
-        const arrayBuffer = await pdfBlob.arrayBuffer();
+        const normalizedBlob = pdfBlob.type
+          ? pdfBlob
+          : new Blob([pdfBlob], { type: "application/pdf" });
+        const arrayBuffer = await normalizedBlob.arrayBuffer();
         if (!active) return;
 
-        nextBlobUrl = URL.createObjectURL(
-          pdfBlob.type ? pdfBlob : new Blob([pdfBlob], { type: "application/pdf" })
-        );
+        nextBlobUrl = URL.createObjectURL(normalizedBlob);
         setPdfData(new Uint8Array(arrayBuffer));
         setBlobUrl(nextBlobUrl);
       } catch (err) {
@@ -139,43 +146,43 @@ export function BelegPreview({ pdfUrl }: BelegPreviewProps) {
 
   if (!pdfUrl) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[40vh] text-muted-foreground border border-dashed border-border rounded-md">
-        <FileText className="h-8 w-8 mb-2" />
+      <div className="flex min-h-[40vh] flex-col items-center justify-center rounded-md border border-dashed border-border text-muted-foreground">
+        <FileText className="mb-2 h-8 w-8" />
         Kein PDF
       </div>
     );
   }
 
   return (
-    <div className="w-full h-full min-h-[60vh] flex flex-col gap-3">
+    <div className="flex h-full min-h-[60vh] w-full flex-col gap-3">
       <div className="flex items-center justify-between gap-3">
-        <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
+        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
           <FileText className="h-3 w-3" /> Original-Beleg
         </span>
         <a
           href={openHref}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-xs text-primary hover:underline inline-flex items-center gap-1"
+          className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
         >
           <ExternalLink className="h-3 w-3" /> Neuer Tab
         </a>
       </div>
 
       {loading ? (
-        <div className="flex flex-1 min-h-[55vh] items-center justify-center rounded-md border border-border bg-muted text-muted-foreground gap-2">
+        <div className="flex min-h-[55vh] flex-1 items-center justify-center gap-2 rounded-md border border-border bg-muted text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" /> Beleg wird geladen…
         </div>
-      ) : pdfData ? (
+      ) : documentFile ? (
         <div
           ref={previewRef}
-          className="flex-1 min-h-[55vh] rounded-md border border-border bg-muted/30 overflow-y-auto p-3"
+          className="flex-1 min-h-[55vh] overflow-y-auto rounded-md border border-border bg-muted/30 p-3"
         >
           <Document
-            file={{ data: pdfData }}
+            file={documentFile}
             loading={null}
             error={
-              <div className="flex flex-col items-center justify-center gap-2 min-h-[40vh] text-muted-foreground border border-dashed border-border rounded-md px-6 text-center bg-muted">
+              <div className="flex min-h-[40vh] flex-col items-center justify-center gap-2 rounded-md border border-dashed border-border bg-muted px-6 text-center text-muted-foreground">
                 <TriangleAlert className="h-8 w-8 text-destructive" />
                 <p className="text-sm">Die PDF konnte nicht gerendert werden.</p>
                 <p className="text-xs">Bitte öffne den Beleg im neuen Tab.</p>
@@ -185,24 +192,27 @@ export function BelegPreview({ pdfUrl }: BelegPreviewProps) {
           >
             <div className="flex flex-col items-center gap-4">
               {Array.from({ length: pageCount }, (_, index) => (
-                <Page
+                <div
                   key={index + 1}
-                  pageNumber={index + 1}
-                  width={Math.max(Math.min(previewWidth - 24, 900), 280)}
-                  renderAnnotationLayer={false}
-                  renderTextLayer={false}
                   className="overflow-hidden rounded-md border border-border bg-background shadow-sm"
-                />
+                >
+                  <Page
+                    pageNumber={index + 1}
+                    width={Math.max(Math.min(previewWidth - 24, 900), 280)}
+                    renderAnnotationLayer={false}
+                    renderTextLayer={false}
+                  />
+                </div>
               ))}
             </div>
           </Document>
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center gap-2 min-h-[40vh] text-muted-foreground border border-dashed border-border rounded-md px-6 text-center">
+        <div className="flex min-h-[40vh] flex-col items-center justify-center gap-2 rounded-md border border-dashed border-border px-6 text-center text-muted-foreground">
           <TriangleAlert className="h-8 w-8 text-destructive" />
           <p className="text-sm">Der Beleg konnte im Browser nicht direkt angezeigt werden.</p>
           <p className="text-xs">Bitte öffne ihn im neuen Tab. Falls ein Werbeblocker aktiv ist, erlaube Supabase-Dateien.</p>
-          {error && <p className="text-[11px] text-muted-foreground/80 break-all">{error}</p>}
+          {error && <p className="break-all text-[11px] text-muted-foreground/80">{error}</p>}
         </div>
       )}
     </div>
