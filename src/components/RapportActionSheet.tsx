@@ -34,6 +34,10 @@ interface Rapport {
   arbeitszeit_stunden: number | null;
   kennzeichen: string | null;
   marke: string | null;
+  mechaniker_zuweisung?: string | null;
+  kategorie?: string | null;
+  kundennummer?: string | null;
+  kunde_name?: string | null;
 }
 
 interface Props {
