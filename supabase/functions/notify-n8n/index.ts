@@ -47,11 +47,10 @@ Deno.serve(async (req) => {
     const userClient = createClient(supaUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     });
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claims, error: claimsErr } = await userClient.auth.getClaims(token);
-    console.log("claims result:", { hasClaims: !!claims?.claims, err: claimsErr?.message });
-    if (claimsErr || !claims?.claims) {
-      return new Response(JSON.stringify({ error: "Unauthorized - invalid token", details: claimsErr?.message }), {
+    const { data: userData, error: userErr } = await userClient.auth.getUser();
+    console.log("getUser result:", { hasUser: !!userData?.user, err: userErr?.message });
+    if (userErr || !userData?.user) {
+      return new Response(JSON.stringify({ error: "Unauthorized - invalid token", details: userErr?.message }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
