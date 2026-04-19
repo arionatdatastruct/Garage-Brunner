@@ -176,7 +176,7 @@ export function BelegPreview({ pdfUrl }: BelegPreviewProps) {
       ) : documentFile ? (
         <div
           ref={previewRef}
-          className="flex-1 min-h-[55vh] overflow-y-auto rounded-md border border-border bg-muted/30 p-3"
+          className="flex-1 min-h-[70vh] overflow-y-auto rounded-md border border-border bg-muted/30 p-1"
         >
           <Document
             file={documentFile}
@@ -190,15 +190,15 @@ export function BelegPreview({ pdfUrl }: BelegPreviewProps) {
             }
             onLoadSuccess={({ numPages }) => setPageCount(numPages)}
           >
-            <div className="flex flex-col items-center gap-4">
+            <div className="flex flex-col items-center gap-3">
               {Array.from({ length: pageCount }, (_, index) => (
                 <div
                   key={index + 1}
-                  className="overflow-hidden rounded-md border border-border bg-background shadow-sm"
+                  className="overflow-hidden rounded-md border border-border bg-background shadow-sm w-full"
                 >
                   <Page
                     pageNumber={index + 1}
-                    width={Math.max(Math.min(previewWidth - 24, 900), 280)}
+                    width={Math.max(previewWidth - 8, 280)}
                     renderAnnotationLayer={false}
                     renderTextLayer={false}
                   />

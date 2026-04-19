@@ -142,12 +142,12 @@ export default function AuftragDetail() {
         <AuftragStatusBar rapportId={rapport.id} status={rapport.status} onChanged={load} />
       </div>
 
-      {/* Desktop: Split-View */}
-      <div className="hidden md:grid md:grid-cols-2 md:gap-4 md:h-[calc(100vh-12rem)]">
-        <div className="overflow-hidden">
+      {/* Desktop: Split-View — PDF grösser (60%), Form rechts (40%) */}
+      <div className="hidden md:grid md:grid-cols-5 md:gap-4 md:h-[calc(100vh-8rem)]">
+        <div className="md:col-span-3 overflow-hidden">
           <PdfPane />
         </div>
-        <div className="overflow-y-auto pr-1 space-y-4">
+        <div className="md:col-span-2 overflow-y-auto pr-1 space-y-4">
           <AuftragForm rapport={rapport} onSaved={load} />
           <SicherheitsCheck
             rapportId={rapport.id}
@@ -172,7 +172,7 @@ export default function AuftragDetail() {
               onSaved={load}
             />
           </TabsContent>
-          <TabsContent value="beleg" className="mt-3 min-h-[75vh]">
+          <TabsContent value="beleg" className="mt-3 min-h-[85vh]">
             <PdfPane />
           </TabsContent>
         </Tabs>
