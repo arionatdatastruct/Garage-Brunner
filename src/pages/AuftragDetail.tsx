@@ -160,7 +160,7 @@ export default function AuftragDetail() {
       {/* Mobile: Tabs */}
       <div className="md:hidden">
         <Tabs defaultValue="daten">
-          <TabsList className="sticky top-12 z-20 grid grid-cols-2 w-full bg-card/95 backdrop-blur border border-border h-11">
+          <TabsList className="sticky top-[5.25rem] z-20 grid grid-cols-2 w-full bg-card/95 backdrop-blur border border-border h-11">
             <TabsTrigger value="daten" className="text-sm">Daten</TabsTrigger>
             <TabsTrigger value="beleg" className="text-sm">Beleg</TabsTrigger>
           </TabsList>
