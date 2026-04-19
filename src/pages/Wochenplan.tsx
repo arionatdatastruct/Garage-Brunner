@@ -292,7 +292,7 @@ function DayColumn({
         )}
       >
         {rapports.map((r) => (
-          <RapportCard key={r.id} r={r} onUpdate={onUpdateStunden} onDelete={onDelete} />
+          <RapportCard key={r.id} r={r} onUpdate={onUpdateStunden} onDelete={onDelete} highlight={highlightId === r.id} />
         ))}
         {rapports.length === 0 && (
           <div className="text-[11px] text-muted-foreground/50 text-center py-8 italic">
