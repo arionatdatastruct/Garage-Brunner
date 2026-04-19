@@ -66,7 +66,7 @@ const STATUS_BAR: Record<string, string> = {
   erledigt: "bg-emerald-500",
 };
 
-function RapportCard({ r, onUpdate, onDelete, highlight }: { r: Rapport; onUpdate: (id: string, h: number | null) => void; onDelete: (r: Rapport) => void; highlight?: boolean }) {
+function RapportCard({ r, onUpdate, onDelete, highlight, overdue }: { r: Rapport; onUpdate: (id: string, h: number | null) => void; onDelete: (r: Rapport) => void; highlight?: boolean; overdue?: boolean }) {
   const navigate = useNavigate();
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: r.id });
   const [editing, setEditing] = useState(false);
