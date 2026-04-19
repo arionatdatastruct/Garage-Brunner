@@ -1,9 +1,7 @@
-import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Save, AlertTriangle } from "lucide-react";
+import { Loader2, Check, ShieldCheck, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const CHECKS = [
@@ -16,18 +14,19 @@ const CHECKS = [
 
 type Status = "" | "gruen" | "gelb" | "rot";
 type State = Record<string, Status>;
+type SaveState = "idle" | "saving" | "saved";
 
 const DOT: Record<Status, string> = {
-  "": "bg-muted border border-border",
+  "": "bg-muted-foreground/30",
   gruen: "bg-emerald-500",
   gelb: "bg-amber-500",
   rot: "bg-red-500",
 };
 
-const BTN: Record<Exclude<Status, "">, string> = {
-  gruen: "data-[active=true]:bg-emerald-500 data-[active=true]:text-white data-[active=true]:border-emerald-500",
-  gelb: "data-[active=true]:bg-amber-500 data-[active=true]:text-white data-[active=true]:border-amber-500",
-  rot: "data-[active=true]:bg-red-500 data-[active=true]:text-white data-[active=true]:border-red-500",
+const BTN_ACTIVE: Record<Exclude<Status, "">, string> = {
+  gruen: "bg-emerald-500 text-white border-emerald-500 shadow-sm",
+  gelb: "bg-amber-500 text-white border-amber-500 shadow-sm",
+  rot: "bg-red-500 text-white border-red-500 shadow-sm",
 };
 
 interface Props {
@@ -40,98 +39,166 @@ export function SicherheitsCheck({ rapportId, initial, onSaved }: Props) {
   const [state, setState] = useState<State>(() => {
     const s: State = {};
     CHECKS.forEach((c) => {
-      const v = (initial?.[c.key] as Status) ?? "";
-      s[c.key] = v;
+      s[c.key] = (initial?.[c.key] as Status) ?? "";
     });
     return s;
   });
-  const [busy, setBusy] = useState(false);
+  const [saveState, setSaveState] = useState<SaveState>("idle");
+  const dirty = useRef(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Sync wenn parent neu lädt
   useEffect(() => {
     const s: State = {};
     CHECKS.forEach((c) => {
       s[c.key] = (initial?.[c.key] as Status) ?? "";
     });
     setState(s);
+    dirty.current = false;
   }, [initial]);
 
+  // Auto-Save
+  useEffect(() => {
+    if (!dirty.current) return;
+    if (timer.current) clearTimeout(timer.current);
+    setSaveState("saving");
+    timer.current = setTimeout(async () => {
+      try {
+        const { error } = await (supabase as any)
+          .from("arbeitsrapporte")
+          .update({ sicherheitscheck: state })
+          .eq("id", rapportId);
+        if (error) throw error;
+        setSaveState("saved");
+        onSaved();
+        setTimeout(() => setSaveState("idle"), 1500);
+      } catch (e: any) {
+        setSaveState("idle");
+        toast.error(e.message ?? "Fehler beim Speichern");
+      }
+    }, 600);
+    return () => {
+      if (timer.current) clearTimeout(timer.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state]);
+
   const set = (key: string, status: Status) => {
+    dirty.current = true;
     setState((prev) => ({ ...prev, [key]: prev[key] === status ? "" : status }));
   };
 
-  const save = async () => {
-    setBusy(true);
-    try {
-      const ampel = Object.values(state).includes("rot")
-        ? "rot"
-        : Object.values(state).includes("gelb")
-          ? "gelb"
-          : Object.values(state).some((v) => v === "gruen")
-            ? "gruen"
-            : null;
-      const { error } = await (supabase as any)
-        .from("arbeitsrapporte")
-        .update({ sicherheitscheck: state, ampel_status: ampel })
-        .eq("id", rapportId);
-      if (error) throw error;
-      toast.success("Sicherheitscheck gespeichert");
-      onSaved();
-    } catch (e: any) {
-      toast.error(e.message ?? "Fehler");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const hasRot = Object.values(state).includes("rot");
+  const counts = Object.values(state).reduce(
+    (a, v) => {
+      if (v === "rot") a.rot++;
+      else if (v === "gelb") a.gelb++;
+      else if (v === "gruen") a.gruen++;
+      return a;
+    },
+    { gruen: 0, gelb: 0, rot: 0 }
+  );
+  const hasRot = counts.rot > 0;
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base flex items-center justify-between">
-          <span>Sicherheitscheck</span>
-          {hasRot && (
-            <span className="inline-flex items-center gap-1 text-xs text-red-500 font-normal">
-              <AlertTriangle className="h-3.5 w-3.5" /> Achtung
-            </span>
+    <div className="rounded-xl border border-border bg-card/60 backdrop-blur-sm">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-2 px-4 py-2.5 border-b border-border">
+        <div className="flex items-center gap-2">
+          <ShieldCheck className={cn("h-4 w-4", hasRot ? "text-destructive" : "text-primary")} />
+          <h3 className="text-sm font-semibold uppercase tracking-wider">Sicherheitscheck</h3>
+        </div>
+        <span
+          className={cn(
+            "inline-flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 rounded-full transition-all",
+            saveState === "saving" && "bg-amber-500/15 text-amber-500",
+            saveState === "saved" && "bg-emerald-500/15 text-emerald-500",
+            saveState === "idle" && "text-muted-foreground/60"
           )}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-2">
-        {CHECKS.map((c) => (
-          <div
-            key={c.key}
-            className="flex items-center justify-between gap-3 py-1.5 border-b border-border last:border-b-0"
-          >
-            <div className="flex items-center gap-2 min-w-0">
-              <span className={cn("h-2.5 w-2.5 rounded-full shrink-0", DOT[state[c.key]])} />
-              <span className="text-sm truncate">{c.label}</span>
-            </div>
-            <div className="flex gap-1 shrink-0">
-              {(["gruen", "gelb", "rot"] as const).map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  data-active={state[c.key] === s}
-                  onClick={() => set(c.key, s)}
-                  className={cn(
-                    "h-7 w-7 rounded border border-border bg-background hover:bg-muted transition flex items-center justify-center",
-                    BTN[s]
-                  )}
-                  title={s === "gruen" ? "OK" : s === "gelb" ? "Beobachten" : "Mangel"}
-                >
-                  <span className={cn("h-2 w-2 rounded-full", DOT[s])} />
-                </button>
-              ))}
-            </div>
-          </div>
-        ))}
+        >
+          {saveState === "saving" ? (
+            <>
+              <Loader2 className="h-3 w-3 animate-spin" /> Speichert
+            </>
+          ) : saveState === "saved" ? (
+            <>
+              <Check className="h-3 w-3" /> Gespeichert
+            </>
+          ) : (
+            <>
+              <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40" />
+              Bereit
+            </>
+          )}
+        </span>
+      </div>
 
-        <Button onClick={save} disabled={busy} variant="outline" className="w-full mt-3">
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-          Sicherheitscheck speichern
-        </Button>
-      </CardContent>
-    </Card>
+      {/* Achtung-Banner bei Rot */}
+      {hasRot && (
+        <div className="flex items-center gap-2 px-4 py-2 bg-destructive/10 text-destructive text-xs font-medium border-b border-destructive/20">
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+          {counts.rot} {counts.rot === 1 ? "Mangel" : "Mängel"} festgestellt
+        </div>
+      )}
+
+      {/* Check-Liste */}
+      <div className="p-4 space-y-1">
+        {CHECKS.map((c) => {
+          const current = state[c.key];
+          return (
+            <div
+              key={c.key}
+              className="flex items-center justify-between gap-3 py-2 border-b border-border/50 last:border-b-0"
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className={cn("h-2.5 w-2.5 rounded-full shrink-0 transition-colors", DOT[current])} />
+                <span className="text-sm truncate">{c.label}</span>
+              </div>
+              <div className="flex gap-1 shrink-0">
+                {(["gruen", "gelb", "rot"] as const).map((s) => {
+                  const isActive = current === s;
+                  return (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => set(c.key, s)}
+                      aria-pressed={isActive}
+                      className={cn(
+                        "h-7 w-7 rounded-md border border-border bg-background hover:bg-muted transition flex items-center justify-center",
+                        isActive && BTN_ACTIVE[s]
+                      )}
+                      title={s === "gruen" ? "OK" : s === "gelb" ? "Beobachten" : "Mangel"}
+                    >
+                      {isActive ? (
+                        <Check className="h-3.5 w-3.5" strokeWidth={3} />
+                      ) : (
+                        <span className={cn("h-2 w-2 rounded-full", DOT[s])} />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Footer mit Zusammenfassung */}
+      <div className="flex items-center justify-between gap-3 px-4 py-2 border-t border-border text-xs text-muted-foreground">
+        <span>
+          {CHECKS.length - counts.gruen - counts.gelb - counts.rot} offen
+        </span>
+        <div className="flex items-center gap-3 font-mono tabular-nums">
+          <span className="inline-flex items-center gap-1">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> {counts.gruen}
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <span className="h-1.5 w-1.5 rounded-full bg-amber-500" /> {counts.gelb}
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <span className="h-1.5 w-1.5 rounded-full bg-red-500" /> {counts.rot}
+          </span>
+        </div>
+      </div>
+    </div>
   );
 }

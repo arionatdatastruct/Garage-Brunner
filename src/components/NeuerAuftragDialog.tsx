@@ -10,21 +10,21 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Upload, Loader2, CalendarIcon } from "lucide-react";
 import { WochenAuslastung } from "@/components/WochenAuslastung";
-import { zeitfensterFuer, istArbeitstag } from "@/lib/arbeitszeiten";
-import { format, parseISO, getDay } from "date-fns";
+import { zeitfensterFuer, istArbeitstag, naechsterWerktag } from "@/lib/arbeitszeiten";
+import { format, parseISO, getDay, isBefore, startOfDay } from "date-fns";
 import { de } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreated: () => void;
+  onCreated: (info?: { id: string; geplantes_datum: string }) => void;
   defaultDate?: string;
 }
 
 export function NeuerAuftragDialog({ open, onOpenChange, onCreated, defaultDate }: Props) {
   const [pdfFile, setPdfFile] = useState<File | null>(null);
-  const [datum, setDatum] = useState(defaultDate ?? new Date().toISOString().slice(0, 10));
+  const [datum, setDatum] = useState(defaultDate ?? format(naechsterWerktag(), "yyyy-MM-dd"));
   const [stunden, setStunden] = useState<string>("1");
   const [mechaniker, setMechaniker] = useState<"Roman" | "Pascal" | "">("");
   const [busy, setBusy] = useState(false);
@@ -90,7 +90,7 @@ export function NeuerAuftragDialog({ open, onOpenChange, onCreated, defaultDate 
       toast.success(`Auftrag ${rap.rapport_nummer} angelegt`);
       reset();
       onOpenChange(false);
-      onCreated();
+      onCreated({ id: rap.id, geplantes_datum: datum });
     } catch (e: any) {
       console.error(e);
       toast.error(e.message ?? "Fehler beim Anlegen");
@@ -148,7 +148,8 @@ export function NeuerAuftragDialog({ open, onOpenChange, onCreated, defaultDate 
                     onSelect={(d) => d && setDatum(format(d, "yyyy-MM-dd"))}
                     disabled={(date) => {
                       const day = getDay(date);
-                      return day === 0 || day === 6;
+                      if (day === 0 || day === 6) return true;
+                      return isBefore(date, startOfDay(new Date()));
                     }}
                     weekStartsOn={1}
                     locale={de}

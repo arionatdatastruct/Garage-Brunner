@@ -14,7 +14,7 @@ import { format, startOfWeek, addDays, isSameDay, parseISO, getISOWeek, getISOWe
 import { de } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Plus, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, Trash2, ArrowRight } from "lucide-react";
 import { NeuerAuftragDialog } from "@/components/NeuerAuftragDialog";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -64,7 +64,7 @@ const STATUS_BAR: Record<string, string> = {
   erledigt: "bg-emerald-500",
 };
 
-function RapportCard({ r, onUpdate, onDelete }: { r: Rapport; onUpdate: (id: string, h: number | null) => void; onDelete: (r: Rapport) => void }) {
+function RapportCard({ r, onUpdate, onDelete, highlight }: { r: Rapport; onUpdate: (id: string, h: number | null) => void; onDelete: (r: Rapport) => void; highlight?: boolean }) {
   const navigate = useNavigate();
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: r.id });
   const [editing, setEditing] = useState(false);
@@ -114,8 +114,10 @@ function RapportCard({ r, onUpdate, onDelete }: { r: Rapport; onUpdate: (id: str
           className={cn(
             "group relative bg-card/60 hover:bg-card border border-border/60 hover:border-border",
             "rounded-lg pl-3 pr-2.5 py-2.5 mb-2 cursor-grab active:cursor-grabbing transition-all touch-none",
-            "overflow-hidden"
+            "overflow-hidden",
+            highlight && "ring-2 ring-primary border-primary animate-pulse"
           )}
+          data-rapport-id={r.id}
         >
           {/* Status-Strich links */}
           <div
@@ -215,12 +217,14 @@ function DayColumn({
   onAdd,
   onUpdateStunden,
   onDelete,
+  highlightId,
 }: {
   date: Date;
   rapports: Rapport[];
   onAdd: () => void;
   onUpdateStunden: (id: string, h: number | null) => void;
   onDelete: (r: Rapport) => void;
+  highlightId?: string | null;
 }) {
   const id = format(date, "yyyy-MM-dd");
   const { setNodeRef, isOver } = useDroppable({ id });
@@ -288,7 +292,7 @@ function DayColumn({
         )}
       >
         {rapports.map((r) => (
-          <RapportCard key={r.id} r={r} onUpdate={onUpdateStunden} onDelete={onDelete} />
+          <RapportCard key={r.id} r={r} onUpdate={onUpdateStunden} onDelete={onDelete} highlight={highlightId === r.id} />
         ))}
         {rapports.length === 0 && (
           <div className="text-[11px] text-muted-foreground/50 text-center py-8 italic">
@@ -305,6 +309,9 @@ export default function Wochenplan() {
   const [rapports, setRapports] = useState<Rapport[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogDate, setDialogDate] = useState<string | undefined>();
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+  const [otherWeeksCount, setOtherWeeksCount] = useState(0);
+  const [nextOtherDate, setNextOtherDate] = useState<string | null>(null);
 
   const days = Array.from({ length: 5 }, (_, i) => addDays(weekStart, i));
 
@@ -331,6 +338,46 @@ export default function Wochenplan() {
   }, [weekStart]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Aufträge in anderen (nicht angezeigten) Wochen zählen — für Hinweis-Banner
+  useEffect(() => {
+    const from = format(weekStart, "yyyy-MM-dd");
+    const to = format(addDays(weekStart, 4), "yyyy-MM-dd");
+    const today = format(new Date(), "yyyy-MM-dd");
+    (async () => {
+      const { data } = await (supabase as any)
+        .from("arbeitsrapporte")
+        .select("geplantes_datum")
+        .in("status", ["geplant", "in_arbeit"])
+        .gte("geplantes_datum", today)
+        .or(`geplantes_datum.lt.${from},geplantes_datum.gt.${to}`)
+        .order("geplantes_datum", { ascending: true });
+      const list = (data ?? []) as { geplantes_datum: string }[];
+      setOtherWeeksCount(list.length);
+      setNextOtherDate(list[0]?.geplantes_datum ?? null);
+    })();
+  }, [weekStart, rapports]);
+
+  // Highlight-Animation nach 2.5s entfernen
+  useEffect(() => {
+    if (!highlightId) return;
+    const t = setTimeout(() => setHighlightId(null), 2500);
+    return () => clearTimeout(t);
+  }, [highlightId]);
+
+  const handleCreated = async (info?: { id: string; geplantes_datum: string }) => {
+    if (info) {
+      const targetWeek = startOfWeek(parseISO(info.geplantes_datum), { weekStartsOn: 1 });
+      setWeekStart(targetWeek);
+      setHighlightId(info.id);
+      // Scroll zur Karte (nach Render)
+      setTimeout(() => {
+        const el = document.querySelector(`[data-rapport-id="${info.id}"]`);
+        el?.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+      }, 250);
+    }
+    await load();
+  };
 
   // Mobile FAB öffnet denselben Dialog
   useEffect(() => {
@@ -467,6 +514,26 @@ export default function Wochenplan() {
         </div>
       </div>
 
+      {/* Hinweis-Banner: Aufträge in anderen Wochen */}
+      {otherWeeksCount > 0 && nextOtherDate && (
+        <button
+          type="button"
+          onClick={() => setWeekStart(startOfWeek(parseISO(nextOtherDate), { weekStartsOn: 1 }))}
+          className="w-full mb-4 flex items-center justify-between gap-3 rounded-lg border border-primary/30 bg-primary/5 hover:bg-primary/10 transition px-4 py-2.5 text-left"
+        >
+          <span className="text-sm">
+            <span className="font-semibold text-primary">{otherWeeksCount}</span>{" "}
+            {otherWeeksCount === 1 ? "Auftrag" : "Aufträge"} in anderen Wochen
+            <span className="text-muted-foreground ml-2">
+              · nächster: {format(parseISO(nextOtherDate), "EEE, d. MMM", { locale: de })}
+            </span>
+          </span>
+          <span className="inline-flex items-center gap-1 text-xs font-medium text-primary shrink-0">
+            Hinspringen <ArrowRight className="h-3.5 w-3.5" />
+          </span>
+        </button>
+      )}
+
       <DndContext sensors={sensors} onDragEnd={onDragEnd}>
         {/* Mobile: Snap-Karussell, eine Spalte pro Screen */}
         <div
@@ -481,7 +548,7 @@ export default function Wochenplan() {
                 key={key}
                 className="snap-center shrink-0 w-[calc(100vw-1.5rem)] bg-muted/30 rounded-lg flex flex-col"
               >
-                <DayColumn date={d} rapports={dayRapports} onAdd={() => openDialog(d)} onUpdateStunden={updateStunden} onDelete={setToDelete} />
+                <DayColumn date={d} rapports={dayRapports} onAdd={() => openDialog(d)} onUpdateStunden={updateStunden} onDelete={setToDelete} highlightId={highlightId} />
               </div>
             );
           })}
@@ -510,7 +577,7 @@ export default function Wochenplan() {
             const dayRapports = rapports.filter((r) => r.geplantes_datum === key);
             return (
               <div key={key} className="bg-muted/30 rounded-lg flex flex-col">
-                <DayColumn date={d} rapports={dayRapports} onAdd={() => openDialog(d)} onUpdateStunden={updateStunden} onDelete={setToDelete} />
+                <DayColumn date={d} rapports={dayRapports} onAdd={() => openDialog(d)} onUpdateStunden={updateStunden} onDelete={setToDelete} highlightId={highlightId} />
               </div>
             );
           })}
@@ -520,7 +587,7 @@ export default function Wochenplan() {
       <NeuerAuftragDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
-        onCreated={load}
+        onCreated={handleCreated}
         defaultDate={dialogDate}
       />
 
