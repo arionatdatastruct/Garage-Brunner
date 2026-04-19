@@ -348,14 +348,15 @@ export default function Wochenplan() {
     (async () => {
       const { data } = await (supabase as any)
         .from("arbeitsrapporte")
-        .select("geplantes_datum")
+        .select("id, geplantes_datum, kennzeichen, rapport_nummer")
         .in("status", ["geplant", "in_arbeit"])
         .gte("geplantes_datum", today)
         .or(`geplantes_datum.lt.${from},geplantes_datum.gt.${to}`)
         .order("geplantes_datum", { ascending: true });
-      const list = (data ?? []) as { geplantes_datum: string }[];
+      const list = (data ?? []) as Array<{ id: string; geplantes_datum: string; kennzeichen: string | null; rapport_nummer: string | null }>;
       setOtherWeeksCount(list.length);
       setNextOtherDate(list[0]?.geplantes_datum ?? null);
+      setNextOthers(list.slice(0, 3));
     })();
   }, [weekStart, rapports]);
 
