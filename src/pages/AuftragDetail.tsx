@@ -53,8 +53,37 @@ interface Rapport {
 
 export default function AuftragDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [rapport, setRapport] = useState<Rapport | null>(null);
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!id) return;
+    setDeleting(true);
+    try {
+      // Storage-Dateien im Ordner <rapport.id>/ löschen (belege + fotos)
+      for (const bucket of ["belege", "fotos"] as const) {
+        const { data: files } = await supabase.storage.from(bucket).list(id);
+        if (files && files.length > 0) {
+          await supabase.storage
+            .from(bucket)
+            .remove(files.map((f) => `${id}/${f.name}`));
+        }
+      }
+      const { error } = await (supabase as any)
+        .from("arbeitsrapporte")
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+      toast.success("Auftrag gelöscht");
+      navigate("/");
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e.message ?? "Fehler beim Löschen");
+      setDeleting(false);
+    }
+  };
 
   const load = useCallback(async () => {
     if (!id) return;
