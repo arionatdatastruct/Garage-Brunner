@@ -40,29 +40,58 @@ interface Props {
 
 type SaveState = "idle" | "saving" | "saved";
 
+/* ---------- Validierung ---------- */
+
+const validators = {
+  plz: (v: string | null) => {
+    if (!v) return null;
+    return /^\d{4}$/.test(v.trim()) ? null : "PLZ muss 4 Ziffern haben";
+  },
+  email: (v: string | null) => {
+    if (!v) return null;
+    return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim()) ? null : "Ungültige E-Mail";
+  },
+  telefon: (v: string | null) => {
+    if (!v) return null;
+    // Erlaubt CH-Formate: +41..., 0xx xxx xx xx, mit/ohne Leerzeichen, /, -
+    const cleaned = v.replace(/[\s\-/().]/g, "");
+    return /^\+?\d{7,15}$/.test(cleaned) ? null : "Ungültige Telefonnummer";
+  },
+};
+
 /* ---------- Kompakte Field-Primitives ---------- */
 
 function Field({
   label,
   children,
   className,
+  error,
 }: {
   label: string;
   children: React.ReactNode;
   className?: string;
+  error?: string | null;
 }) {
   return (
-    <label className={cn("block space-y-1", className)}>
-      <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
+    <label className={cn("block space-y-1", className)} data-error={error ? "true" : undefined}>
+      <span
+        className={cn(
+          "text-[11px] uppercase tracking-wider font-medium transition-colors",
+          error ? "text-destructive" : "text-muted-foreground"
+        )}
+      >
         {label}
       </span>
       {children}
+      {error && <span className="block text-[10px] text-destructive mt-0.5">{error}</span>}
     </label>
   );
 }
 
 const inputCls =
   "h-9 bg-transparent border-0 border-b border-border/60 rounded-none px-0 focus-visible:ring-0 focus-visible:border-primary transition-colors";
+
+const inputErrorCls = "border-destructive/70 focus-visible:border-destructive";
 
 function Section({
   icon: Icon,
