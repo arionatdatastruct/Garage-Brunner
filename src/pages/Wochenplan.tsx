@@ -575,8 +575,13 @@ export default function Wochenplan() {
                     className="w-full px-3 py-1.5 flex items-center justify-between gap-3 hover:bg-muted text-left"
                   >
                     <span className="font-mono font-semibold text-sm">{o.kennzeichen ?? "—"}</span>
-                    <span className="text-xs text-destructive tabular-nums">
-                      {format(parseISO(o.geplantes_datum), "EEE, d. MMM", { locale: de })}
+                    <span className="flex items-center gap-2 shrink-0">
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-destructive/15 text-destructive">
+                        KW {getISOWeek(parseISO(o.geplantes_datum))}
+                      </span>
+                      <span className="text-xs text-destructive tabular-nums">
+                        {format(parseISO(o.geplantes_datum), "EEE, d. MMM", { locale: de })}
+                      </span>
                     </span>
                   </button>
                 </li>
@@ -621,8 +626,13 @@ export default function Wochenplan() {
                     className="w-full px-3 py-1.5 flex items-center justify-between gap-3 hover:bg-muted text-left"
                   >
                     <span className="font-mono font-semibold text-sm">{o.kennzeichen ?? "—"}</span>
-                    <span className="text-xs text-muted-foreground tabular-nums">
-                      {format(parseISO(o.geplantes_datum), "EEE, d. MMM", { locale: de })}
+                    <span className="flex items-center gap-2 shrink-0">
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-primary/15 text-primary">
+                        KW {getISOWeek(parseISO(o.geplantes_datum))}
+                      </span>
+                      <span className="text-xs text-muted-foreground tabular-nums">
+                        {format(parseISO(o.geplantes_datum), "EEE, d. MMM", { locale: de })}
+                      </span>
                     </span>
                   </button>
                 </li>
