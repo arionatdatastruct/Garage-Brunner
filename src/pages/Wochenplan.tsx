@@ -309,6 +309,9 @@ export default function Wochenplan() {
   const [rapports, setRapports] = useState<Rapport[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogDate, setDialogDate] = useState<string | undefined>();
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+  const [otherWeeksCount, setOtherWeeksCount] = useState(0);
+  const [nextOtherDate, setNextOtherDate] = useState<string | null>(null);
 
   const days = Array.from({ length: 5 }, (_, i) => addDays(weekStart, i));
 
