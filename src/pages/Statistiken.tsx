@@ -232,6 +232,54 @@ export default function Statistiken() {
       </div>
 
       <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Auslastung pro Mechaniker (offene Aufträge)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {mechAuslastung.length === 0 ? (
+            <div className="py-12 text-center text-sm text-muted-foreground">Keine offenen Aufträge mit Mechaniker-Zuweisung.</div>
+          ) : (
+            <div className="space-y-4">
+              {mechAuslastung.map((m) => {
+                const over = m.auslastung > 100;
+                const warn = m.auslastung >= 80 && m.auslastung <= 100;
+                const barColor = over
+                  ? "bg-destructive"
+                  : warn
+                    ? "bg-amber-500"
+                    : "bg-emerald-500";
+                const textColor = over
+                  ? "text-destructive"
+                  : warn
+                    ? "text-amber-500"
+                    : "text-emerald-500";
+                return (
+                  <div key={m.mechaniker}>
+                    <div className="flex items-baseline justify-between mb-1.5">
+                      <span className="font-semibold">{m.mechaniker}</span>
+                      <div className="flex items-baseline gap-2 text-sm">
+                        <span className="font-mono">
+                          {m.verplant.toLocaleString("de-CH", { maximumFractionDigits: 1 })}
+                          <span className="text-muted-foreground">/{m.kapazitaet}h</span>
+                        </span>
+                        <span className={`font-bold ${textColor}`}>{m.auslastung}%</span>
+                      </div>
+                    </div>
+                    <div className="h-2 rounded-full bg-muted overflow-hidden">
+                      <div
+                        className={`h-full transition-all ${barColor}`}
+                        style={{ width: `${Math.min(100, m.auslastung)}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
         <CardHeader><CardTitle className="text-base">Kategorie-Vergleich (Umsatz)</CardTitle></CardHeader>
         <CardContent>
           {kategorieVergleich.every((k) => k.anzahl === 0) ? (
