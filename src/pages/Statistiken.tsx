@@ -6,6 +6,7 @@ import { Link } from "react-router-dom";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
 } from "recharts";
+import { KATEGORIEN, parseKategorien } from "@/lib/kategorien";
 
 interface Row {
   id: string;
@@ -15,6 +16,7 @@ interface Row {
   auftragswert_chf: number | null;
   arbeitszeit_stunden: number | null;
   mechaniker_zuweisung: string | null;
+  kategorie: string | null;
   status: string;
   geplantes_datum: string;
 }
@@ -41,7 +43,7 @@ export default function Statistiken() {
     (async () => {
       const { data } = await (supabase as any)
         .from("arbeitsrapporte")
-        .select("id, kundennummer, kunde_name, kunde_ort, auftragswert_chf, arbeitszeit_stunden, mechaniker_zuweisung, status, geplantes_datum")
+        .select("id, kundennummer, kunde_name, kunde_ort, auftragswert_chf, arbeitszeit_stunden, mechaniker_zuweisung, kategorie, status, geplantes_datum")
         .order("geplantes_datum", { ascending: false })
         .limit(1000);
       setRows((data ?? []) as Row[]);

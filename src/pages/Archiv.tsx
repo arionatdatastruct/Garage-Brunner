@@ -232,6 +232,7 @@ export default function Archiv() {
                   <th className="text-left px-3 py-2 font-medium">Nr.</th>
                   <th className="text-left px-3 py-2 font-medium">Fahrzeug</th>
                   <th className="text-left px-3 py-2 font-medium">Kunde</th>
+                  <th className="text-left px-3 py-2 font-medium">Kategorie</th>
                   <th className="text-left px-3 py-2 font-medium">Mech.</th>
                   <th className="text-right px-3 py-2 font-medium">h</th>
                   <th className="text-right px-3 py-2 font-medium">CHF</th>
@@ -260,6 +261,9 @@ export default function Archiv() {
                         {r.kundennummer && <span className="font-mono">#{r.kundennummer}</span>}
                         {r.kunde_ort && <span>{r.kunde_ort}</span>}
                       </div>
+                    </td>
+                    <td className="px-3 py-2">
+                      <KategorieBadges value={r.kategorie} size="xs" />
                     </td>
                     <td className="px-3 py-2 text-xs">{r.mechaniker_zuweisung || "—"}</td>
                     <td className="px-3 py-2 text-right font-mono text-xs">

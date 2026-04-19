@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { kapazitaetFuer, auslastungsFarbe } from "@/lib/arbeitszeiten";
 import { cn } from "@/lib/utils";
+import { KategorieBadges } from "@/components/KategorieBadges";
 
 interface Rapport {
   id: string;
@@ -29,6 +30,7 @@ interface Rapport {
   status: string;
   mechaniker_zuweisung: string | null;
   arbeitszeit_stunden: number | null;
+  kategorie: string | null;
   kennzeichen: string | null;
   marke: string | null;
   kundennummer: string | null;
@@ -108,6 +110,11 @@ function RapportCard({ r, onUpdate }: { r: Rapport; onUpdate: (id: string, h: nu
         <div className="text-[10px] text-muted-foreground truncate mt-0.5">
           {r.kundennummer && <span className="font-mono mr-1">#{r.kundennummer}</span>}
           {r.kunde_name}
+        </div>
+      )}
+      {r.kategorie && (
+        <div className="mt-1.5">
+          <KategorieBadges value={r.kategorie} size="xs" />
         </div>
       )}
       <div className="flex items-center justify-between mt-2 gap-2">
@@ -239,7 +246,7 @@ export default function Wochenplan() {
     const to = format(addDays(weekStart, 4), "yyyy-MM-dd");
     const { data, error } = await (supabase as any)
       .from("arbeitsrapporte")
-      .select("id, rapport_nummer, auftragsnummer, geplantes_datum, status, mechaniker_zuweisung, arbeitszeit_stunden, kennzeichen, marke, kundennummer, kunde_name")
+      .select("id, rapport_nummer, auftragsnummer, geplantes_datum, status, mechaniker_zuweisung, arbeitszeit_stunden, kategorie, kennzeichen, marke, kundennummer, kunde_name")
       .in("status", ["geplant", "in_arbeit"])
       .gte("geplantes_datum", from)
       .lte("geplantes_datum", to)
