@@ -670,11 +670,17 @@ export default function Wochenplan() {
           { key: "Roman" as const, label: "Roman", initial: "R", ring: "ring-blue-500/40", bg: "bg-blue-500" },
           { key: "Pascal" as const, label: "Pascal", initial: "P", ring: "ring-emerald-500/40", bg: "bg-emerald-500" },
         ];
-        const counts = {
-          alle: rapports.length,
-          Roman: rapports.filter((r) => r.mechaniker_zuweisung === "Roman").length,
-          Pascal: rapports.filter((r) => r.mechaniker_zuweisung === "Pascal").length,
+        const sumH = (mech: "Roman" | "Pascal" | null) =>
+          rapports
+            .filter((r) => (mech === null ? true : r.mechaniker_zuweisung === mech))
+            .reduce((s, r) => s + (r.arbeitszeit_stunden ?? 0), 0);
+        const stats = {
+          alle: { h: sumH(null), kap: weekKap },
+          Roman: { h: sumH("Roman"), kap: weekKap },
+          Pascal: { h: sumH("Pascal"), kap: weekKap },
         };
+        const fmtH = (n: number) =>
+          n.toLocaleString("de-CH", { maximumFractionDigits: n % 1 === 0 ? 0 : 1 });
         const active = options.find((o) => o.key === mechFilter)!;
         return (
           <div className="mb-3 space-y-2">
