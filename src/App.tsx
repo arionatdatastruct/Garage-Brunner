@@ -9,6 +9,7 @@ import Archiv from "./pages/Archiv";
 import Statistiken from "./pages/Statistiken";
 import AuftragDetail from "./pages/AuftragDetail";
 import KundeDetail from "./pages/KundeDetail";
+import FahrzeugDetail from "./pages/FahrzeugDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
             <Route path="/statistiken" element={<Statistiken />} />
             <Route path="/auftrag/:id" element={<AuftragDetail />} />
             <Route path="/kunde/:nummer" element={<KundeDetail />} />
+            <Route path="/fahrzeug/:kennzeichen" element={<FahrzeugDetail />} />
           </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
