@@ -408,11 +408,13 @@ export function AuftragForm({ rapport, onSaved }: Props) {
             />
           </Field>
           <div className="grid grid-cols-3 gap-4">
-            <Field label="PLZ">
+            <Field label="PLZ" error={errors.plz}>
               <Input
                 value={r.kunde_plz ?? ""}
+                inputMode="numeric"
+                maxLength={4}
                 onChange={(e) => upd({ kunde_plz: e.target.value })}
-                className={cn(inputCls, "font-mono")}
+                className={cn(inputCls, "font-mono", errors.plz && inputErrorCls)}
               />
             </Field>
             <Field label="Ort" className="col-span-2">
@@ -424,19 +426,20 @@ export function AuftragForm({ rapport, onSaved }: Props) {
             </Field>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <Field label="Telefon">
+            <Field label="Telefon" error={errors.telefon}>
               <Input
                 value={r.kunde_telefon ?? ""}
+                inputMode="tel"
                 onChange={(e) => upd({ kunde_telefon: e.target.value })}
-                className={cn(inputCls, "font-mono")}
+                className={cn(inputCls, "font-mono", errors.telefon && inputErrorCls)}
               />
             </Field>
-            <Field label="E-Mail">
+            <Field label="E-Mail" error={errors.email}>
               <Input
                 type="email"
                 value={r.kunde_email ?? ""}
                 onChange={(e) => upd({ kunde_email: e.target.value })}
-                className={inputCls}
+                className={cn(inputCls, errors.email && inputErrorCls)}
               />
             </Field>
           </div>
