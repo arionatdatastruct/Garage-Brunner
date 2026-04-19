@@ -663,45 +663,82 @@ export default function Wochenplan() {
         </Popover>
       )}
 
-      {/* Mechaniker-Filter */}
-      <div className="mb-3 flex items-center gap-2 overflow-x-auto -mx-1 px-1">
-        <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold shrink-0">
-          Mechaniker
-        </span>
-        {([
-          { key: "alle", label: "Alle", dot: null as string | null },
-          { key: "Roman", label: "Roman", dot: "bg-blue-500" },
-          { key: "Pascal", label: "Pascal", dot: "bg-emerald-500" },
-        ] as const).map((opt) => {
-          const active = mechFilter === opt.key;
-          const count = opt.key === "alle"
-            ? rapports.length
-            : rapports.filter((r) => r.mechaniker_zuweisung === opt.key).length;
-          return (
-            <button
-              key={opt.key}
-              type="button"
-              onClick={() => setMechFilter(opt.key as typeof mechFilter)}
-              className={cn(
-                "shrink-0 inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-xs font-medium border transition",
-                active
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "bg-card text-foreground border-border hover:bg-muted"
-              )}
-              aria-pressed={active}
-            >
-              {opt.dot && <span className={cn("h-2 w-2 rounded-full", opt.dot)} />}
-              {opt.label}
-              <span className={cn(
-                "tabular-nums text-[10px] font-mono px-1.5 py-0.5 rounded",
-                active ? "bg-primary-foreground/20" : "bg-muted text-muted-foreground"
-              )}>
-                {count}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+      {/* Mechaniker-Zuweisung — Segmented Control */}
+      {(() => {
+        const options = [
+          { key: "alle" as const, label: "Alle", initial: "A", ring: "ring-muted-foreground/30", bg: "bg-muted-foreground" },
+          { key: "Roman" as const, label: "Roman", initial: "R", ring: "ring-blue-500/40", bg: "bg-blue-500" },
+          { key: "Pascal" as const, label: "Pascal", initial: "P", ring: "ring-emerald-500/40", bg: "bg-emerald-500" },
+        ];
+        const counts = {
+          alle: rapports.length,
+          Roman: rapports.filter((r) => r.mechaniker_zuweisung === "Roman").length,
+          Pascal: rapports.filter((r) => r.mechaniker_zuweisung === "Pascal").length,
+        };
+        const active = options.find((o) => o.key === mechFilter)!;
+        return (
+          <div className="mb-3 space-y-2">
+            <div className="flex items-center gap-1.5 p-1 rounded-xl bg-muted/60 border border-border">
+              {options.map((opt) => {
+                const isActive = mechFilter === opt.key;
+                return (
+                  <button
+                    key={opt.key}
+                    type="button"
+                    onClick={() => setMechFilter(opt.key)}
+                    aria-pressed={isActive}
+                    className={cn(
+                      "flex-1 inline-flex items-center justify-center gap-2 h-10 px-2 rounded-lg text-sm font-semibold transition-all",
+                      isActive
+                        ? "bg-card text-foreground shadow-sm ring-1 " + opt.ring
+                        : "text-muted-foreground hover:text-foreground active:scale-[0.97]"
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "h-6 w-6 rounded-full text-[11px] font-bold text-white flex items-center justify-center shrink-0",
+                        opt.bg,
+                        !isActive && "opacity-60"
+                      )}
+                    >
+                      {opt.initial}
+                    </span>
+                    <span className="truncate">{opt.label}</span>
+                    <span
+                      className={cn(
+                        "tabular-nums text-[10px] font-mono px-1.5 py-0.5 rounded shrink-0",
+                        isActive ? "bg-muted text-foreground" : "bg-background/60 text-muted-foreground"
+                      )}
+                    >
+                      {counts[opt.key]}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {mechFilter !== "alle" && (
+              <div className="flex items-center justify-between gap-3 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 animate-in fade-in slide-in-from-top-1">
+                <div className="flex items-center gap-2 min-w-0 text-xs">
+                  <span className={cn("h-5 w-5 rounded-full text-[10px] font-bold text-white flex items-center justify-center shrink-0", active.bg)}>
+                    {active.initial}
+                  </span>
+                  <span className="truncate">
+                    Du siehst nur Aufträge von <span className="font-semibold text-foreground">{active.label}</span>
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setMechFilter("alle")}
+                  className="shrink-0 text-xs font-semibold text-primary hover:underline px-2 py-1 -mr-1"
+                >
+                  Zurücksetzen
+                </button>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Mobile: Vertikale Tagesliste (Agenda) — kein D&D */}
       <div className="md:hidden">
