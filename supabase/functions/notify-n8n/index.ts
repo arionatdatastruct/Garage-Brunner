@@ -19,16 +19,22 @@ function parseStorageUrl(url: string): { bucket: string; path: string } | null {
 }
 
 Deno.serve(async (req) => {
+  console.log("notify-n8n invoked", req.method, req.url);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
     const webhookUrl = Deno.env.get("N8N_PDF_WEBHOOK_URL");
-    if (!webhookUrl) throw new Error("N8N_PDF_WEBHOOK_URL not configured");
+    if (!webhookUrl) {
+      console.error("N8N_PDF_WEBHOOK_URL not configured");
+      throw new Error("N8N_PDF_WEBHOOK_URL not configured");
+    }
+    console.log("webhookUrl host:", new URL(webhookUrl).host);
 
     // Auth check: nur eingeloggte (auch anonyme) User dürfen den n8n-Workflow triggern
     const authHeader = req.headers.get("Authorization");
+    console.log("auth header present:", !!authHeader);
     if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      return new Response(JSON.stringify({ error: "Unauthorized - no bearer" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -43,8 +49,9 @@ Deno.serve(async (req) => {
     });
     const token = authHeader.replace("Bearer ", "");
     const { data: claims, error: claimsErr } = await userClient.auth.getClaims(token);
+    console.log("claims result:", { hasClaims: !!claims?.claims, err: claimsErr?.message });
     if (claimsErr || !claims?.claims) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      return new Response(JSON.stringify({ error: "Unauthorized - invalid token", details: claimsErr?.message }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
