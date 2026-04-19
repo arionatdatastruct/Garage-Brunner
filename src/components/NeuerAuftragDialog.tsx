@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreated: () => void;
+  onCreated: (info?: { id: string; geplantes_datum: string }) => void;
   defaultDate?: string;
 }
 
