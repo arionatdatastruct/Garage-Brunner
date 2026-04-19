@@ -709,15 +709,17 @@ export default function Wochenplan() {
                     >
                       {opt.initial}
                     </span>
-                    <span className="truncate">{opt.label}</span>
-                    <span
-                      className={cn(
-                        "tabular-nums text-[10px] font-mono px-1.5 py-0.5 rounded shrink-0",
-                        isActive ? "bg-muted text-foreground" : "bg-background/60 text-muted-foreground"
-                      )}
-                    >
-                      {counts[opt.key]}
-                    </span>
+                    <div className="flex flex-col items-start min-w-0 flex-1">
+                      <span className="truncate leading-tight">{opt.label}</span>
+                      <span
+                        className={cn(
+                          "tabular-nums text-[10px] font-mono leading-tight",
+                          isActive ? "text-muted-foreground" : "text-muted-foreground/70"
+                        )}
+                      >
+                        {fmtH(stats[opt.key].h)}h / {stats[opt.key].kap}h
+                      </span>
+                    </div>
                   </button>
                 );
               })}
