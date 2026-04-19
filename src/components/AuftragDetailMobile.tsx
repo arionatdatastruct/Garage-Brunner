@@ -257,7 +257,7 @@ export function AuftragDetailMobile({ rapport, onChanged, onDelete, deleting }: 
               </button>
             </div>
           </div>
-          <div className={cn("p-2 transition-all", belegExpanded ? "min-h-[85vh]" : "min-h-[50vh]")}>
+          <div className={cn("p-2", belegExpanded ? "" : "max-h-[55vh] overflow-y-auto")}>
             <BelegPreview pdfUrl={rapport.pdf_url} />
           </div>
         </div>
