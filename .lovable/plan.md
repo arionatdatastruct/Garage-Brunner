@@ -1,28 +1,67 @@
+# Mobile-Rekonstruktion (Garage Brunner Formular)
 
-User confirms: keep mechaniker as single-select (skip DB migration). Only kategorie becomes multi-select with IDs. Plus enlarge PDF preview.
+> Desktop (≥ md) bleibt **unverändert**. Alle Änderungen gelten nur für Mobile (< md), via `useIsMobile()` oder Tailwind-Breakpoints.
 
-## Plan
+## 1. Wochenplan – Vertikale Agenda
+- Statt 5 schmaler Spalten → durchgehende Tagesliste (Mo–Fr untereinander).
+- Sticky-Top: KW + Wochenbereich + ◀ ▶ + "Heute".
+- Pro Tag: Sticky-Sub-Header (Wochentag, Datum, Stunden/Kapazität, Auslastungsbalken). Heute = Akzent.
+- Aufträge gestapelt in voller Breite. Leere Tage: Hinweis + "+"-Button.
+- Drag&Drop entfällt mobil → ersetzt durch Quick-Actions.
+- Banner (überfällig / andere Wochen) bleiben oben, kompakter.
 
-**1. PDF-Vorschau vergrössern**
-- `AuftragDetail.tsx` Desktop: Split von 50/50 auf 40/60 (Form/PDF), PDF-Pane mit mehr Höhe (`h-[calc(100vh-8rem)]`).
-- `BelegPreview.tsx`: `width`-Berechnung auf grösseren Container anpassen, Padding reduzieren, Page-Width auf Container-Breite skalieren statt fix.
-- Mobile Tab "Beleg": `min-h-[80vh]` statt aktueller Höhe.
+## 2. Auftragskarte (Mobile)
+- Mittlere Dichte: 2 Zeilen + Mechaniker-Dot + Kategorie-Badges.
+- Min-Höhe ~76px, Touch-Target ≥ 44px, Status-Strich links 4px.
+- Stunden-Pill öffnet Bottom-Sheet (kein fragiles Inline-Input).
+- Swipe rechts → Status weiter (geplant→in_arbeit→erledigt) + Toast/Undo.
+- Swipe links / Long-Press → Quick-Action-Sheet.
+- Tap → Detail.
+- Überfällig-Karten: roter Rand bleibt.
 
-**2. Kategorie als Multi-Select mit IDs**
-- Neues ID-Schema (gespeichert als kommaseparierter String in `kategorie` TEXT-Spalte):
-  - `01` Service, `02` Reparatur, `03` MFK, `04` Reifen, `05` Sonstiges
-- Neue Datei `src/lib/kategorien.ts`: Konstante `KATEGORIEN = [{id:"01", label:"Service"}, ...]`, Helfer `parseKategorien(str)`, `formatKategorien(ids)`, `kategorienLabels(ids)`.
-- `AuftragForm.tsx`: aktuelles `<Select>` für Kategorie ersetzen durch Multi-Select-Popover (Checkbox-Liste mit Badge-Anzeige der gewählten Labels). Speichert `"01,03"` in DB.
-- `RapportUebersicht.tsx`, `Archiv.tsx`, `Statistiken.tsx`, `Wochenplan.tsx`, `KundeDetail.tsx`: Anzeige umstellen auf `kategorienLabels(rapport.kategorie)` (Labels statt rohe IDs/alte Strings).
-- **Backwards-Kompat**: `parseKategorien` erkennt alte Klartext-Werte ("Service", "Reparatur" …) und mappt sie auf IDs, damit bestehende Datensätze sauber angezeigt werden.
+## 3. Quick-Action Bottom-Sheet (neu)
+- Stunden eintragen (großer Input + 0.25/0.5/1/2 Pills).
+- Status wechseln (3 große Buttons).
+- Verschieben: Heute / Morgen / Übermorgen / Nächster Werktag + Datepicker.
+- Auftrag öffnen / Löschen (mit Bestätigung).
 
-**3. Mechaniker bleibt unverändert** (Single-Select Roman/Pascal, kein DB-Change).
+## 4. Neuer-Auftrag-Dialog → Mobile Stepper-Sheet
+- Vollbild-Sheet (vaul) statt Modal, ~92vh.
+- 3 Schritte mit Progress: 1) Fahrzeug, 2) Kunde, 3) Auftrag.
+- Datum-Quick-Pills + Datepicker.
+- Kategorien als Tap-Pills, große Felder (h-12, text-base gegen iOS-Zoom).
+- Sticky Footer: ← Zurück | Weiter / Anlegen.
 
-**4. n8n-Auswertung**
-- Da IDs vorne stehen (`01,03`), kann n8n per `LIKE '%01%'` oder Split filtern. In Notiz an User erwähnt.
+## 5. Auftrag-Detail (Mobile)
+- Sticky Top-Bar: Zurück · Kennzeichen · Status-Pill (tap → Status ändern).
+- Akkordeon statt Tabs:
+  1. Übersicht (default offen)
+  2. Arbeit & Material
+  3. Sicherheitscheck (5 Punkte)
+  4. Fotos
+  5. Beleg / PDF
+- Sticky Bottom-Action-Bar: "Erledigen" + Menü (Löschen/Drucken/Teilen).
+- Auto-Save (on blur) bleibt.
 
-## Dateien
-- new: `src/lib/kategorien.ts`
-- edit: `src/components/AuftragForm.tsx`, `src/components/RapportUebersicht.tsx`, `src/pages/AuftragDetail.tsx`, `src/components/BelegPreview.tsx`, `src/pages/Archiv.tsx`, `src/pages/Statistiken.tsx`, `src/pages/Wochenplan.tsx`, `src/pages/KundeDetail.tsx`
+## 6. Globale Mobile-Politur
+- Bottom-Nav kompakter (h-14), Safe-Area beachten.
+- FAB rückt höher (Sheet-Footer-Kollision vermeiden).
+- GlobalSearch: h-11 Input + Result-Sheet statt Dropdown.
+- Toaster bottom-center auf Mobile.
+- Inputs text-base mobile (kein iOS-Auto-Zoom).
 
-Keine DB-Migration nötig (Spalte ist bereits TEXT).
+## 7. Neue Komponenten
+- MobileWochenplan.tsx
+- RapportActionSheet.tsx (vaul Drawer)
+- NeuerAuftragSheet.tsx (Stepper, nutzt Form-Logik aus NeuerAuftragDialog)
+- AuftragDetailMobile.tsx
+
+## 8. Nicht geändert
+- Desktop-Layout, Datenmodell, Supabase/RLS, Edge-Functions, PDF/Druck.
+
+## Reihenfolge
+1. Mobile-Wochenplan (Agenda) + Banner.
+2. Karten + Quick-Action-Sheet.
+3. Neuer-Auftrag-Stepper.
+4. Auftrag-Detail Akkordeon + Sticky-Bars.
+5. Globale Politur.
