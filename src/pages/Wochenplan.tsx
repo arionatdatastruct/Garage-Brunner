@@ -66,7 +66,7 @@ const STATUS_BAR: Record<string, string> = {
   erledigt: "bg-emerald-500",
 };
 
-function RapportCard({ r, onUpdate, onDelete, highlight }: { r: Rapport; onUpdate: (id: string, h: number | null) => void; onDelete: (r: Rapport) => void; highlight?: boolean }) {
+function RapportCard({ r, onUpdate, onDelete, highlight, overdue }: { r: Rapport; onUpdate: (id: string, h: number | null) => void; onDelete: (r: Rapport) => void; highlight?: boolean; overdue?: boolean }) {
   const navigate = useNavigate();
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: r.id });
   const [editing, setEditing] = useState(false);
@@ -117,6 +117,7 @@ function RapportCard({ r, onUpdate, onDelete, highlight }: { r: Rapport; onUpdat
             "group relative bg-card/60 hover:bg-card border border-border/60 hover:border-border",
             "rounded-lg pl-3 pr-2.5 py-2.5 mb-2 cursor-grab active:cursor-grabbing transition-all touch-none",
             "overflow-hidden",
+            overdue && "border-destructive/60 bg-destructive/5 hover:border-destructive",
             highlight && "ring-2 ring-primary border-primary animate-pulse"
           )}
           data-rapport-id={r.id}
@@ -293,9 +294,12 @@ function DayColumn({
           isOver && "bg-primary/10",
         )}
       >
-        {rapports.map((r) => (
-          <RapportCard key={r.id} r={r} onUpdate={onUpdateStunden} onDelete={onDelete} highlight={highlightId === r.id} />
-        ))}
+        {rapports.map((r) => {
+          const isOverdue = r.status === "geplant" && r.geplantes_datum < format(new Date(), "yyyy-MM-dd");
+          return (
+            <RapportCard key={r.id} r={r} onUpdate={onUpdateStunden} onDelete={onDelete} highlight={highlightId === r.id} overdue={isOverdue} />
+          );
+        })}
         {rapports.length === 0 && (
           <div className="text-[11px] text-muted-foreground/50 text-center py-8 italic">
             Keine Aufträge
