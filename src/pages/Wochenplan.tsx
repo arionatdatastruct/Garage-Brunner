@@ -64,7 +64,7 @@ const STATUS_DOT: Record<string, string> = {
   erledigt: "bg-emerald-500",
 };
 
-function RapportCard({ r, onUpdate }: { r: Rapport; onUpdate: (id: string, h: number | null) => void }) {
+function RapportCard({ r, onUpdate, onDelete }: { r: Rapport; onUpdate: (id: string, h: number | null) => void; onDelete: (r: Rapport) => void }) {
   const navigate = useNavigate();
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: r.id,
