@@ -339,6 +339,46 @@ export default function Wochenplan() {
 
   useEffect(() => { load(); }, [load]);
 
+  // Aufträge in anderen (nicht angezeigten) Wochen zählen — für Hinweis-Banner
+  useEffect(() => {
+    const from = format(weekStart, "yyyy-MM-dd");
+    const to = format(addDays(weekStart, 4), "yyyy-MM-dd");
+    const today = format(new Date(), "yyyy-MM-dd");
+    (async () => {
+      const { data } = await (supabase as any)
+        .from("arbeitsrapporte")
+        .select("geplantes_datum")
+        .in("status", ["geplant", "in_arbeit"])
+        .gte("geplantes_datum", today)
+        .or(`geplantes_datum.lt.${from},geplantes_datum.gt.${to}`)
+        .order("geplantes_datum", { ascending: true });
+      const list = (data ?? []) as { geplantes_datum: string }[];
+      setOtherWeeksCount(list.length);
+      setNextOtherDate(list[0]?.geplantes_datum ?? null);
+    })();
+  }, [weekStart, rapports]);
+
+  // Highlight-Animation nach 2.5s entfernen
+  useEffect(() => {
+    if (!highlightId) return;
+    const t = setTimeout(() => setHighlightId(null), 2500);
+    return () => clearTimeout(t);
+  }, [highlightId]);
+
+  const handleCreated = async (info?: { id: string; geplantes_datum: string }) => {
+    if (info) {
+      const targetWeek = startOfWeek(parseISO(info.geplantes_datum), { weekStartsOn: 1 });
+      setWeekStart(targetWeek);
+      setHighlightId(info.id);
+      // Scroll zur Karte (nach Render)
+      setTimeout(() => {
+        const el = document.querySelector(`[data-rapport-id="${info.id}"]`);
+        el?.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+      }, 250);
+    }
+    await load();
+  };
+
   // Mobile FAB öffnet denselben Dialog
   useEffect(() => {
     const handler = () => openDialog();
