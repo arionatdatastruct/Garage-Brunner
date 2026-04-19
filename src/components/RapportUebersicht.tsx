@@ -32,11 +32,11 @@ interface Props {
 }
 
 const CHECK_LABELS: Record<string, string> = {
-  bremsen: "Bremsen",
+  bremsen_vorne: "Bremsen vorne",
+  bremsen_hinten: "Bremsen hinten",
   beleuchtung: "Beleuchtung",
-  reifen: "Reifen",
   fluessigkeiten: "Flüssigkeiten",
-  unterboden: "Unterboden",
+  unterboden: "Unterboden / Auspuff",
 };
 
 const STATUS_ICON: Record<string, JSX.Element> = {

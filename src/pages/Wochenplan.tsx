@@ -37,6 +37,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface Rapport {
   id: string;
@@ -312,6 +313,7 @@ export default function Wochenplan() {
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const [otherWeeksCount, setOtherWeeksCount] = useState(0);
   const [nextOtherDate, setNextOtherDate] = useState<string | null>(null);
+  const [nextOthers, setNextOthers] = useState<Array<{ id: string; geplantes_datum: string; kennzeichen: string | null; rapport_nummer: string | null }>>([]);
 
   const days = Array.from({ length: 5 }, (_, i) => addDays(weekStart, i));
 
@@ -347,14 +349,15 @@ export default function Wochenplan() {
     (async () => {
       const { data } = await (supabase as any)
         .from("arbeitsrapporte")
-        .select("geplantes_datum")
+        .select("id, geplantes_datum, kennzeichen, rapport_nummer")
         .in("status", ["geplant", "in_arbeit"])
         .gte("geplantes_datum", today)
         .or(`geplantes_datum.lt.${from},geplantes_datum.gt.${to}`)
         .order("geplantes_datum", { ascending: true });
-      const list = (data ?? []) as { geplantes_datum: string }[];
+      const list = (data ?? []) as Array<{ id: string; geplantes_datum: string; kennzeichen: string | null; rapport_nummer: string | null }>;
       setOtherWeeksCount(list.length);
       setNextOtherDate(list[0]?.geplantes_datum ?? null);
+      setNextOthers(list.slice(0, 3));
     })();
   }, [weekStart, rapports]);
 
@@ -516,22 +519,43 @@ export default function Wochenplan() {
 
       {/* Hinweis-Banner: Aufträge in anderen Wochen */}
       {otherWeeksCount > 0 && nextOtherDate && (
-        <button
-          type="button"
-          onClick={() => setWeekStart(startOfWeek(parseISO(nextOtherDate), { weekStartsOn: 1 }))}
-          className="w-full mb-4 flex items-center justify-between gap-3 rounded-lg border border-primary/30 bg-primary/5 hover:bg-primary/10 transition px-4 py-2.5 text-left"
-        >
-          <span className="text-sm">
-            <span className="font-semibold text-primary">{otherWeeksCount}</span>{" "}
-            {otherWeeksCount === 1 ? "Auftrag" : "Aufträge"} in anderen Wochen
-            <span className="text-muted-foreground ml-2">
-              · nächster: {format(parseISO(nextOtherDate), "EEE, d. MMM", { locale: de })}
-            </span>
-          </span>
-          <span className="inline-flex items-center gap-1 text-xs font-medium text-primary shrink-0">
-            Hinspringen <ArrowRight className="h-3.5 w-3.5" />
-          </span>
-        </button>
+        <Tooltip delayDuration={150}>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              onClick={() => setWeekStart(startOfWeek(parseISO(nextOtherDate), { weekStartsOn: 1 }))}
+              className="w-full mb-4 flex items-center justify-between gap-3 rounded-lg border border-primary/30 bg-primary/5 hover:bg-primary/10 transition px-4 py-2.5 text-left"
+            >
+              <span className="text-sm">
+                <span className="font-semibold text-primary">{otherWeeksCount}</span>{" "}
+                {otherWeeksCount === 1 ? "Auftrag" : "Aufträge"} in anderen Wochen
+                <span className="text-muted-foreground ml-2">
+                  · nächster: {format(parseISO(nextOtherDate), "EEE, d. MMM", { locale: de })}
+                </span>
+              </span>
+              <span className="inline-flex items-center gap-1 text-xs font-medium text-primary shrink-0">
+                Hinspringen <ArrowRight className="h-3.5 w-3.5" />
+              </span>
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" align="start" className="p-0 max-w-xs">
+            <div className="px-3 py-2 border-b border-border">
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                Nächste {nextOthers.length} {nextOthers.length === 1 ? "Auftrag" : "Aufträge"}
+              </div>
+            </div>
+            <ul className="py-1">
+              {nextOthers.map((o) => (
+                <li key={o.id} className="px-3 py-1.5 flex items-center justify-between gap-3">
+                  <span className="font-mono font-semibold text-sm">{o.kennzeichen ?? "—"}</span>
+                  <span className="text-xs text-muted-foreground tabular-nums">
+                    {format(parseISO(o.geplantes_datum), "EEE, d. MMM", { locale: de })}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </TooltipContent>
+        </Tooltip>
       )}
 
       <DndContext sensors={sensors} onDragEnd={onDragEnd}>
