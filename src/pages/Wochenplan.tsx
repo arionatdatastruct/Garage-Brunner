@@ -514,7 +514,25 @@ export default function Wochenplan() {
         </div>
       </div>
 
-      <DndContext sensors={sensors} onDragEnd={onDragEnd}>
+      {/* Hinweis-Banner: Aufträge in anderen Wochen */}
+      {otherWeeksCount > 0 && nextOtherDate && (
+        <button
+          type="button"
+          onClick={() => setWeekStart(startOfWeek(parseISO(nextOtherDate), { weekStartsOn: 1 }))}
+          className="w-full mb-4 flex items-center justify-between gap-3 rounded-lg border border-primary/30 bg-primary/5 hover:bg-primary/10 transition px-4 py-2.5 text-left"
+        >
+          <span className="text-sm">
+            <span className="font-semibold text-primary">{otherWeeksCount}</span>{" "}
+            {otherWeeksCount === 1 ? "Auftrag" : "Aufträge"} in anderen Wochen
+            <span className="text-muted-foreground ml-2">
+              · nächster: {format(parseISO(nextOtherDate), "EEE, d. MMM", { locale: de })}
+            </span>
+          </span>
+          <span className="inline-flex items-center gap-1 text-xs font-medium text-primary shrink-0">
+            Hinspringen <ArrowRight className="h-3.5 w-3.5" />
+          </span>
+        </button>
+      )}
         {/* Mobile: Snap-Karussell, eine Spalte pro Screen */}
         <div
           className="md:hidden flex gap-3 overflow-x-auto snap-x snap-mandatory pb-4 -mx-3 px-3 scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
