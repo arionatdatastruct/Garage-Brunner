@@ -125,6 +125,26 @@ export default function Statistiken() {
     }));
   }, [rows]);
 
+  // Kategorie-Vergleich (Umsatz + Anzahl pro Kategorie)
+  // Eine Auftrag mit "01,03" zählt für beide Kategorien.
+  const kategorieVergleich = useMemo(() => {
+    const map = new Map<string, { id: string; label: string; umsatz: number; anzahl: number }>();
+    for (const k of KATEGORIEN) {
+      map.set(k.id, { id: k.id, label: `${k.id} ${k.label}`, umsatz: 0, anzahl: 0 });
+    }
+    for (const r of rows) {
+      const ids = parseKategorien(r.kategorie);
+      if (ids.length === 0) continue;
+      for (const id of ids) {
+        const ex = map.get(id);
+        if (!ex) continue;
+        ex.umsatz += r.auftragswert_chf ?? 0;
+        ex.anzahl += 1;
+      }
+    }
+    return Array.from(map.values()).map((x) => ({ ...x, umsatz: Math.round(x.umsatz) }));
+  }, [rows]);
+
   if (loading) {
     return (
       <div className="p-6 flex items-center gap-2 text-muted-foreground">
