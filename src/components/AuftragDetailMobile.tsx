@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { Maximize2, Minimize2, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Accordion,
