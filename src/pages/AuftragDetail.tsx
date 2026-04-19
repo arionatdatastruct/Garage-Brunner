@@ -181,7 +181,30 @@ export default function AuftragDetail() {
             )}
           </p>
         </div>
-        <AuftragStatusBar rapportId={rapport.id} status={rapport.status} onChanged={load} />
+        <div className="flex items-center gap-2">
+          <AuftragStatusBar rapportId={rapport.id} status={rapport.status} onChanged={load} />
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" size="icon" className="text-destructive hover:text-destructive" disabled={deleting}>
+                {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Auftrag löschen?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {rapport.rapport_nummer} wird unwiderruflich gelöscht — inkl. PDF und Fotos.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                  Löschen
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       </div>
 
       {/* Desktop: Split-View — PDF grösser (60%), Form rechts (40%) */}
