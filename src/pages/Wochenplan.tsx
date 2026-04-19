@@ -217,12 +217,14 @@ function DayColumn({
   onAdd,
   onUpdateStunden,
   onDelete,
+  highlightId,
 }: {
   date: Date;
   rapports: Rapport[];
   onAdd: () => void;
   onUpdateStunden: (id: string, h: number | null) => void;
   onDelete: (r: Rapport) => void;
+  highlightId?: string | null;
 }) {
   const id = format(date, "yyyy-MM-dd");
   const { setNodeRef, isOver } = useDroppable({ id });
