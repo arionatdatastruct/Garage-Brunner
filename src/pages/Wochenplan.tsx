@@ -668,12 +668,14 @@ export default function Wochenplan() {
 
       {/* Mechaniker-Zuweisung — Segmented Control */}
       {(() => {
-        const options = [
+        const allOptions = [
           { key: "alle" as const, label: "Alle", initial: "A", ring: "ring-muted-foreground/30", bg: "bg-muted-foreground" },
           { key: "Roman" as const, label: "Roman", initial: "R", ring: "ring-blue-500/40", bg: "bg-blue-500" },
           { key: "Pascal" as const, label: "Pascal", initial: "P", ring: "ring-emerald-500/40", bg: "bg-emerald-500" },
           { key: "offen" as const, label: "Offen", initial: "?", ring: "ring-amber-500/40", bg: "bg-amber-500" },
         ];
+        // Mobile zeigt "Offen" nicht — nur Alle/Roman/Pascal
+        const options = isMobile ? allOptions.filter((o) => o.key !== "offen") : allOptions;
         const sumH = (mech: "Roman" | "Pascal" | "offen" | null) =>
           rapports
             .filter((r) =>
