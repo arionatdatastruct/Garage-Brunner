@@ -40,29 +40,58 @@ interface Props {
 
 type SaveState = "idle" | "saving" | "saved";
 
+/* ---------- Validierung ---------- */
+
+const validators = {
+  plz: (v: string | null) => {
+    if (!v) return null;
+    return /^\d{4}$/.test(v.trim()) ? null : "PLZ muss 4 Ziffern haben";
+  },
+  email: (v: string | null) => {
+    if (!v) return null;
+    return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim()) ? null : "Ungültige E-Mail";
+  },
+  telefon: (v: string | null) => {
+    if (!v) return null;
+    // Erlaubt CH-Formate: +41..., 0xx xxx xx xx, mit/ohne Leerzeichen, /, -
+    const cleaned = v.replace(/[\s\-/().]/g, "");
+    return /^\+?\d{7,15}$/.test(cleaned) ? null : "Ungültige Telefonnummer";
+  },
+};
+
 /* ---------- Kompakte Field-Primitives ---------- */
 
 function Field({
   label,
   children,
   className,
+  error,
 }: {
   label: string;
   children: React.ReactNode;
   className?: string;
+  error?: string | null;
 }) {
   return (
-    <label className={cn("block space-y-1", className)}>
-      <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
+    <label className={cn("block space-y-1", className)} data-error={error ? "true" : undefined}>
+      <span
+        className={cn(
+          "text-[11px] uppercase tracking-wider font-medium transition-colors",
+          error ? "text-destructive" : "text-muted-foreground"
+        )}
+      >
         {label}
       </span>
       {children}
+      {error && <span className="block text-[10px] text-destructive mt-0.5">{error}</span>}
     </label>
   );
 }
 
 const inputCls =
   "h-9 bg-transparent border-0 border-b border-border/60 rounded-none px-0 focus-visible:ring-0 focus-visible:border-primary transition-colors";
+
+const inputErrorCls = "border-destructive/70 focus-visible:border-destructive";
 
 function Section({
   icon: Icon,
@@ -98,9 +127,21 @@ export function AuftragForm({ rapport, onSaved }: Props) {
     dirty.current = false;
   }, [rapport]);
 
+  // Validierungsfehler (live, sichtbar — blockiert auch Auto-Save)
+  const errors = {
+    plz: validators.plz(r.kunde_plz),
+    email: validators.email(r.kunde_email),
+    telefon: validators.telefon(r.kunde_telefon),
+  };
+  const hasErrors = Object.values(errors).some(Boolean);
+
   useEffect(() => {
     if (!dirty.current) return;
     if (timer.current) clearTimeout(timer.current);
+    if (hasErrors) {
+      setState("idle");
+      return;
+    }
     setState("saving");
     timer.current = setTimeout(async () => {
       try {
@@ -139,7 +180,7 @@ export function AuftragForm({ rapport, onSaved }: Props) {
       if (timer.current) clearTimeout(timer.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [r]);
+  }, [r, hasErrors]);
 
   const upd = (patch: Partial<Rapport>) => {
     dirty.current = true;
@@ -160,26 +201,32 @@ export function AuftragForm({ rapport, onSaved }: Props) {
     <div className="rounded-xl border border-border bg-card/60 backdrop-blur-sm">
       {/* Sticky Save-Indikator */}
       <div className="sticky top-0 z-10 flex items-center justify-between gap-2 px-4 py-2.5 border-b border-border bg-card/80 backdrop-blur rounded-t-xl">
-        <span className="text-xs font-medium text-muted-foreground">Auto-Speichern aktiv</span>
+        <span className="text-xs font-medium text-muted-foreground">
+          {hasErrors ? "Bitte Eingaben prüfen" : "Auto-Speichern aktiv"}
+        </span>
         <span
           className={cn(
             "inline-flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 rounded-full transition-all",
-            state === "saving" && "bg-amber-500/15 text-amber-500",
-            state === "saved" && "bg-emerald-500/15 text-emerald-500",
-            state === "idle" && "text-muted-foreground/60"
+            hasErrors && "bg-destructive/15 text-destructive",
+            !hasErrors && state === "saving" && "bg-amber-500/15 text-amber-500",
+            !hasErrors && state === "saved" && "bg-emerald-500/15 text-emerald-500",
+            !hasErrors && state === "idle" && "text-muted-foreground/60"
           )}
         >
-          {state === "saving" && (
+          {hasErrors ? (
+            <>
+              <span className="h-1.5 w-1.5 rounded-full bg-destructive" />
+              Validierung
+            </>
+          ) : state === "saving" ? (
             <>
               <Loader2 className="h-3 w-3 animate-spin" /> Speichert
             </>
-          )}
-          {state === "saved" && (
+          ) : state === "saved" ? (
             <>
               <Check className="h-3 w-3" /> Gespeichert
             </>
-          )}
-          {state === "idle" && (
+          ) : (
             <>
               <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40" />
               Bereit
@@ -361,11 +408,13 @@ export function AuftragForm({ rapport, onSaved }: Props) {
             />
           </Field>
           <div className="grid grid-cols-3 gap-4">
-            <Field label="PLZ">
+            <Field label="PLZ" error={errors.plz}>
               <Input
                 value={r.kunde_plz ?? ""}
+                inputMode="numeric"
+                maxLength={4}
                 onChange={(e) => upd({ kunde_plz: e.target.value })}
-                className={cn(inputCls, "font-mono")}
+                className={cn(inputCls, "font-mono", errors.plz && inputErrorCls)}
               />
             </Field>
             <Field label="Ort" className="col-span-2">
@@ -377,19 +426,20 @@ export function AuftragForm({ rapport, onSaved }: Props) {
             </Field>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <Field label="Telefon">
+            <Field label="Telefon" error={errors.telefon}>
               <Input
                 value={r.kunde_telefon ?? ""}
+                inputMode="tel"
                 onChange={(e) => upd({ kunde_telefon: e.target.value })}
-                className={cn(inputCls, "font-mono")}
+                className={cn(inputCls, "font-mono", errors.telefon && inputErrorCls)}
               />
             </Field>
-            <Field label="E-Mail">
+            <Field label="E-Mail" error={errors.email}>
               <Input
                 type="email"
                 value={r.kunde_email ?? ""}
                 onChange={(e) => upd({ kunde_email: e.target.value })}
-                className={inputCls}
+                className={cn(inputCls, errors.email && inputErrorCls)}
               />
             </Field>
           </div>
