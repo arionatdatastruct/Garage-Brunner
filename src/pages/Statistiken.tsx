@@ -126,7 +126,29 @@ export default function Statistiken() {
     }));
   }, [rows]);
 
-  // Kategorie-Vergleich (Umsatz + Anzahl pro Kategorie)
+  // Auslastung pro Mechaniker (verplante Stunden vs. Kapazität an deren Tagen, nur geplant/in_arbeit)
+  const mechAuslastung = useMemo(() => {
+    const map = new Map<string, { mechaniker: string; verplant: number; tage: Set<string> }>();
+    for (const r of rows) {
+      const m = r.mechaniker_zuweisung;
+      if (!m) continue;
+      if (r.status !== "geplant" && r.status !== "in_arbeit") continue;
+      const ex = map.get(m) ?? { mechaniker: m, verplant: 0, tage: new Set<string>() };
+      ex.verplant += r.arbeitszeit_stunden ?? 0;
+      ex.tage.add(r.geplantes_datum);
+      map.set(m, ex);
+    }
+    return Array.from(map.values()).map((x) => {
+      const kap = Array.from(x.tage).reduce((s, d) => s + kapazitaetFuer(d), 0);
+      const pct = kap > 0 ? Math.round((x.verplant / kap) * 100) : 0;
+      return {
+        mechaniker: x.mechaniker,
+        verplant: Math.round(x.verplant * 10) / 10,
+        kapazitaet: kap,
+        auslastung: pct,
+      };
+    });
+  }, [rows]);
   // Eine Auftrag mit "01,03" zählt für beide Kategorien.
   const kategorieVergleich = useMemo(() => {
     const map = new Map<string, { id: string; label: string; umsatz: number; anzahl: number }>();
