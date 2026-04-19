@@ -112,6 +112,7 @@ export function AuftragDetailMobile({ rapport, onChanged, onDelete, deleting }: 
   const [erledigenRapport, setErledigenRapport] = useState<any>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [belegExpanded, setBelegExpanded] = useState(false);
 
   const isErledigt = rapport.status === "erledigt" || rapport.status === "archiviert";
   const sCfg = STATUS_CFG[rapport.status];
