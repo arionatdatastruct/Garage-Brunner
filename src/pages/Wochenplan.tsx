@@ -670,11 +670,17 @@ export default function Wochenplan() {
           { key: "Roman" as const, label: "Roman", initial: "R", ring: "ring-blue-500/40", bg: "bg-blue-500" },
           { key: "Pascal" as const, label: "Pascal", initial: "P", ring: "ring-emerald-500/40", bg: "bg-emerald-500" },
         ];
-        const counts = {
-          alle: rapports.length,
-          Roman: rapports.filter((r) => r.mechaniker_zuweisung === "Roman").length,
-          Pascal: rapports.filter((r) => r.mechaniker_zuweisung === "Pascal").length,
+        const sumH = (mech: "Roman" | "Pascal" | null) =>
+          rapports
+            .filter((r) => (mech === null ? true : r.mechaniker_zuweisung === mech))
+            .reduce((s, r) => s + (r.arbeitszeit_stunden ?? 0), 0);
+        const stats = {
+          alle: { h: sumH(null), kap: weekKap },
+          Roman: { h: sumH("Roman"), kap: weekKap },
+          Pascal: { h: sumH("Pascal"), kap: weekKap },
         };
+        const fmtH = (n: number) =>
+          n.toLocaleString("de-CH", { maximumFractionDigits: n % 1 === 0 ? 0 : 1 });
         const active = options.find((o) => o.key === mechFilter)!;
         return (
           <div className="mb-3 space-y-2">
@@ -703,15 +709,17 @@ export default function Wochenplan() {
                     >
                       {opt.initial}
                     </span>
-                    <span className="truncate">{opt.label}</span>
-                    <span
-                      className={cn(
-                        "tabular-nums text-[10px] font-mono px-1.5 py-0.5 rounded shrink-0",
-                        isActive ? "bg-muted text-foreground" : "bg-background/60 text-muted-foreground"
-                      )}
-                    >
-                      {counts[opt.key]}
-                    </span>
+                    <div className="flex flex-col items-start min-w-0 flex-1">
+                      <span className="truncate leading-tight">{opt.label}</span>
+                      <span
+                        className={cn(
+                          "tabular-nums text-[10px] font-mono leading-tight",
+                          isActive ? "text-muted-foreground" : "text-muted-foreground/70"
+                        )}
+                      >
+                        {fmtH(stats[opt.key].h)}h / {stats[opt.key].kap}h
+                      </span>
+                    </div>
                   </button>
                 );
               })}
