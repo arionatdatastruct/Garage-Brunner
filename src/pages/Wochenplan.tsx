@@ -195,11 +195,13 @@ function DayColumn({
   rapports,
   onAdd,
   onUpdateStunden,
+  onDelete,
 }: {
   date: Date;
   rapports: Rapport[];
   onAdd: () => void;
   onUpdateStunden: (id: string, h: number | null) => void;
+  onDelete: (r: Rapport) => void;
 }) {
   const id = format(date, "yyyy-MM-dd");
   const { setNodeRef, isOver } = useDroppable({ id });
@@ -246,7 +248,7 @@ function DayColumn({
         className={`flex-1 p-2 min-h-[200px] transition-colors ${isOver ? "bg-primary/10" : ""}`}
       >
         {rapports.map((r) => (
-          <RapportCard key={r.id} r={r} onUpdate={onUpdateStunden} />
+          <RapportCard key={r.id} r={r} onUpdate={onUpdateStunden} onDelete={onDelete} />
         ))}
         {rapports.length === 0 && (
           <div className="text-xs text-muted-foreground text-center py-6">Leer</div>
