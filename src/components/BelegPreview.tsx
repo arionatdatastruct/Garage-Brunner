@@ -3,10 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { ExternalLink, FileText, Loader2, TriangleAlert } from "lucide-react";
 import { Document, Page, pdfjs } from "react-pdf";
 
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  "pdfjs-dist/build/pdf.worker.min.mjs",
-  import.meta.url
-).toString();
+// Use a CDN worker that matches the exact API version bundled with react-pdf
+// to avoid "API version does not match Worker version" errors.
+pdfjs.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 interface BelegPreviewProps {
   pdfUrl: string | null;
