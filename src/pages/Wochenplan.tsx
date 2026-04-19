@@ -325,9 +325,20 @@ export default function Wochenplan() {
   const [nextOthers, setNextOthers] = useState<Array<{ id: string; geplantes_datum: string; kennzeichen: string | null; rapport_nummer: string | null }>>([]);
   const [overdue, setOverdue] = useState<Array<{ id: string; geplantes_datum: string; kennzeichen: string | null; rapport_nummer: string | null }>>([]);
   const [actionRapport, setActionRapport] = useState<Rapport | null>(null);
+  const [mechFilter, setMechFilter] = useState<"alle" | "Roman" | "Pascal">(() => {
+    const v = typeof window !== "undefined" ? localStorage.getItem("wp.mechFilter") : null;
+    return v === "Roman" || v === "Pascal" ? v : "alle";
+  });
   const isMobile = useIsMobile();
 
+  useEffect(() => {
+    try { localStorage.setItem("wp.mechFilter", mechFilter); } catch {}
+  }, [mechFilter]);
+
   const days = Array.from({ length: 5 }, (_, i) => addDays(weekStart, i));
+  const visibleRapports = mechFilter === "alle"
+    ? rapports
+    : rapports.filter((r) => r.mechaniker_zuweisung === mechFilter);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
