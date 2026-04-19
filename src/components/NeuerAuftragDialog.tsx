@@ -90,7 +90,7 @@ export function NeuerAuftragDialog({ open, onOpenChange, onCreated, defaultDate 
       toast.success(`Auftrag ${rap.rapport_nummer} angelegt`);
       reset();
       onOpenChange(false);
-      onCreated();
+      onCreated({ id: rap.id, geplantes_datum: datum });
     } catch (e: any) {
       console.error(e);
       toast.error(e.message ?? "Fehler beim Anlegen");
