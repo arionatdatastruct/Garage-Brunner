@@ -155,23 +155,22 @@ export function AuftragDetailMobile({ rapport, onChanged, onDelete, deleting }: 
 
   return (
     <div className="md:hidden flex flex-col min-h-screen">
-      {/* Sticky Top-Bar */}
-      <header
-        className="sticky top-[5.5rem] z-20 flex items-center gap-2 px-3 py-2 border-b border-border bg-card/95 backdrop-blur"
-      >
+      {/* Kompakter Top-Bar (nicht sticky – AppLayout-Header genügt) */}
+      <header className="flex items-center gap-2 px-3 py-2 border-b border-border bg-card">
         <Link
           to="/"
-          className="h-10 w-10 flex items-center justify-center rounded-md hover:bg-muted text-muted-foreground active:scale-95 transition"
+          className="h-10 w-10 -ml-1 flex items-center justify-center rounded-md hover:bg-muted text-muted-foreground active:scale-95 transition"
           aria-label="Zurück"
         >
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div className="flex-1 min-w-0">
-          <div className="font-mono font-bold text-base truncate">
+          <div className="font-mono font-bold text-base truncate leading-tight">
             {rapport.kennzeichen ?? "—"}
           </div>
-          <div className="text-[11px] text-muted-foreground truncate font-mono">
-            {rapport.auftragsnummer ?? rapport.rapport_nummer}
+          <div className="text-[11px] text-muted-foreground truncate">
+            {[rapport.marke, rapport.modell].filter(Boolean).join(" ") || "—"}
+            {rapport.kunde_name && ` · ${rapport.kunde_name}`}
           </div>
         </div>
         {/* Status-Pill (tap zum Ändern) */}
@@ -181,7 +180,7 @@ export function AuftragDetailMobile({ rapport, onChanged, onDelete, deleting }: 
               type="button"
               disabled={busy}
               className={cn(
-                "inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-semibold active:scale-95 transition",
+                "inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-semibold active:scale-95 transition shrink-0",
                 sCfg.cls
               )}
             >
@@ -210,39 +209,24 @@ export function AuftragDetailMobile({ rapport, onChanged, onDelete, deleting }: 
 
       {/* Inhalt scrollbar */}
       <div className="flex-1 px-3 pt-3 pb-28 space-y-3">
-        {/* Übersicht-Card */}
-        <div className="rounded-xl border border-border bg-card p-3">
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            <div>
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Fahrzeug</div>
-              <div className="font-medium truncate">
-                {[rapport.marke, rapport.modell].filter(Boolean).join(" ") || "—"}
-              </div>
-            </div>
-            <div>
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Kunde</div>
-              <div className="font-medium truncate">{rapport.kunde_name ?? "—"}</div>
-            </div>
-            <div>
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Datum</div>
-              <div className="font-medium font-mono">{rapport.geplantes_datum}</div>
-            </div>
-            <div>
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Stunden</div>
-              <div className="font-medium font-mono tabular-nums">
-                {rapport.arbeitszeit_stunden ?? "—"}h
-              </div>
-            </div>
-          </div>
+        {/* Mini-Meta-Zeile (Datum / Stunden / Telefon) */}
+        <div className="flex items-center gap-2 text-xs">
+          <span className="font-mono px-2 py-1 rounded bg-muted">
+            📅 {rapport.geplantes_datum}
+          </span>
+          <span className="font-mono px-2 py-1 rounded bg-muted tabular-nums">
+            ⏱ {rapport.arbeitszeit_stunden ?? "—"}h
+          </span>
           {rapport.kunde_telefon && (
             <a
               href={`tel:${rapport.kunde_telefon}`}
-              className="mt-3 flex items-center justify-center gap-2 h-10 rounded-md bg-primary/10 text-primary text-sm font-medium active:scale-95 transition"
+              className="ml-auto inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary font-medium active:scale-95 transition"
             >
-              📞 {rapport.kunde_telefon}
+              📞 Anrufen
             </a>
           )}
         </div>
+
 
         {/* PROMINENT: Beleg (PDF) – immer sichtbar, expandierbar */}
         <div className="rounded-xl border-2 border-primary/30 bg-card overflow-hidden">
