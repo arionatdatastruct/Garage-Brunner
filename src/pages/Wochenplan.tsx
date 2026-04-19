@@ -335,6 +335,11 @@ export default function Wochenplan() {
     try { localStorage.setItem("wp.mechFilter", mechFilter); } catch {}
   }, [mechFilter]);
 
+  // Mobile: "Offen" ist nicht verfügbar → auf "alle" zurücksetzen
+  useEffect(() => {
+    if (isMobile && mechFilter === "offen") setMechFilter("alle");
+  }, [isMobile, mechFilter]);
+
   const days = Array.from({ length: 5 }, (_, i) => addDays(weekStart, i));
   const visibleRapports =
     mechFilter === "alle"
@@ -561,13 +566,13 @@ export default function Wochenplan() {
         </div>
       </div>
 
-      {/* Warn-Banner: überfällige geplante Aufträge */}
+      {/* Warn-Banner: überfällige geplante Aufträge — Desktop only */}
       {overdue.length > 0 && (
         <Popover>
           <PopoverTrigger asChild>
             <button
               type="button"
-              className="w-full mb-3 flex items-center justify-between gap-3 rounded-lg border border-destructive/40 bg-destructive/10 hover:bg-destructive/15 transition px-4 py-2.5 text-left"
+              className="hidden md:flex w-full mb-3 items-center justify-between gap-3 rounded-lg border border-destructive/40 bg-destructive/10 hover:bg-destructive/15 transition px-4 py-2.5 text-left"
             >
               <span className="flex items-center gap-2 text-sm">
                 <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
@@ -615,13 +620,13 @@ export default function Wochenplan() {
         </Popover>
       )}
 
-      {/* Hinweis-Banner: Aufträge in anderen Wochen */}
+      {/* Hinweis-Banner: Aufträge in anderen Wochen — Desktop only */}
       {otherWeeksCount > 0 && nextOtherDate && (
         <Popover>
           <PopoverTrigger asChild>
             <button
               type="button"
-              className="w-full mb-4 flex items-center justify-between gap-3 rounded-lg border border-primary/30 bg-primary/5 hover:bg-primary/10 transition px-4 py-2.5 text-left"
+              className="hidden md:flex w-full mb-4 items-center justify-between gap-3 rounded-lg border border-primary/30 bg-primary/5 hover:bg-primary/10 transition px-4 py-2.5 text-left"
             >
               <span className="text-sm">
                 <span className="font-semibold text-primary">{otherWeeksCount}</span>{" "}
@@ -668,12 +673,14 @@ export default function Wochenplan() {
 
       {/* Mechaniker-Zuweisung — Segmented Control */}
       {(() => {
-        const options = [
+        const allOptions = [
           { key: "alle" as const, label: "Alle", initial: "A", ring: "ring-muted-foreground/30", bg: "bg-muted-foreground" },
           { key: "Roman" as const, label: "Roman", initial: "R", ring: "ring-blue-500/40", bg: "bg-blue-500" },
           { key: "Pascal" as const, label: "Pascal", initial: "P", ring: "ring-emerald-500/40", bg: "bg-emerald-500" },
           { key: "offen" as const, label: "Offen", initial: "?", ring: "ring-amber-500/40", bg: "bg-amber-500" },
         ];
+        // Mobile zeigt "Offen" nicht — nur Alle/Roman/Pascal
+        const options = isMobile ? allOptions.filter((o) => o.key !== "offen") : allOptions;
         const sumH = (mech: "Roman" | "Pascal" | "offen" | null) =>
           rapports
             .filter((r) =>
