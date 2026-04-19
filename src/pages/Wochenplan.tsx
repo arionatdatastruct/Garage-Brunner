@@ -325,9 +325,20 @@ export default function Wochenplan() {
   const [nextOthers, setNextOthers] = useState<Array<{ id: string; geplantes_datum: string; kennzeichen: string | null; rapport_nummer: string | null }>>([]);
   const [overdue, setOverdue] = useState<Array<{ id: string; geplantes_datum: string; kennzeichen: string | null; rapport_nummer: string | null }>>([]);
   const [actionRapport, setActionRapport] = useState<Rapport | null>(null);
+  const [mechFilter, setMechFilter] = useState<"alle" | "Roman" | "Pascal">(() => {
+    const v = typeof window !== "undefined" ? localStorage.getItem("wp.mechFilter") : null;
+    return v === "Roman" || v === "Pascal" ? v : "alle";
+  });
   const isMobile = useIsMobile();
 
+  useEffect(() => {
+    try { localStorage.setItem("wp.mechFilter", mechFilter); } catch {}
+  }, [mechFilter]);
+
   const days = Array.from({ length: 5 }, (_, i) => addDays(weekStart, i));
+  const visibleRapports = mechFilter === "alle"
+    ? rapports
+    : rapports.filter((r) => r.mechaniker_zuweisung === mechFilter);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -652,11 +663,51 @@ export default function Wochenplan() {
         </Popover>
       )}
 
+      {/* Mechaniker-Filter */}
+      <div className="mb-3 flex items-center gap-2 overflow-x-auto -mx-1 px-1">
+        <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold shrink-0">
+          Mechaniker
+        </span>
+        {([
+          { key: "alle", label: "Alle", dot: null as string | null },
+          { key: "Roman", label: "Roman", dot: "bg-blue-500" },
+          { key: "Pascal", label: "Pascal", dot: "bg-emerald-500" },
+        ] as const).map((opt) => {
+          const active = mechFilter === opt.key;
+          const count = opt.key === "alle"
+            ? rapports.length
+            : rapports.filter((r) => r.mechaniker_zuweisung === opt.key).length;
+          return (
+            <button
+              key={opt.key}
+              type="button"
+              onClick={() => setMechFilter(opt.key as typeof mechFilter)}
+              className={cn(
+                "shrink-0 inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-xs font-medium border transition",
+                active
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-card text-foreground border-border hover:bg-muted"
+              )}
+              aria-pressed={active}
+            >
+              {opt.dot && <span className={cn("h-2 w-2 rounded-full", opt.dot)} />}
+              {opt.label}
+              <span className={cn(
+                "tabular-nums text-[10px] font-mono px-1.5 py-0.5 rounded",
+                active ? "bg-primary-foreground/20" : "bg-muted text-muted-foreground"
+              )}>
+                {count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
       {/* Mobile: Vertikale Tagesliste (Agenda) — kein D&D */}
       <div className="md:hidden">
         <MobileWochenplan
           days={days}
-          rapports={rapports}
+          rapports={visibleRapports}
           onAdd={(d) => openDialog(d)}
           onAction={(r) => setActionRapport(r)}
           highlightId={highlightId}
@@ -668,7 +719,7 @@ export default function Wochenplan() {
         <div className="hidden md:grid md:grid-cols-5 gap-3">
           {days.map((d) => {
             const key = format(d, "yyyy-MM-dd");
-            const dayRapports = rapports.filter((r) => r.geplantes_datum === key);
+            const dayRapports = visibleRapports.filter((r) => r.geplantes_datum === key);
             return (
               <div key={key} className="bg-muted/30 rounded-lg flex flex-col">
                 <DayColumn date={d} rapports={dayRapports} onAdd={() => openDialog(d)} onUpdateStunden={updateStunden} onDelete={setToDelete} highlightId={highlightId} />
