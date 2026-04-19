@@ -1,7 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -10,8 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Check, ChevronDown, Loader2 } from "lucide-react";
+import { Check, ChevronDown, Loader2, Car, Wrench, User } from "lucide-react";
 import { KATEGORIEN, parseKategorien, formatKategorien } from "@/lib/kategorien";
+import { cn } from "@/lib/utils";
 
 interface Rapport {
   id: string;
@@ -21,7 +20,6 @@ interface Rapport {
   mechaniker_zuweisung: "Roman" | "Pascal" | null;
   auftragswert_chf: number | null;
   notizen: string | null;
-  // Kunde-Snapshot
   kundennummer: string | null;
   kunde_name: string | null;
   kunde_ort: string | null;
@@ -29,7 +27,6 @@ interface Rapport {
   kunde_plz: string | null;
   kunde_telefon: string | null;
   kunde_email: string | null;
-  // Fahrzeug-Snapshot
   kennzeichen: string | null;
   marke: string | null;
   modell: string | null;
@@ -43,6 +40,52 @@ interface Props {
 
 type SaveState = "idle" | "saving" | "saved";
 
+/* ---------- Kompakte Field-Primitives ---------- */
+
+function Field({
+  label,
+  children,
+  className,
+}: {
+  label: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <label className={cn("block space-y-1", className)}>
+      <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
+        {label}
+      </span>
+      {children}
+    </label>
+  );
+}
+
+const inputCls =
+  "h-9 bg-transparent border-0 border-b border-border/60 rounded-none px-0 focus-visible:ring-0 focus-visible:border-primary transition-colors";
+
+function Section({
+  icon: Icon,
+  title,
+  children,
+}: {
+  icon: typeof Car;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="space-y-4">
+      <div className="flex items-center gap-2 pb-2 border-b border-border">
+        <Icon className="h-4 w-4 text-primary" />
+        <h3 className="text-sm font-semibold uppercase tracking-wider">{title}</h3>
+      </div>
+      <div className="space-y-4">{children}</div>
+    </section>
+  );
+}
+
+/* ---------- Hauptkomponente ---------- */
+
 export function AuftragForm({ rapport, onSaved }: Props) {
   const [r, setR] = useState(rapport);
   const [state, setState] = useState<SaveState>("idle");
@@ -55,7 +98,6 @@ export function AuftragForm({ rapport, onSaved }: Props) {
     dirty.current = false;
   }, [rapport]);
 
-  // Auto-save (alle Felder in einem Update — ein Tabellen-Target)
   useEffect(() => {
     if (!dirty.current) return;
     if (timer.current) clearTimeout(timer.current);
@@ -106,243 +148,253 @@ export function AuftragForm({ rapport, onSaved }: Props) {
 
   const num = (v: string) => (v === "" ? null : Number(v));
 
-  const SaveIndicator = ({ state }: { state: SaveState }) => (
-    <span className="text-xs text-muted-foreground flex items-center gap-1 min-h-[1rem]">
-      {state === "saving" && (
-        <>
-          <Loader2 className="h-3 w-3 animate-spin" /> Speichert…
-        </>
-      )}
-      {state === "saved" && (
-        <>
-          <Check className="h-3 w-3 text-green-500" /> Gespeichert
-        </>
-      )}
-    </span>
-  );
+  const selectedIds = parseKategorien(r.kategorie);
+  const toggleKat = (id: string) => {
+    const next = selectedIds.includes(id)
+      ? selectedIds.filter((x) => x !== id)
+      : [...selectedIds, id];
+    upd({ kategorie: formatKategorien(next) });
+  };
 
   return (
-    <div className="space-y-4">
-      {/* Fahrzeug */}
-      <Card>
-        <CardHeader className="flex-row items-center justify-between space-y-0">
-          <CardTitle className="text-base">Fahrzeug</CardTitle>
-          <SaveIndicator state={state} />
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div>
-            <Label>Kennzeichen</Label>
+    <div className="rounded-xl border border-border bg-card/60 backdrop-blur-sm">
+      {/* Sticky Save-Indikator */}
+      <div className="sticky top-0 z-10 flex items-center justify-between gap-2 px-4 py-2.5 border-b border-border bg-card/80 backdrop-blur rounded-t-xl">
+        <span className="text-xs font-medium text-muted-foreground">Auto-Speichern aktiv</span>
+        <span
+          className={cn(
+            "inline-flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 rounded-full transition-all",
+            state === "saving" && "bg-amber-500/15 text-amber-500",
+            state === "saved" && "bg-emerald-500/15 text-emerald-500",
+            state === "idle" && "text-muted-foreground/60"
+          )}
+        >
+          {state === "saving" && (
+            <>
+              <Loader2 className="h-3 w-3 animate-spin" /> Speichert
+            </>
+          )}
+          {state === "saved" && (
+            <>
+              <Check className="h-3 w-3" /> Gespeichert
+            </>
+          )}
+          {state === "idle" && (
+            <>
+              <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40" />
+              Bereit
+            </>
+          )}
+        </span>
+      </div>
+
+      <div className="p-4 md:p-5 space-y-7">
+        {/* Fahrzeug */}
+        <Section icon={Car} title="Fahrzeug">
+          <Field label="Kennzeichen">
             <Input
               value={r.kennzeichen ?? ""}
               onChange={(e) => upd({ kennzeichen: e.target.value })}
-              className="font-mono"
+              className={cn(inputCls, "font-mono text-base font-semibold tracking-wider uppercase")}
+              placeholder="BE 123 456"
             />
+          </Field>
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Marke">
+              <Input value={r.marke ?? ""} onChange={(e) => upd({ marke: e.target.value })} className={inputCls} />
+            </Field>
+            <Field label="Modell">
+              <Input value={r.modell ?? ""} onChange={(e) => upd({ modell: e.target.value })} className={inputCls} />
+            </Field>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>Marke</Label>
-              <Input value={r.marke ?? ""} onChange={(e) => upd({ marke: e.target.value })} />
-            </div>
-            <div>
-              <Label>Modell</Label>
-              <Input value={r.modell ?? ""} onChange={(e) => upd({ modell: e.target.value })} />
-            </div>
-          </div>
-          <div>
-            <Label>Chassis-Nr.</Label>
+          <Field label="Chassis-Nr.">
             <Input
               value={r.chassis_nr ?? ""}
               onChange={(e) => upd({ chassis_nr: e.target.value })}
-              className="font-mono text-xs"
+              className={cn(inputCls, "font-mono text-xs")}
             />
-          </div>
-        </CardContent>
-      </Card>
+          </Field>
+        </Section>
 
-      {/* Auftrag */}
-      <Card>
-        <CardHeader className="flex-row items-center justify-between space-y-0">
-          <CardTitle className="text-base">Auftrag</CardTitle>
-          <SaveIndicator state={state} />
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label>Kategorie</Label>
-            {(() => {
-              const selectedIds = parseKategorien(r.kategorie);
-              const toggle = (id: string) => {
-                const next = selectedIds.includes(id)
-                  ? selectedIds.filter((x) => x !== id)
-                  : [...selectedIds, id];
-                upd({ kategorie: formatKategorien(next) });
-              };
-              return (
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
+        {/* Auftrag */}
+        <Section icon={Wrench} title="Auftrag">
+          <Field label="Kategorie">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full justify-between font-normal min-h-9 h-auto py-1.5 bg-background/50"
+                >
+                  <span className="flex flex-wrap gap-1 items-center">
+                    {selectedIds.length === 0 ? (
+                      <span className="text-muted-foreground">Wählen…</span>
+                    ) : (
+                      selectedIds.map((id) => {
+                        const k = KATEGORIEN.find((x) => x.id === id);
+                        return (
+                          <Badge key={id} variant="secondary" className="font-mono text-[10px] gap-1">
+                            <span className="text-muted-foreground">{id}</span>
+                            <span>{k?.label ?? ""}</span>
+                          </Badge>
+                        );
+                      })
+                    )}
+                  </span>
+                  <ChevronDown className="h-4 w-4 opacity-50 shrink-0 ml-2" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-1" align="start">
+                {KATEGORIEN.map((k) => {
+                  const checked = selectedIds.includes(k.id);
+                  return (
+                    <button
                       type="button"
-                      variant="outline"
-                      className="w-full justify-between font-normal min-h-10 h-auto py-1.5"
+                      key={k.id}
+                      onClick={() => toggleKat(k.id)}
+                      className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent text-left"
                     >
-                      <span className="flex flex-wrap gap-1 items-center min-h-[1.5rem]">
-                        {selectedIds.length === 0 ? (
-                          <span className="text-muted-foreground">Wählen</span>
-                        ) : (
-                          selectedIds.map((id) => {
-                            const k = KATEGORIEN.find((x) => x.id === id);
-                            return (
-                              <Badge key={id} variant="secondary" className="font-mono text-[10px] gap-1">
-                                <span className="text-muted-foreground">{id}</span>
-                                <span>{k?.label ?? ""}</span>
-                              </Badge>
-                            );
-                          })
-                        )}
-                      </span>
-                      <ChevronDown className="h-4 w-4 opacity-50 shrink-0 ml-2" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[--radix-popover-trigger-width] p-1" align="start">
-                    {KATEGORIEN.map((k) => {
-                      const checked = selectedIds.includes(k.id);
-                      return (
-                        <button
-                          type="button"
-                          key={k.id}
-                          onClick={() => toggle(k.id)}
-                          className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent text-left"
-                        >
-                          <Checkbox checked={checked} className="pointer-events-none" />
-                          <span className="font-mono text-xs text-muted-foreground w-6">{k.id}</span>
-                          <span>{k.label}</span>
-                        </button>
-                      );
-                    })}
-                  </PopoverContent>
-                </Popover>
-              );
-            })()}
-          </div>
+                      <Checkbox checked={checked} className="pointer-events-none" />
+                      <span className="font-mono text-xs text-muted-foreground w-6">{k.id}</span>
+                      <span>{k.label}</span>
+                    </button>
+                  );
+                })}
+              </PopoverContent>
+            </Popover>
+          </Field>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>Mechaniker</Label>
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Mechaniker">
               <Select
                 value={r.mechaniker_zuweisung ?? ""}
                 onValueChange={(v) => upd({ mechaniker_zuweisung: v as "Roman" | "Pascal" })}
               >
-                <SelectTrigger><SelectValue placeholder="Wählen" /></SelectTrigger>
+                <SelectTrigger className="h-9 bg-background/50">
+                  <SelectValue placeholder="Wählen" />
+                </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Roman">Roman</SelectItem>
-                  <SelectItem value="Pascal">Pascal</SelectItem>
+                  <SelectItem value="Roman">
+                    <span className="inline-flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full bg-sky-500" /> Roman
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="Pascal">
+                    <span className="inline-flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full bg-violet-500" /> Pascal
+                    </span>
+                  </SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-            <div>
-              <Label>Arbeitszeit (h)</Label>
+            </Field>
+            <Field label="Arbeitszeit (h)">
               <Input
                 type="number"
                 step="0.25"
                 value={r.arbeitszeit_stunden ?? ""}
                 onChange={(e) => upd({ arbeitszeit_stunden: num(e.target.value) })}
+                className={cn(inputCls, "font-mono tabular-nums")}
+                placeholder="0.00"
+              />
+            </Field>
+          </div>
+
+          <Field label="Auftragswert (CHF)">
+            <div className="relative">
+              <span className="absolute left-0 top-1/2 -translate-y-1/2 text-xs font-mono text-muted-foreground">
+                CHF
+              </span>
+              <Input
+                type="number"
+                step="0.05"
+                value={r.auftragswert_chf ?? ""}
+                onChange={(e) => upd({ auftragswert_chf: num(e.target.value) })}
+                className={cn(inputCls, "font-mono tabular-nums text-base font-semibold pl-10")}
+                placeholder="0.00"
               />
             </div>
-          </div>
+          </Field>
 
-          <div>
-            <Label>Auftragswert (CHF)</Label>
-            <Input
-              type="number"
-              step="0.05"
-              value={r.auftragswert_chf ?? ""}
-              onChange={(e) => upd({ auftragswert_chf: num(e.target.value) })}
-            />
-          </div>
-
-          <div>
-            <Label>Arbeit / Beschreibung</Label>
+          <Field label="Arbeit / Beschreibung">
             <Textarea
               rows={3}
               value={r.arbeit_beschreibung ?? ""}
               onChange={(e) => upd({ arbeit_beschreibung: e.target.value })}
+              className="resize-none bg-background/50 border-border/60 focus-visible:ring-1 focus-visible:ring-primary"
             />
-          </div>
+          </Field>
 
-          <div>
-            <Label>Notizen</Label>
+          <Field label="Notizen">
             <Textarea
               rows={2}
               value={r.notizen ?? ""}
               onChange={(e) => upd({ notizen: e.target.value })}
+              className="resize-none bg-background/50 border-border/60 focus-visible:ring-1 focus-visible:ring-primary"
+              placeholder="Interne Bemerkungen…"
             />
-          </div>
-        </CardContent>
-      </Card>
+          </Field>
+        </Section>
 
-      {/* Kunde */}
-      <Card>
-        <CardHeader className="flex-row items-center justify-between space-y-0">
-          <CardTitle className="text-base">Kunde</CardTitle>
-          <SaveIndicator state={state} />
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div>
-            <Label>Kundennummer</Label>
-            <Input
-              value={r.kundennummer ?? ""}
-              onChange={(e) => upd({ kundennummer: e.target.value })}
-              className="font-mono"
-            />
+        {/* Kunde */}
+        <Section icon={User} title="Kunde">
+          <div className="grid grid-cols-3 gap-4">
+            <Field label="Kd-Nr." className="col-span-1">
+              <Input
+                value={r.kundennummer ?? ""}
+                onChange={(e) => upd({ kundennummer: e.target.value })}
+                className={cn(inputCls, "font-mono")}
+              />
+            </Field>
+            <Field label="Name" className="col-span-2">
+              <Input
+                value={r.kunde_name ?? ""}
+                onChange={(e) => upd({ kunde_name: e.target.value })}
+                className={inputCls}
+              />
+            </Field>
           </div>
-          <div>
-            <Label>Name</Label>
-            <Input
-              value={r.kunde_name ?? ""}
-              onChange={(e) => upd({ kunde_name: e.target.value })}
-            />
-          </div>
-          <div>
-            <Label>Strasse</Label>
+          <Field label="Strasse">
             <Input
               value={r.kunde_strasse ?? ""}
               onChange={(e) => upd({ kunde_strasse: e.target.value })}
+              className={inputCls}
             />
-          </div>
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <Label>PLZ</Label>
+          </Field>
+          <div className="grid grid-cols-3 gap-4">
+            <Field label="PLZ">
               <Input
                 value={r.kunde_plz ?? ""}
                 onChange={(e) => upd({ kunde_plz: e.target.value })}
+                className={cn(inputCls, "font-mono")}
               />
-            </div>
-            <div className="col-span-2">
-              <Label>Ort</Label>
+            </Field>
+            <Field label="Ort" className="col-span-2">
               <Input
                 value={r.kunde_ort ?? ""}
                 onChange={(e) => upd({ kunde_ort: e.target.value })}
+                className={inputCls}
               />
-            </div>
+            </Field>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>Telefon</Label>
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Telefon">
               <Input
                 value={r.kunde_telefon ?? ""}
                 onChange={(e) => upd({ kunde_telefon: e.target.value })}
+                className={cn(inputCls, "font-mono")}
               />
-            </div>
-            <div>
-              <Label>E-Mail</Label>
+            </Field>
+            <Field label="E-Mail">
               <Input
                 type="email"
                 value={r.kunde_email ?? ""}
                 onChange={(e) => upd({ kunde_email: e.target.value })}
+                className={inputCls}
               />
-            </div>
+            </Field>
           </div>
-        </CardContent>
-      </Card>
+        </Section>
+      </div>
     </div>
   );
 }
