@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useState } from "react";
 import { Loader2, Play, CheckCircle2, Archive } from "lucide-react";
+import { ErledigenDialog } from "@/components/ErledigenDialog";
 
 type Status = "geplant" | "in_arbeit" | "erledigt" | "archiviert";
 
@@ -29,19 +30,37 @@ interface Props {
 
 export function AuftragStatusBar({ rapportId, status, onChanged }: Props) {
   const [busy, setBusy] = useState<Status | null>(null);
+  const [erledigenOpen, setErledigenOpen] = useState(false);
+  const [erledigenRapport, setErledigenRapport] = useState<any>(null);
 
   const setStatus = async (next: Status) => {
     setBusy(next);
     try {
-      const patch: Record<string, unknown> = { status: next };
-      if (next === "erledigt") patch.datum = new Date().toISOString().slice(0, 10);
       const { error } = await (supabase as any)
         .from("arbeitsrapporte")
-        .update(patch)
+        .update({ status: next })
         .eq("id", rapportId);
       if (error) throw error;
       toast.success(`Status: ${STATUS_LABEL[next]}`);
       onChanged();
+    } catch (e: any) {
+      toast.error(e.message ?? "Fehler");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const openErledigen = async () => {
+    setBusy("erledigt");
+    try {
+      const { data, error } = await (supabase as any)
+        .from("arbeitsrapporte")
+        .select("id, rapport_nummer, arbeitszeit_stunden, kategorie, sicherheitscheck")
+        .eq("id", rapportId)
+        .single();
+      if (error) throw error;
+      setErledigenRapport(data);
+      setErledigenOpen(true);
     } catch (e: any) {
       toast.error(e.message ?? "Fehler");
     } finally {
@@ -63,7 +82,7 @@ export function AuftragStatusBar({ rapportId, status, onChanged }: Props) {
       )}
 
       {(status === "geplant" || status === "in_arbeit") && (
-        <Button size="sm" variant="default" onClick={() => setStatus("erledigt")} disabled={busy !== null}>
+        <Button size="sm" variant="default" onClick={openErledigen} disabled={busy !== null}>
           {busy === "erledigt" ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
           Erledigt
         </Button>
@@ -74,6 +93,15 @@ export function AuftragStatusBar({ rapportId, status, onChanged }: Props) {
           {busy === "archiviert" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Archive className="h-4 w-4" />}
           Archivieren
         </Button>
+      )}
+
+      {erledigenRapport && (
+        <ErledigenDialog
+          open={erledigenOpen}
+          onOpenChange={setErledigenOpen}
+          rapport={erledigenRapport}
+          onDone={onChanged}
+        />
       )}
     </div>
   );

@@ -7,6 +7,7 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
 } from "recharts";
 import { KATEGORIEN, parseKategorien } from "@/lib/kategorien";
+import { kapazitaetFuer } from "@/lib/arbeitszeiten";
 
 interface Row {
   id: string;
@@ -125,7 +126,29 @@ export default function Statistiken() {
     }));
   }, [rows]);
 
-  // Kategorie-Vergleich (Umsatz + Anzahl pro Kategorie)
+  // Auslastung pro Mechaniker (verplante Stunden vs. Kapazität an deren Tagen, nur geplant/in_arbeit)
+  const mechAuslastung = useMemo(() => {
+    const map = new Map<string, { mechaniker: string; verplant: number; tage: Set<string> }>();
+    for (const r of rows) {
+      const m = r.mechaniker_zuweisung;
+      if (!m) continue;
+      if (r.status !== "geplant" && r.status !== "in_arbeit") continue;
+      const ex = map.get(m) ?? { mechaniker: m, verplant: 0, tage: new Set<string>() };
+      ex.verplant += r.arbeitszeit_stunden ?? 0;
+      ex.tage.add(r.geplantes_datum);
+      map.set(m, ex);
+    }
+    return Array.from(map.values()).map((x) => {
+      const kap = Array.from(x.tage).reduce((s, d) => s + kapazitaetFuer(d), 0);
+      const pct = kap > 0 ? Math.round((x.verplant / kap) * 100) : 0;
+      return {
+        mechaniker: x.mechaniker,
+        verplant: Math.round(x.verplant * 10) / 10,
+        kapazitaet: kap,
+        auslastung: pct,
+      };
+    });
+  }, [rows]);
   // Eine Auftrag mit "01,03" zählt für beide Kategorien.
   const kategorieVergleich = useMemo(() => {
     const map = new Map<string, { id: string; label: string; umsatz: number; anzahl: number }>();
@@ -207,6 +230,54 @@ export default function Statistiken() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Auslastung pro Mechaniker (offene Aufträge)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {mechAuslastung.length === 0 ? (
+            <div className="py-12 text-center text-sm text-muted-foreground">Keine offenen Aufträge mit Mechaniker-Zuweisung.</div>
+          ) : (
+            <div className="space-y-4">
+              {mechAuslastung.map((m) => {
+                const over = m.auslastung > 100;
+                const warn = m.auslastung >= 80 && m.auslastung <= 100;
+                const barColor = over
+                  ? "bg-destructive"
+                  : warn
+                    ? "bg-amber-500"
+                    : "bg-emerald-500";
+                const textColor = over
+                  ? "text-destructive"
+                  : warn
+                    ? "text-amber-500"
+                    : "text-emerald-500";
+                return (
+                  <div key={m.mechaniker}>
+                    <div className="flex items-baseline justify-between mb-1.5">
+                      <span className="font-semibold">{m.mechaniker}</span>
+                      <div className="flex items-baseline gap-2 text-sm">
+                        <span className="font-mono">
+                          {m.verplant.toLocaleString("de-CH", { maximumFractionDigits: 1 })}
+                          <span className="text-muted-foreground">/{m.kapazitaet}h</span>
+                        </span>
+                        <span className={`font-bold ${textColor}`}>{m.auslastung}%</span>
+                      </div>
+                    </div>
+                    <div className="h-2 rounded-full bg-muted overflow-hidden">
+                      <div
+                        className={`h-full transition-all ${barColor}`}
+                        style={{ width: `${Math.min(100, m.auslastung)}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader><CardTitle className="text-base">Kategorie-Vergleich (Umsatz)</CardTitle></CardHeader>
