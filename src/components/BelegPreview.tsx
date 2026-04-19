@@ -3,10 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { ExternalLink, FileText, Loader2, TriangleAlert } from "lucide-react";
 import { Document, Page, pdfjs } from "react-pdf";
 
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  "pdfjs-dist/build/pdf.worker.min.mjs",
-  import.meta.url
-).toString();
+// Pin the worker to the EXACT API version bundled inside react-pdf
+// (pdfjs.version), not the project's installed pdfjs-dist, otherwise
+// PDF.js refuses to render with "API version does not match Worker version".
+pdfjs.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 interface BelegPreviewProps {
   pdfUrl: string | null;
