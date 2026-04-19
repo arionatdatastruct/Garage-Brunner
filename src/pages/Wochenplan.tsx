@@ -53,22 +53,20 @@ interface Rapport {
   kunde_name: string | null;
 }
 
-const MECH_COLOR: Record<string, string> = {
-  Roman: "bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30",
-  Pascal: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
+const MECH_DOT: Record<string, string> = {
+  Roman: "bg-blue-500",
+  Pascal: "bg-emerald-500",
 };
 
-const STATUS_DOT: Record<string, string> = {
-  geplant: "bg-muted-foreground",
+const STATUS_BAR: Record<string, string> = {
+  geplant: "bg-muted-foreground/30",
   in_arbeit: "bg-amber-500",
   erledigt: "bg-emerald-500",
 };
 
 function RapportCard({ r, onUpdate, onDelete }: { r: Rapport; onUpdate: (id: string, h: number | null) => void; onDelete: (r: Rapport) => void }) {
   const navigate = useNavigate();
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: r.id,
-  });
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: r.id });
   const [editing, setEditing] = useState(false);
   const [val, setVal] = useState<string>(
     r.arbeitszeit_stunden != null ? String(r.arbeitszeit_stunden) : ""
@@ -113,33 +111,54 @@ function RapportCard({ r, onUpdate, onDelete }: { r: Rapport; onUpdate: (id: str
           {...attributes}
           {...listeners}
           onClick={() => !isDragging && !editing && navigate(`/auftrag/${r.id}`)}
-          className="bg-card border border-border rounded-md p-3 mb-2 cursor-grab active:cursor-grabbing shadow-sm hover:shadow-md transition touch-none"
+          className={cn(
+            "group relative bg-card/60 hover:bg-card border border-border/60 hover:border-border",
+            "rounded-lg pl-3 pr-2.5 py-2.5 mb-2 cursor-grab active:cursor-grabbing transition-all touch-none",
+            "overflow-hidden"
+          )}
         >
-          <div className="flex items-start justify-between gap-2 mb-1">
-            <span className="font-mono font-semibold text-sm">
+          {/* Status-Strich links */}
+          <div
+            className={cn("absolute left-0 top-0 bottom-0 w-1", STATUS_BAR[r.status] ?? "bg-muted-foreground/30")}
+            aria-hidden
+          />
+
+          {/* Kennzeichen + Mechaniker-Dot */}
+          <div className="flex items-baseline justify-between gap-2 mb-1 pl-1">
+            <span className="font-mono font-bold text-[15px] tracking-tight truncate">
               {r.kennzeichen ?? "—"}
             </span>
-            <span className={`h-2 w-2 rounded-full mt-1.5 ${STATUS_DOT[r.status] ?? "bg-muted-foreground"}`} />
+            {r.mechaniker_zuweisung && (
+              <span className="flex items-center gap-1 text-[10px] text-muted-foreground shrink-0">
+                <span className={cn("h-1.5 w-1.5 rounded-full", MECH_DOT[r.mechaniker_zuweisung] ?? "bg-muted-foreground")} />
+                {r.mechaniker_zuweisung}
+              </span>
+            )}
           </div>
-          <div className="text-xs text-muted-foreground truncate">
+
+          {/* Fahrzeug + Kunde */}
+          <div className="text-xs text-muted-foreground truncate pl-1">
             {r.marke ?? "Kein Fahrzeug"}
           </div>
           {(r.kunde_name || r.kundennummer) && (
-            <div className="text-[10px] text-muted-foreground truncate mt-0.5">
-              {r.kundennummer && <span className="font-mono mr-1">#{r.kundennummer}</span>}
+            <div className="text-[11px] text-muted-foreground/80 truncate mt-0.5 pl-1">
               {r.kunde_name}
             </div>
           )}
+
+          {/* Kategorie-Badges */}
           {r.kategorie && (
-            <div className="mt-1.5">
+            <div className="mt-2 pl-1">
               <KategorieBadges value={r.kategorie} size="xs" />
             </div>
           )}
-          <div className="flex items-center justify-between mt-2 gap-2">
-            <span className="text-[10px] text-muted-foreground font-mono">
+
+          {/* Footer: Auftragsnr · Stunden */}
+          <div className="flex items-center justify-between mt-2 gap-2 pl-1">
+            <span className="text-[10px] text-muted-foreground/70 font-mono truncate">
               {r.auftragsnummer ?? r.rapport_nummer}
             </span>
-            <div className="flex items-center gap-1.5" onPointerDown={(e) => editing && e.stopPropagation()}>
+            <div onPointerDown={(e) => editing && e.stopPropagation()}>
               {editing ? (
                 <input
                   type="number"
@@ -154,25 +173,25 @@ function RapportCard({ r, onUpdate, onDelete }: { r: Rapport; onUpdate: (id: str
                     if (e.key === "Escape") setEditing(false);
                   }}
                   onClick={(e) => e.stopPropagation()}
-                  className="w-12 h-5 text-[10px] font-mono px-1 rounded border border-primary bg-background focus:outline-none"
+                  className="w-14 h-6 text-xs font-mono px-1.5 rounded border border-primary bg-background focus:outline-none"
                 />
               ) : (
                 <button
                   type="button"
                   onClick={startEdit}
                   onPointerDown={(e) => e.stopPropagation()}
-                  className="text-[10px] font-mono text-muted-foreground hover:text-foreground hover:bg-muted px-1.5 py-0.5 rounded transition"
+                  className={cn(
+                    "text-[11px] font-mono font-semibold px-1.5 py-0.5 rounded transition",
+                    r.arbeitszeit_stunden != null && r.arbeitszeit_stunden > 0
+                      ? "text-foreground hover:bg-muted"
+                      : "text-muted-foreground/60 hover:text-foreground hover:bg-muted border border-dashed border-border"
+                  )}
                   title="Stunden bearbeiten"
                 >
                   {r.arbeitszeit_stunden != null && r.arbeitszeit_stunden > 0
                     ? `${r.arbeitszeit_stunden.toLocaleString("de-CH", { maximumFractionDigits: 2 })}h`
                     : "+ h"}
                 </button>
-              )}
-              {r.mechaniker_zuweisung && (
-                <span className={`text-[10px] px-1.5 py-0.5 rounded border ${MECH_COLOR[r.mechaniker_zuweisung] ?? ""}`}>
-                  {r.mechaniker_zuweisung}
-                </span>
               )}
             </div>
           </div>
@@ -215,43 +234,66 @@ function DayColumn({
 
   return (
     <div className="w-full flex-1 flex flex-col">
-      <div className={`px-3 py-2 border-b border-border ${isToday ? "bg-primary/5" : ""}`}>
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="text-xs text-muted-foreground uppercase tracking-wider">
-              {format(date, "EEE", { locale: de })}
+      <div className={cn(
+        "px-3 py-2.5 border-b border-border/60",
+        isToday && "bg-primary/5",
+      )}>
+        <div className="flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <div className={cn(
+              "text-[10px] uppercase tracking-[0.12em] font-medium",
+              isToday ? "text-primary" : "text-muted-foreground",
+            )}>
+              {format(date, "EEEE", { locale: de })}
             </div>
-            <div className={`text-lg font-semibold ${isToday ? "text-primary" : ""}`}>
+            <div className={cn(
+              "text-xl font-bold tracking-tight leading-none mt-1",
+              isToday && "text-primary",
+            )}>
               {format(date, "d. MMM", { locale: de })}
             </div>
           </div>
-          <Button size="icon" variant="ghost" onClick={onAdd} className="h-7 w-7">
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={onAdd}
+            className="h-7 w-7 shrink-0 opacity-60 hover:opacity-100"
+            title="Auftrag hinzufügen"
+          >
             <Plus className="h-4 w-4" />
           </Button>
         </div>
-        <div className="mt-1.5 space-y-1">
-          <div className="flex items-center justify-between text-[10px]">
-            <span className="text-muted-foreground">
-              {rapports.length} {rapports.length === 1 ? "Auftrag" : "Aufträge"}
-            </span>
-            <span className="font-mono font-medium">
-              {totalH.toLocaleString("de-CH", { maximumFractionDigits: 2 })}/{kap}h
-            </span>
-          </div>
-          <div className="h-1 rounded-full bg-muted overflow-hidden">
-            <div className={cn("h-full transition-all", barColor)} style={{ width: `${pct}%` }} />
-          </div>
+        <div className="mt-2 flex items-center justify-between gap-2">
+          <span className="text-[11px] text-muted-foreground">
+            {rapports.length === 0 ? "—" : `${rapports.length} ${rapports.length === 1 ? "Auftrag" : "Aufträge"}`}
+          </span>
+          <span className={cn(
+            "text-[11px] font-mono font-semibold tabular-nums px-1.5 py-0.5 rounded",
+            color === "over" && "text-red-500 bg-red-500/10",
+            color === "warn" && "text-amber-500 bg-amber-500/10",
+            color === "ok" && "text-emerald-500 bg-emerald-500/10",
+          )}>
+            {totalH.toLocaleString("de-CH", { maximumFractionDigits: 1 })}/{kap}h
+          </span>
+        </div>
+        <div className="h-0.5 mt-1.5 rounded-full bg-muted overflow-hidden">
+          <div className={cn("h-full transition-all", barColor)} style={{ width: `${pct}%` }} />
         </div>
       </div>
       <div
         ref={setNodeRef}
-        className={`flex-1 p-2 min-h-[200px] transition-colors ${isOver ? "bg-primary/10" : ""}`}
+        className={cn(
+          "flex-1 p-2 min-h-[200px] transition-colors",
+          isOver && "bg-primary/10",
+        )}
       >
         {rapports.map((r) => (
           <RapportCard key={r.id} r={r} onUpdate={onUpdateStunden} onDelete={onDelete} />
         ))}
         {rapports.length === 0 && (
-          <div className="text-xs text-muted-foreground text-center py-6">Leer</div>
+          <div className="text-[11px] text-muted-foreground/50 text-center py-8 italic">
+            Keine Aufträge
+          </div>
         )}
       </div>
     </div>
