@@ -3,6 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Users, FileText, Wrench, Banknote } from "lucide-react";
 import { Link } from "react-router-dom";
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
+} from "recharts";
 
 interface Row {
   id: string;
@@ -83,6 +86,43 @@ export default function Statistiken() {
     return Array.from(map.values()).sort((a, b) => b.umsatz - a.umsatz || b.anzahl - a.anzahl);
   }, [rows]);
 
+  // Monats-Umsatz (letzte 12 Monate)
+  const monateUmsatz = useMemo(() => {
+    const map = new Map<string, number>();
+    const now = new Date();
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      map.set(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`, 0);
+    }
+    for (const r of rows) {
+      const key = r.geplantes_datum.slice(0, 7);
+      if (map.has(key)) map.set(key, (map.get(key) ?? 0) + (r.auftragswert_chf ?? 0));
+    }
+    return Array.from(map.entries()).map(([m, umsatz]) => {
+      const [y, mo] = m.split("-");
+      const label = new Date(Number(y), Number(mo) - 1, 1).toLocaleDateString("de-CH", { month: "short", year: "2-digit" });
+      return { monat: label, umsatz: Math.round(umsatz) };
+    });
+  }, [rows]);
+
+  // Mechaniker-Vergleich
+  const mechVergleich = useMemo(() => {
+    const map = new Map<string, { mechaniker: string; stunden: number; umsatz: number }>();
+    for (const r of rows) {
+      const m = r.mechaniker_zuweisung;
+      if (!m) continue;
+      const ex = map.get(m) ?? { mechaniker: m, stunden: 0, umsatz: 0 };
+      ex.stunden += r.arbeitszeit_stunden ?? 0;
+      ex.umsatz += r.auftragswert_chf ?? 0;
+      map.set(m, ex);
+    }
+    return Array.from(map.values()).map((x) => ({
+      ...x,
+      stunden: Math.round(x.stunden * 10) / 10,
+      umsatz: Math.round(x.umsatz),
+    }));
+  }, [rows]);
+
   if (loading) {
     return (
       <div className="p-6 flex items-center gap-2 text-muted-foreground">
@@ -103,6 +143,47 @@ export default function Statistiken() {
         <KpiCard icon={Banknote} label="Umsatz" value={chf(kpis.umsatz)} />
         <KpiCard icon={Wrench} label="Stunden" value={kpis.stunden.toLocaleString("de-CH", { maximumFractionDigits: 1 }) + " h"} />
         <KpiCard icon={Users} label="Kunden" value={kpis.kunden.toString()} />
+      </div>
+      <div className="grid lg:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader><CardTitle className="text-base">Monats-Umsatz (12 Monate)</CardTitle></CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={monateUmsatz}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="monat" stroke="hsl(var(--muted-foreground))" fontSize={11} />
+                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
+                <Tooltip
+                  contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 6, fontSize: 12 }}
+                  formatter={(v: number) => chf(v)}
+                />
+                <Bar dataKey="umsatz" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader><CardTitle className="text-base">Mechaniker-Vergleich</CardTitle></CardHeader>
+          <CardContent>
+            {mechVergleich.length === 0 ? (
+              <div className="py-12 text-center text-sm text-muted-foreground">Noch keine Daten.</div>
+            ) : (
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart data={mechVergleich}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="mechaniker" stroke="hsl(var(--muted-foreground))" fontSize={11} />
+                  <YAxis yAxisId="left" stroke="hsl(var(--muted-foreground))" fontSize={11} />
+                  <YAxis yAxisId="right" orientation="right" stroke="hsl(var(--muted-foreground))" fontSize={11} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
+                  <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 6, fontSize: 12 }} />
+                  <Legend wrapperStyle={{ fontSize: 12 }} />
+                  <Bar yAxisId="left" dataKey="stunden" name="Stunden" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                  <Bar yAxisId="right" dataKey="umsatz" name="Umsatz CHF" fill="hsl(var(--accent-foreground))" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       <Card>
@@ -125,25 +206,30 @@ export default function Statistiken() {
                   </tr>
                 </thead>
                 <tbody>
-                  {topKunden.slice(0, 50).map((k, i) => (
-                    <tr key={k.key} className="border-t border-border hover:bg-muted/30">
-                      <td className="px-4 py-2 text-muted-foreground font-mono text-xs">{i + 1}</td>
-                      <td className="px-4 py-2">
-                        <div className="font-medium">{k.kunde_name || "—"}</div>
-                        <div className="text-xs text-muted-foreground flex gap-2">
-                          {k.kundennummer && <span className="font-mono">#{k.kundennummer}</span>}
-                          {k.kunde_ort && <span>{k.kunde_ort}</span>}
-                        </div>
-                      </td>
-                      <td className="px-4 py-2 text-right font-mono">{k.anzahl}</td>
-                      <td className="px-4 py-2 text-right font-mono font-semibold">{chf(k.umsatz)}</td>
-                      <td className="px-4 py-2 text-right">
-                        <Link to={`/auftrag/${k.letzterAuftragId}`} className="text-primary hover:underline text-xs">
-                          {new Date(k.letztesDatum).toLocaleDateString("de-CH")}
-                        </Link>
-                      </td>
-                    </tr>
-                  ))}
+                  {topKunden.slice(0, 50).map((k, i) => {
+                    const slug = encodeURIComponent(k.kundennummer || k.kunde_name || k.key);
+                    return (
+                      <tr key={k.key} className="border-t border-border hover:bg-muted/30">
+                        <td className="px-4 py-2 text-muted-foreground font-mono text-xs">{i + 1}</td>
+                        <td className="px-4 py-2">
+                          <Link to={`/kunde/${slug}`} className="font-medium hover:text-primary hover:underline">
+                            {k.kunde_name || "—"}
+                          </Link>
+                          <div className="text-xs text-muted-foreground flex gap-2">
+                            {k.kundennummer && <span className="font-mono">#{k.kundennummer}</span>}
+                            {k.kunde_ort && <span>{k.kunde_ort}</span>}
+                          </div>
+                        </td>
+                        <td className="px-4 py-2 text-right font-mono">{k.anzahl}</td>
+                        <td className="px-4 py-2 text-right font-mono font-semibold">{chf(k.umsatz)}</td>
+                        <td className="px-4 py-2 text-right">
+                          <Link to={`/auftrag/${k.letzterAuftragId}`} className="text-primary hover:underline text-xs">
+                            {new Date(k.letztesDatum).toLocaleDateString("de-CH")}
+                          </Link>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
