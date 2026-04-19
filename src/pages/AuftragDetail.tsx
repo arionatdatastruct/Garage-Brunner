@@ -17,7 +17,6 @@ interface Rapport {
   pdf_url: string | null;
   geplantes_datum: string;
   kategorie: string | null;
-  km_stand: number | null;
   arbeit_beschreibung: string | null;
   arbeitszeit_stunden: number | null;
   mechaniker_zuweisung: "Roman" | "Pascal" | null;
@@ -25,6 +24,7 @@ interface Rapport {
   notizen: string | null;
   sicherheitscheck: Record<string, unknown> | null;
   // Snapshot Kunde
+  kundennummer: string | null;
   kunde_name: string | null;
   kunde_ort: string | null;
   kunde_strasse: string | null;
@@ -35,7 +35,6 @@ interface Rapport {
   kennzeichen: string | null;
   marke: string | null;
   modell: string | null;
-  jahrgang: string | null;
   chassis_nr: string | null;
 }
 

@@ -11,13 +11,13 @@ import { Check, Loader2 } from "lucide-react";
 interface Rapport {
   id: string;
   kategorie: string | null;
-  km_stand: number | null;
   arbeit_beschreibung: string | null;
   arbeitszeit_stunden: number | null;
   mechaniker_zuweisung: "Roman" | "Pascal" | null;
   auftragswert_chf: number | null;
   notizen: string | null;
   // Kunde-Snapshot
+  kundennummer: string | null;
   kunde_name: string | null;
   kunde_ort: string | null;
   kunde_strasse: string | null;
@@ -28,7 +28,6 @@ interface Rapport {
   kennzeichen: string | null;
   marke: string | null;
   modell: string | null;
-  jahrgang: string | null;
   chassis_nr: string | null;
 }
 
@@ -63,12 +62,12 @@ export function AuftragForm({ rapport, onSaved }: Props) {
           .from("arbeitsrapporte")
           .update({
             kategorie: r.kategorie,
-            km_stand: r.km_stand,
             arbeit_beschreibung: r.arbeit_beschreibung,
             arbeitszeit_stunden: r.arbeitszeit_stunden,
             mechaniker_zuweisung: r.mechaniker_zuweisung,
             auftragswert_chf: r.auftragswert_chf,
             notizen: r.notizen,
+            kundennummer: r.kundennummer,
             kunde_name: r.kunde_name,
             kunde_ort: r.kunde_ort,
             kunde_strasse: r.kunde_strasse,
@@ -78,7 +77,6 @@ export function AuftragForm({ rapport, onSaved }: Props) {
             kennzeichen: r.kennzeichen,
             marke: r.marke,
             modell: r.modell,
-            jahrgang: r.jahrgang,
             chassis_nr: r.chassis_nr,
           })
           .eq("id", r.id);
@@ -128,22 +126,13 @@ export function AuftragForm({ rapport, onSaved }: Props) {
           <SaveIndicator state={state} />
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>Kennzeichen</Label>
-              <Input
-                value={r.kennzeichen ?? ""}
-                onChange={(e) => upd({ kennzeichen: e.target.value })}
-                className="font-mono"
-              />
-            </div>
-            <div>
-              <Label>Jahrgang</Label>
-              <Input
-                value={r.jahrgang ?? ""}
-                onChange={(e) => upd({ jahrgang: e.target.value })}
-              />
-            </div>
+          <div>
+            <Label>Kennzeichen</Label>
+            <Input
+              value={r.kennzeichen ?? ""}
+              onChange={(e) => upd({ kennzeichen: e.target.value })}
+              className="font-mono"
+            />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -201,24 +190,14 @@ export function AuftragForm({ rapport, onSaved }: Props) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>KM-Stand</Label>
-              <Input
-                type="number"
-                value={r.km_stand ?? ""}
-                onChange={(e) => upd({ km_stand: num(e.target.value) })}
-              />
-            </div>
-            <div>
-              <Label>Arbeitszeit (h)</Label>
-              <Input
-                type="number"
-                step="0.25"
-                value={r.arbeitszeit_stunden ?? ""}
-                onChange={(e) => upd({ arbeitszeit_stunden: num(e.target.value) })}
-              />
-            </div>
+          <div>
+            <Label>Arbeitszeit (h)</Label>
+            <Input
+              type="number"
+              step="0.25"
+              value={r.arbeitszeit_stunden ?? ""}
+              onChange={(e) => upd({ arbeitszeit_stunden: num(e.target.value) })}
+            />
           </div>
 
           <div>
@@ -258,6 +237,14 @@ export function AuftragForm({ rapport, onSaved }: Props) {
           <SaveIndicator state={state} />
         </CardHeader>
         <CardContent className="space-y-3">
+          <div>
+            <Label>Kundennummer</Label>
+            <Input
+              value={r.kundennummer ?? ""}
+              onChange={(e) => upd({ kundennummer: e.target.value })}
+              className="font-mono"
+            />
+          </div>
           <div>
             <Label>Name</Label>
             <Input

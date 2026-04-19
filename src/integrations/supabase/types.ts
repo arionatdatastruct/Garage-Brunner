@@ -25,16 +25,15 @@ export type Database = {
           fotos: string[] | null
           geplantes_datum: string
           id: string
-          jahrgang: string | null
           kategorie: string | null
           kennzeichen: string | null
-          km_stand: number | null
           kunde_email: string | null
           kunde_name: string | null
           kunde_ort: string | null
           kunde_plz: string | null
           kunde_strasse: string | null
           kunde_telefon: string | null
+          kundennummer: string | null
           marke: string | null
           material_liste: Json | null
           mechaniker_zuweisung:
@@ -58,16 +57,15 @@ export type Database = {
           fotos?: string[] | null
           geplantes_datum?: string
           id?: string
-          jahrgang?: string | null
           kategorie?: string | null
           kennzeichen?: string | null
-          km_stand?: number | null
           kunde_email?: string | null
           kunde_name?: string | null
           kunde_ort?: string | null
           kunde_plz?: string | null
           kunde_strasse?: string | null
           kunde_telefon?: string | null
+          kundennummer?: string | null
           marke?: string | null
           material_liste?: Json | null
           mechaniker_zuweisung?:
@@ -91,16 +89,15 @@ export type Database = {
           fotos?: string[] | null
           geplantes_datum?: string
           id?: string
-          jahrgang?: string | null
           kategorie?: string | null
           kennzeichen?: string | null
-          km_stand?: number | null
           kunde_email?: string | null
           kunde_name?: string | null
           kunde_ort?: string | null
           kunde_plz?: string | null
           kunde_strasse?: string | null
           kunde_telefon?: string | null
+          kundennummer?: string | null
           marke?: string | null
           material_liste?: Json | null
           mechaniker_zuweisung?:

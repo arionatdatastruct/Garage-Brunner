@@ -8,7 +8,6 @@ interface Rapport {
   auftragsnummer: string | null;
   geplantes_datum: string;
   kategorie: string | null;
-  km_stand: number | null;
   arbeit_beschreibung: string | null;
   arbeitszeit_stunden: number | null;
   mechaniker_zuweisung: "Roman" | "Pascal" | null;
@@ -16,6 +15,7 @@ interface Rapport {
   notizen: string | null;
   sicherheitscheck: Record<string, unknown> | null;
   // Snapshot Kunde
+  kundennummer: string | null;
   kunde_name: string | null;
   kunde_ort: string | null;
   kunde_telefon: string | null;
@@ -85,6 +85,7 @@ export function RapportUebersicht({ rapport }: Props) {
         <div>
           <div className="text-xs text-muted-foreground mb-1">Kunde</div>
           <div className="font-medium">{rapport.kunde_name ?? "—"}</div>
+          {rapport.kundennummer && <div className="text-muted-foreground text-xs">Nr. {rapport.kundennummer}</div>}
           {rapport.kunde_ort && <div className="text-muted-foreground">{rapport.kunde_ort}</div>}
           {rapport.kunde_telefon && <div className="text-muted-foreground">{rapport.kunde_telefon}</div>}
         </div>
@@ -110,10 +111,6 @@ export function RapportUebersicht({ rapport }: Props) {
         <div>
           <div className="text-xs text-muted-foreground">Mechaniker</div>
           <div>{rapport.mechaniker_zuweisung ?? "—"}</div>
-        </div>
-        <div>
-          <div className="text-xs text-muted-foreground">KM-Stand</div>
-          <div>{rapport.km_stand?.toLocaleString("de-CH") ?? "—"}</div>
         </div>
         <div>
           <div className="text-xs text-muted-foreground">Arbeitszeit</div>

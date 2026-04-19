@@ -6,7 +6,7 @@ export interface Fahrzeug {
   kennzeichen: string;
   marke: string | null;
   modell: string | null;
-  jahrgang: string | null;
+  kundennummer: string | null;
   kunde_name: string | null;
   kunde_ort: string | null;
   kunde_telefon: string | null;
@@ -17,7 +17,6 @@ export interface HistorieItem {
   id: string;
   geplantes_datum: string;
   kategorie: string | null;
-  km_stand: number | null;
   material_liste: any;
   arbeit_beschreibung: string | null;
 }
@@ -37,7 +36,7 @@ export function useFahrzeugSuche() {
       // Suche flach in arbeitsrapporte; jüngsten Eintrag pro Kennzeichen behalten
       const { data } = await (supabase as any)
         .from('arbeitsrapporte')
-        .select('id, kennzeichen, marke, modell, jahrgang, kunde_name, kunde_ort, kunde_telefon, kunde_email, created_at')
+        .select('id, kennzeichen, marke, modell, kundennummer, kunde_name, kunde_ort, kunde_telefon, kunde_email, created_at')
         .ilike('kennzeichen', `%${query}%`)
         .not('kennzeichen', 'is', null)
         .order('created_at', { ascending: false })
@@ -54,7 +53,7 @@ export function useFahrzeugSuche() {
           kennzeichen: d.kennzeichen,
           marke: d.marke,
           modell: d.modell,
-          jahrgang: d.jahrgang,
+          kundennummer: d.kundennummer,
           kunde_name: d.kunde_name,
           kunde_ort: d.kunde_ort,
           kunde_telefon: d.kunde_telefon,
@@ -71,7 +70,7 @@ export function useFahrzeugSuche() {
     setHistorieLoading(true);
     const { data } = await (supabase as any)
       .from('arbeitsrapporte')
-      .select('id, geplantes_datum, kategorie, km_stand, material_liste, arbeit_beschreibung')
+      .select('id, geplantes_datum, kategorie, material_liste, arbeit_beschreibung')
       .eq('kennzeichen', kennzeichen)
       .order('geplantes_datum', { ascending: false })
       .limit(5);
