@@ -59,6 +59,7 @@ export default function AuftragDetail() {
   const [rapport, setRapport] = useState<Rapport | null>(null);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
+  const isMobile = useIsMobile();
 
   const handleDelete = async () => {
     if (!id) return;
