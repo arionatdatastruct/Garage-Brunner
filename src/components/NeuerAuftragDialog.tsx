@@ -148,7 +148,8 @@ export function NeuerAuftragDialog({ open, onOpenChange, onCreated, defaultDate 
                     onSelect={(d) => d && setDatum(format(d, "yyyy-MM-dd"))}
                     disabled={(date) => {
                       const day = getDay(date);
-                      return day === 0 || day === 6;
+                      if (day === 0 || day === 6) return true;
+                      return isBefore(date, startOfDay(new Date()));
                     }}
                     weekStartsOn={1}
                     locale={de}
