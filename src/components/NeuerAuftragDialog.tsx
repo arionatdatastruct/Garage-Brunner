@@ -24,7 +24,7 @@ interface Props {
 
 export function NeuerAuftragDialog({ open, onOpenChange, onCreated, defaultDate }: Props) {
   const [pdfFile, setPdfFile] = useState<File | null>(null);
-  const [datum, setDatum] = useState(defaultDate ?? new Date().toISOString().slice(0, 10));
+  const [datum, setDatum] = useState(defaultDate ?? format(naechsterWerktag(), "yyyy-MM-dd"));
   const [stunden, setStunden] = useState<string>("1");
   const [mechaniker, setMechaniker] = useState<"Roman" | "Pascal" | "">("");
   const [busy, setBusy] = useState(false);
