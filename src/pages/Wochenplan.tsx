@@ -16,6 +16,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Plus, ChevronLeft, ChevronRight, Trash2, ArrowRight } from "lucide-react";
 import { NeuerAuftragDialog } from "@/components/NeuerAuftragDialog";
+import { NeuerAuftragSheet } from "@/components/NeuerAuftragSheet";
+import { MobileWochenplan } from "@/components/MobileWochenplan";
+import { RapportActionSheet } from "@/components/RapportActionSheet";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { kapazitaetFuer, auslastungsFarbe } from "@/lib/arbeitszeiten";
@@ -320,6 +324,8 @@ export default function Wochenplan() {
   const [nextOtherDate, setNextOtherDate] = useState<string | null>(null);
   const [nextOthers, setNextOthers] = useState<Array<{ id: string; geplantes_datum: string; kennzeichen: string | null; rapport_nummer: string | null }>>([]);
   const [overdue, setOverdue] = useState<Array<{ id: string; geplantes_datum: string; kennzeichen: string | null; rapport_nummer: string | null }>>([]);
+  const [actionRapport, setActionRapport] = useState<Rapport | null>(null);
+  const isMobile = useIsMobile();
 
   const days = Array.from({ length: 5 }, (_, i) => addDays(weekStart, i));
 
@@ -646,43 +652,19 @@ export default function Wochenplan() {
         </Popover>
       )}
 
+      {/* Mobile: Vertikale Tagesliste (Agenda) — kein D&D */}
+      <div className="md:hidden">
+        <MobileWochenplan
+          days={days}
+          rapports={rapports}
+          onAdd={(d) => openDialog(d)}
+          onAction={(r) => setActionRapport(r)}
+          highlightId={highlightId}
+        />
+      </div>
+
+      {/* Desktop: Grid mit Drag&Drop */}
       <DndContext sensors={sensors} onDragEnd={onDragEnd}>
-        {/* Mobile: Snap-Karussell, eine Spalte pro Screen */}
-        <div
-          className="md:hidden flex gap-3 overflow-x-auto snap-x snap-mandatory pb-4 -mx-3 px-3 scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          style={{ scrollPaddingInline: "0.75rem" }}
-        >
-          {days.map((d) => {
-            const key = format(d, "yyyy-MM-dd");
-            const dayRapports = rapports.filter((r) => r.geplantes_datum === key);
-            return (
-              <div
-                key={key}
-                className="snap-center shrink-0 w-[calc(100vw-1.5rem)] bg-muted/30 rounded-lg flex flex-col"
-              >
-                <DayColumn date={d} rapports={dayRapports} onAdd={() => openDialog(d)} onUpdateStunden={updateStunden} onDelete={setToDelete} highlightId={highlightId} />
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Mobile: Pagination Dots */}
-        <div className="md:hidden flex justify-center gap-1.5 -mt-2 mb-2">
-          {days.map((d) => {
-            const isToday = isSameDay(d, new Date());
-            return (
-              <span
-                key={format(d, "yyyy-MM-dd")}
-                className={cn(
-                  "h-1.5 w-1.5 rounded-full",
-                  isToday ? "bg-primary" : "bg-muted-foreground/30"
-                )}
-              />
-            );
-          })}
-        </div>
-
-        {/* Desktop: Grid */}
         <div className="hidden md:grid md:grid-cols-5 gap-3">
           {days.map((d) => {
             const key = format(d, "yyyy-MM-dd");
@@ -696,12 +678,30 @@ export default function Wochenplan() {
         </div>
       </DndContext>
 
-      <NeuerAuftragDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        onCreated={handleCreated}
-        defaultDate={dialogDate}
+      {/* Mobile: Action-Sheet für Karten-Aktionen */}
+      <RapportActionSheet
+        rapport={actionRapport}
+        onOpenChange={(o) => !o && setActionRapport(null)}
+        onChanged={() => { load(); setActionRapport(null); }}
+        onDelete={(r) => { setToDelete(r); setActionRapport(null); }}
       />
+
+      {/* Neuer-Auftrag — Sheet auf Mobile, Dialog auf Desktop */}
+      {isMobile ? (
+        <NeuerAuftragSheet
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          onCreated={handleCreated}
+          defaultDate={dialogDate}
+        />
+      ) : (
+        <NeuerAuftragDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          onCreated={handleCreated}
+          defaultDate={dialogDate}
+        />
+      )}
 
       <AlertDialog open={!!toDelete} onOpenChange={(o) => !o && !deleting && setToDelete(null)}>
         <AlertDialogContent>

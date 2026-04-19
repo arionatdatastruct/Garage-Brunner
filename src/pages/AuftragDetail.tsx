@@ -7,6 +7,8 @@ import { AuftragForm } from "@/components/AuftragForm";
 import { SicherheitsCheck } from "@/components/SicherheitsCheck";
 import { RapportUebersicht } from "@/components/RapportUebersicht";
 import { BelegPreview } from "@/components/BelegPreview";
+import { AuftragDetailMobile } from "@/components/AuftragDetailMobile";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -57,6 +59,7 @@ export default function AuftragDetail() {
   const [rapport, setRapport] = useState<Rapport | null>(null);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
+  const isMobile = useIsMobile();
 
   const handleDelete = async () => {
     if (!id) return;
@@ -152,6 +155,18 @@ export default function AuftragDetail() {
     </div>
   );
 
+  // Mobile: komplett eigene Ansicht
+  if (isMobile) {
+    return (
+      <AuftragDetailMobile
+        rapport={rapport}
+        onChanged={load}
+        onDelete={handleDelete}
+        deleting={deleting}
+      />
+    );
+  }
+
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-4">
       {/* Header */}
@@ -207,7 +222,7 @@ export default function AuftragDetail() {
         </div>
       </div>
 
-      {/* Desktop: Split-View — PDF grösser (60%), Form rechts (40%) */}
+      {/* Desktop: Split-View */}
       <div className="hidden md:grid md:grid-cols-5 md:gap-4 md:h-[calc(100vh-8rem)]">
         <div className="md:col-span-3 overflow-hidden">
           <PdfPane />
@@ -220,27 +235,6 @@ export default function AuftragDetail() {
             onSaved={load}
           />
         </div>
-      </div>
-
-      {/* Mobile: Tabs */}
-      <div className="md:hidden">
-        <Tabs defaultValue="daten">
-          <TabsList className="sticky top-[5.25rem] z-20 grid grid-cols-2 w-full bg-card/95 backdrop-blur border border-border h-11">
-            <TabsTrigger value="daten" className="text-sm">Daten</TabsTrigger>
-            <TabsTrigger value="beleg" className="text-sm">Beleg</TabsTrigger>
-          </TabsList>
-          <TabsContent value="daten" className="mt-3 space-y-4">
-            <AuftragForm rapport={rapport} onSaved={load} />
-            <SicherheitsCheck
-              rapportId={rapport.id}
-              initial={rapport.sicherheitscheck}
-              onSaved={load}
-            />
-          </TabsContent>
-          <TabsContent value="beleg" className="mt-3 min-h-[85vh]">
-            <PdfPane />
-          </TabsContent>
-        </Tabs>
       </div>
     </div>
   );

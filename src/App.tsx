@@ -16,7 +16,7 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Toaster />
+      <Toaster position="top-center" mobileOffset={{ bottom: "5rem" }} />
       <AuthGate>
         <BrowserRouter>
           <Routes>
