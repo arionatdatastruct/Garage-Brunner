@@ -343,7 +343,7 @@ export default function Wochenplan() {
 
   useEffect(() => { load(); }, [load]);
 
-  // Aufträge in anderen (nicht angezeigten) Wochen zählen — für Hinweis-Banner
+  // Aufträge in anderen (nicht angezeigten) Wochen + überfällige geplante Aufträge
   useEffect(() => {
     const from = format(weekStart, "yyyy-MM-dd");
     const to = format(addDays(weekStart, 4), "yyyy-MM-dd");
@@ -360,6 +360,15 @@ export default function Wochenplan() {
       setOtherWeeksCount(list.length);
       setNextOtherDate(list[0]?.geplantes_datum ?? null);
       setNextOthers(list.slice(0, 3));
+
+      // Überfällige: Status 'geplant' und Datum < heute
+      const { data: od } = await (supabase as any)
+        .from("arbeitsrapporte")
+        .select("id, geplantes_datum, kennzeichen, rapport_nummer")
+        .eq("status", "geplant")
+        .lt("geplantes_datum", today)
+        .order("geplantes_datum", { ascending: true });
+      setOverdue((od ?? []) as Array<{ id: string; geplantes_datum: string; kennzeichen: string | null; rapport_nummer: string | null }>);
     })();
   }, [weekStart, rapports]);
 
