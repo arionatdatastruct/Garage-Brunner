@@ -335,6 +335,11 @@ export default function Wochenplan() {
     try { localStorage.setItem("wp.mechFilter", mechFilter); } catch {}
   }, [mechFilter]);
 
+  // Mobile: "Offen" ist nicht verfügbar → auf "alle" zurücksetzen
+  useEffect(() => {
+    if (isMobile && mechFilter === "offen") setMechFilter("alle");
+  }, [isMobile, mechFilter]);
+
   const days = Array.from({ length: 5 }, (_, i) => addDays(weekStart, i));
   const visibleRapports =
     mechFilter === "alle"
