@@ -210,15 +210,15 @@ export function MobileWochenplan({ days, rapports, onAdd, onAction, highlightId 
           <section
             key={key}
             className={cn(
-              "rounded-xl border bg-card overflow-hidden",
+              "rounded-xl border bg-card",
               isToday ? "border-primary/40" : "border-border"
             )}
           >
-            {/* Sticky Day-Header */}
+            {/* Day-Header (nicht sticky, da overflow-hidden parent sticky bricht) */}
             <header
               className={cn(
-                "sticky top-[5.5rem] z-10 flex items-center justify-between gap-3 px-3 py-2.5 border-b backdrop-blur",
-                isToday ? "bg-primary/10 border-primary/30" : "bg-card/95 border-border"
+                "flex items-center justify-between gap-3 px-3 py-2.5 border-b rounded-t-xl",
+                isToday ? "bg-primary/10 border-primary/30" : "bg-muted/30 border-border"
               )}
             >
               <div className="flex items-baseline gap-2 min-w-0">
@@ -264,6 +264,7 @@ export function MobileWochenplan({ days, rapports, onAdd, onAction, highlightId 
             <div className="h-1 bg-muted overflow-hidden">
               <div className={cn("h-full transition-all", barColor)} style={{ width: `${pct}%` }} />
             </div>
+
 
             {/* Aufträge */}
             <div className="p-2 space-y-2">
