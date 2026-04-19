@@ -31,6 +31,8 @@ interface Rapport {
   arbeitszeit_stunden: number | null;
   kennzeichen: string | null;
   marke: string | null;
+  kundennummer: string | null;
+  kunde_name: string | null;
 }
 
 const MECH_COLOR: Record<string, string> = {
@@ -102,6 +104,12 @@ function RapportCard({ r, onUpdate }: { r: Rapport; onUpdate: (id: string, h: nu
       <div className="text-xs text-muted-foreground truncate">
         {r.marke ?? "Kein Fahrzeug"}
       </div>
+      {(r.kunde_name || r.kundennummer) && (
+        <div className="text-[10px] text-muted-foreground truncate mt-0.5">
+          {r.kundennummer && <span className="font-mono mr-1">#{r.kundennummer}</span>}
+          {r.kunde_name}
+        </div>
+      )}
       <div className="flex items-center justify-between mt-2 gap-2">
         <span className="text-[10px] text-muted-foreground font-mono">
           {r.auftragsnummer ?? r.rapport_nummer}
@@ -231,7 +239,7 @@ export default function Wochenplan() {
     const to = format(addDays(weekStart, 4), "yyyy-MM-dd");
     const { data, error } = await (supabase as any)
       .from("arbeitsrapporte")
-      .select("id, rapport_nummer, auftragsnummer, geplantes_datum, status, mechaniker_zuweisung, arbeitszeit_stunden, kennzeichen, marke")
+      .select("id, rapport_nummer, auftragsnummer, geplantes_datum, status, mechaniker_zuweisung, arbeitszeit_stunden, kennzeichen, marke, kundennummer, kunde_name")
       .in("status", ["geplant", "in_arbeit"])
       .gte("geplantes_datum", from)
       .lte("geplantes_datum", to)
