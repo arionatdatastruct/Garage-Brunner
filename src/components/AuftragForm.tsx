@@ -127,9 +127,21 @@ export function AuftragForm({ rapport, onSaved }: Props) {
     dirty.current = false;
   }, [rapport]);
 
+  // Validierungsfehler (live, sichtbar — blockiert auch Auto-Save)
+  const errors = {
+    plz: validators.plz(r.kunde_plz),
+    email: validators.email(r.kunde_email),
+    telefon: validators.telefon(r.kunde_telefon),
+  };
+  const hasErrors = Object.values(errors).some(Boolean);
+
   useEffect(() => {
     if (!dirty.current) return;
     if (timer.current) clearTimeout(timer.current);
+    if (hasErrors) {
+      setState("idle");
+      return;
+    }
     setState("saving");
     timer.current = setTimeout(async () => {
       try {
@@ -168,7 +180,7 @@ export function AuftragForm({ rapport, onSaved }: Props) {
       if (timer.current) clearTimeout(timer.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [r]);
+  }, [r, hasErrors]);
 
   const upd = (patch: Partial<Rapport>) => {
     dirty.current = true;
