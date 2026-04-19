@@ -324,6 +324,37 @@ export default function Wochenplan() {
     setRapports((prev) => prev.map((r) => (r.id === id ? { ...r, arbeitszeit_stunden: h } : r)));
   };
 
+  const [toDelete, setToDelete] = useState<Rapport | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const confirmDelete = async () => {
+    if (!toDelete) return;
+    setDeleting(true);
+    try {
+      for (const bucket of ["belege", "fotos"] as const) {
+        const { data: files } = await supabase.storage.from(bucket).list(toDelete.id);
+        if (files && files.length > 0) {
+          await supabase.storage
+            .from(bucket)
+            .remove(files.map((f) => `${toDelete.id}/${f.name}`));
+        }
+      }
+      const { error } = await (supabase as any)
+        .from("arbeitsrapporte")
+        .delete()
+        .eq("id", toDelete.id);
+      if (error) throw error;
+      setRapports((prev) => prev.filter((r) => r.id !== toDelete.id));
+      toast.success("Auftrag gelöscht");
+      setToDelete(null);
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e.message ?? "Fehler beim Löschen");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   // Wochen-Gesamtauslastung
   const weekTotalH = days.reduce((sum, d) => {
     const key = format(d, "yyyy-MM-dd");
