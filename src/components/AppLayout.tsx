@@ -10,6 +10,12 @@ const navItems = [
   { to: "/statistiken", label: "Statistiken", icon: BarChart3 },
 ];
 
+// Mobile zeigt nur die Tagesübersicht — keine Statistiken, keine Suche
+const mobileNavItems = [
+  { to: "/", label: "Wochenplan", icon: Calendar },
+  { to: "/archiv", label: "Archiv", icon: Archive },
+];
+
 export function AppLayout() {
   const location = useLocation();
   const [pageTitle, setPageTitle] = useState("Werkstatt");
@@ -66,7 +72,7 @@ export function AppLayout() {
       </aside>
 
       {/* Mobile Top Bar */}
-      <header className="md:hidden sticky top-0 z-30 bg-card/95 backdrop-blur border-b border-border px-3 py-2 flex flex-col gap-2">
+      <header className="md:hidden sticky top-0 z-30 bg-card/95 backdrop-blur border-b border-border px-3 py-2">
         <div className="flex items-center justify-between h-9 gap-2">
           <img
             src={logo}
@@ -76,7 +82,6 @@ export function AppLayout() {
           />
           <span className="text-xs text-muted-foreground truncate">{pageTitle}</span>
         </div>
-        <GlobalSearch />
       </header>
 
       {/* Main */}
@@ -90,7 +95,7 @@ export function AppLayout() {
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
         aria-label="Hauptnavigation"
       >
-        {navItems.map(({ to, label, icon: Icon }) => (
+        {mobileNavItems.map(({ to, label, icon: Icon }) => (
           <NavLink
             key={to}
             to={to}

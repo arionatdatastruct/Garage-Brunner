@@ -536,7 +536,7 @@ export default function Wochenplan() {
         </div>
       </header>
 
-      <div className="mb-4 rounded-lg border border-border bg-card p-4 shadow-sm">
+      <div className="hidden md:block mb-4 rounded-lg border border-border bg-card p-4 shadow-sm">
         <div className="flex items-end justify-between gap-4 flex-wrap">
           <div>
             <div className="text-xs text-muted-foreground uppercase tracking-wider">Wochen-Auslastung</div>
