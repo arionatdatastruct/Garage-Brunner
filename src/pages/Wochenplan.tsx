@@ -234,43 +234,66 @@ function DayColumn({
 
   return (
     <div className="w-full flex-1 flex flex-col">
-      <div className={`px-3 py-2 border-b border-border ${isToday ? "bg-primary/5" : ""}`}>
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="text-xs text-muted-foreground uppercase tracking-wider">
-              {format(date, "EEE", { locale: de })}
+      <div className={cn(
+        "px-3 py-2.5 border-b border-border/60",
+        isToday && "bg-primary/5",
+      )}>
+        <div className="flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <div className={cn(
+              "text-[10px] uppercase tracking-[0.12em] font-medium",
+              isToday ? "text-primary" : "text-muted-foreground",
+            )}>
+              {format(date, "EEEE", { locale: de })}
             </div>
-            <div className={`text-lg font-semibold ${isToday ? "text-primary" : ""}`}>
+            <div className={cn(
+              "text-xl font-bold tracking-tight leading-none mt-1",
+              isToday && "text-primary",
+            )}>
               {format(date, "d. MMM", { locale: de })}
             </div>
           </div>
-          <Button size="icon" variant="ghost" onClick={onAdd} className="h-7 w-7">
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={onAdd}
+            className="h-7 w-7 shrink-0 opacity-60 hover:opacity-100"
+            title="Auftrag hinzufügen"
+          >
             <Plus className="h-4 w-4" />
           </Button>
         </div>
-        <div className="mt-1.5 space-y-1">
-          <div className="flex items-center justify-between text-[10px]">
-            <span className="text-muted-foreground">
-              {rapports.length} {rapports.length === 1 ? "Auftrag" : "Aufträge"}
-            </span>
-            <span className="font-mono font-medium">
-              {totalH.toLocaleString("de-CH", { maximumFractionDigits: 2 })}/{kap}h
-            </span>
-          </div>
-          <div className="h-1 rounded-full bg-muted overflow-hidden">
-            <div className={cn("h-full transition-all", barColor)} style={{ width: `${pct}%` }} />
-          </div>
+        <div className="mt-2 flex items-center justify-between gap-2">
+          <span className="text-[11px] text-muted-foreground">
+            {rapports.length === 0 ? "—" : `${rapports.length} ${rapports.length === 1 ? "Auftrag" : "Aufträge"}`}
+          </span>
+          <span className={cn(
+            "text-[11px] font-mono font-semibold tabular-nums px-1.5 py-0.5 rounded",
+            color === "over" && "text-red-500 bg-red-500/10",
+            color === "warn" && "text-amber-500 bg-amber-500/10",
+            color === "ok" && "text-emerald-500 bg-emerald-500/10",
+          )}>
+            {totalH.toLocaleString("de-CH", { maximumFractionDigits: 1 })}/{kap}h
+          </span>
+        </div>
+        <div className="h-0.5 mt-1.5 rounded-full bg-muted overflow-hidden">
+          <div className={cn("h-full transition-all", barColor)} style={{ width: `${pct}%` }} />
         </div>
       </div>
       <div
         ref={setNodeRef}
-        className={`flex-1 p-2 min-h-[200px] transition-colors ${isOver ? "bg-primary/10" : ""}`}
+        className={cn(
+          "flex-1 p-2 min-h-[200px] transition-colors",
+          isOver && "bg-primary/10",
+        )}
       >
         {rapports.map((r) => (
           <RapportCard key={r.id} r={r} onUpdate={onUpdateStunden} onDelete={onDelete} />
         ))}
         {rapports.length === 0 && (
-          <div className="text-xs text-muted-foreground text-center py-6">Leer</div>
+          <div className="text-[11px] text-muted-foreground/50 text-center py-8 italic">
+            Keine Aufträge
+          </div>
         )}
       </div>
     </div>
