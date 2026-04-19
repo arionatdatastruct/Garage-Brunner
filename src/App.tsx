@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { AuthGate } from "@/components/AuthGate";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Wochenplan from "./pages/Wochenplan";
 import Archiv from "./pages/Archiv";
 import Statistiken from "./pages/Statistiken";
@@ -15,26 +16,28 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster position="top-center" mobileOffset={{ bottom: "5rem" }} />
-      <AuthGate>
-        <BrowserRouter>
-          <Routes>
-          <Route element={<AppLayout />}>
-            <Route path="/" element={<Wochenplan />} />
-            <Route path="/archiv" element={<Archiv />} />
-            <Route path="/statistiken" element={<Statistiken />} />
-            <Route path="/auftrag/:id" element={<AuftragDetail />} />
-            <Route path="/kunde/:nummer" element={<KundeDetail />} />
-            <Route path="/fahrzeug/:kennzeichen" element={<FahrzeugDetail />} />
-          </Route>
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </AuthGate>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster position="top-center" mobileOffset={{ bottom: "5rem" }} />
+        <AuthGate>
+          <BrowserRouter>
+            <Routes>
+              <Route element={<AppLayout />}>
+                <Route path="/" element={<Wochenplan />} />
+                <Route path="/archiv" element={<Archiv />} />
+                <Route path="/statistiken" element={<Statistiken />} />
+                <Route path="/auftrag/:id" element={<AuftragDetail />} />
+                <Route path="/kunde/:nummer" element={<KundeDetail />} />
+                <Route path="/fahrzeug/:kennzeichen" element={<FahrzeugDetail />} />
+              </Route>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </AuthGate>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;
