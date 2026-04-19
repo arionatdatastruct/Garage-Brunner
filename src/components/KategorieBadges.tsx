@@ -18,9 +18,9 @@ export const KategorieBadges = forwardRef<HTMLDivElement, Props>(
     const ids = parseKategorien(value);
     if (ids.length === 0) {
       return (
-        <span ref={ref as React.Ref<HTMLSpanElement> as never} className="text-muted-foreground">
+        <div ref={ref} className={cn("text-muted-foreground", className)}>
           —
-        </span>
+        </div>
       );
     }
 
