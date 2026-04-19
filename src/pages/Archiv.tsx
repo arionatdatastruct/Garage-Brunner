@@ -83,6 +83,80 @@ export default function Archiv() {
     load();
   };
 
+  const [exporting, setExporting] = useState<null | "csv" | "zip">(null);
+
+  const exportCsv = () => {
+    const header = ["Datum", "Rapport-Nr", "Auftragsnr", "Status", "Kennzeichen", "Marke", "Modell", "Kundennr", "Kunde", "Ort", "Mechaniker", "Stunden", "CHF"];
+    const rowsCsv = filtered.map((r) => [
+      r.geplantes_datum,
+      r.rapport_nummer ?? "",
+      r.auftragsnummer ?? "",
+      r.status,
+      r.kennzeichen ?? "",
+      r.marke ?? "",
+      r.modell ?? "",
+      r.kundennummer ?? "",
+      r.kunde_name ?? "",
+      r.kunde_ort ?? "",
+      r.mechaniker_zuweisung ?? "",
+      r.arbeitszeit_stunden ?? "",
+      r.auftragswert_chf ?? "",
+    ]);
+    const escape = (v: any) => {
+      const s = String(v ?? "");
+      return /[",;\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const csv = [header, ...rowsCsv].map((row) => row.map(escape).join(";")).join("\n");
+    // BOM für Excel UTF-8
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `archiv_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportZip = async () => {
+    const withPdf = filtered.filter((r) => r.pdf_url);
+    if (withPdf.length === 0) {
+      toast.error("Keine PDFs in der Auswahl");
+      return;
+    }
+    setExporting("zip");
+    try {
+      const zip = new JSZip();
+      let ok = 0;
+      await Promise.all(
+        withPdf.map(async (r) => {
+          try {
+            const res = await fetch(r.pdf_url!);
+            if (!res.ok) return;
+            const buf = await res.arrayBuffer();
+            const safe = (s: string) => s.replace(/[^a-z0-9-_]+/gi, "_");
+            const name = `${r.geplantes_datum}_${safe(r.kennzeichen ?? "")}_${safe(r.auftragsnummer ?? r.rapport_nummer ?? r.id.slice(0, 8))}.pdf`;
+            zip.file(name, buf);
+            ok++;
+          } catch { /* skip */ }
+        })
+      );
+      if (ok === 0) {
+        toast.error("Keine PDFs konnten geladen werden");
+        return;
+      }
+      const blob = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `archiv_pdfs_${new Date().toISOString().slice(0, 10)}.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success(`${ok} PDFs exportiert`);
+    } finally {
+      setExporting(null);
+    }
+  };
+
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-4">
       <div className="flex items-start justify-between flex-wrap gap-3">
@@ -96,6 +170,15 @@ export default function Archiv() {
               CHF {totalUmsatz.toLocaleString("de-CH", { minimumFractionDigits: 2 })}
             </span>
           </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={exportCsv} disabled={filtered.length === 0}>
+            <Download className="h-4 w-4 mr-1" /> CSV
+          </Button>
+          <Button variant="outline" size="sm" onClick={exportZip} disabled={filtered.length === 0 || exporting === "zip"}>
+            {exporting === "zip" ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <FileArchive className="h-4 w-4 mr-1" />}
+            PDFs (ZIP)
+          </Button>
         </div>
       </div>
 
