@@ -105,76 +105,88 @@ function RapportCard({ r, onUpdate, onDelete }: { r: Rapport; onUpdate: (id: str
   };
 
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      {...attributes}
-      {...listeners}
-      onClick={() => !isDragging && !editing && navigate(`/auftrag/${r.id}`)}
-      className="bg-card border border-border rounded-md p-3 mb-2 cursor-grab active:cursor-grabbing shadow-sm hover:shadow-md transition touch-none"
-    >
-      <div className="flex items-start justify-between gap-2 mb-1">
-        <span className="font-mono font-semibold text-sm">
-          {r.kennzeichen ?? "—"}
-        </span>
-        <span className={`h-2 w-2 rounded-full mt-1.5 ${STATUS_DOT[r.status] ?? "bg-muted-foreground"}`} />
-      </div>
-      <div className="text-xs text-muted-foreground truncate">
-        {r.marke ?? "Kein Fahrzeug"}
-      </div>
-      {(r.kunde_name || r.kundennummer) && (
-        <div className="text-[10px] text-muted-foreground truncate mt-0.5">
-          {r.kundennummer && <span className="font-mono mr-1">#{r.kundennummer}</span>}
-          {r.kunde_name}
-        </div>
-      )}
-      {r.kategorie && (
-        <div className="mt-1.5">
-          <KategorieBadges value={r.kategorie} size="xs" />
-        </div>
-      )}
-      <div className="flex items-center justify-between mt-2 gap-2">
-        <span className="text-[10px] text-muted-foreground font-mono">
-          {r.auftragsnummer ?? r.rapport_nummer}
-        </span>
-        <div className="flex items-center gap-1.5" onPointerDown={(e) => editing && e.stopPropagation()}>
-          {editing ? (
-            <input
-              type="number"
-              step="0.25"
-              min="0"
-              autoFocus
-              value={val}
-              onChange={(e) => setVal(e.target.value)}
-              onBlur={commit}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") commit();
-                if (e.key === "Escape") setEditing(false);
-              }}
-              onClick={(e) => e.stopPropagation()}
-              className="w-12 h-5 text-[10px] font-mono px-1 rounded border border-primary bg-background focus:outline-none"
-            />
-          ) : (
-            <button
-              type="button"
-              onClick={startEdit}
-              onPointerDown={(e) => e.stopPropagation()}
-              className="text-[10px] font-mono text-muted-foreground hover:text-foreground hover:bg-muted px-1.5 py-0.5 rounded transition"
-              title="Stunden bearbeiten"
-            >
-              {r.arbeitszeit_stunden != null && r.arbeitszeit_stunden > 0
-                ? `${r.arbeitszeit_stunden.toLocaleString("de-CH", { maximumFractionDigits: 2 })}h`
-                : "+ h"}
-            </button>
-          )}
-          {r.mechaniker_zuweisung && (
-            <span className={`text-[10px] px-1.5 py-0.5 rounded border ${MECH_COLOR[r.mechaniker_zuweisung] ?? ""}`}>
-              {r.mechaniker_zuweisung}
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        <div
+          ref={setNodeRef}
+          style={style}
+          {...attributes}
+          {...listeners}
+          onClick={() => !isDragging && !editing && navigate(`/auftrag/${r.id}`)}
+          className="bg-card border border-border rounded-md p-3 mb-2 cursor-grab active:cursor-grabbing shadow-sm hover:shadow-md transition touch-none"
+        >
+          <div className="flex items-start justify-between gap-2 mb-1">
+            <span className="font-mono font-semibold text-sm">
+              {r.kennzeichen ?? "—"}
             </span>
+            <span className={`h-2 w-2 rounded-full mt-1.5 ${STATUS_DOT[r.status] ?? "bg-muted-foreground"}`} />
+          </div>
+          <div className="text-xs text-muted-foreground truncate">
+            {r.marke ?? "Kein Fahrzeug"}
+          </div>
+          {(r.kunde_name || r.kundennummer) && (
+            <div className="text-[10px] text-muted-foreground truncate mt-0.5">
+              {r.kundennummer && <span className="font-mono mr-1">#{r.kundennummer}</span>}
+              {r.kunde_name}
+            </div>
           )}
+          {r.kategorie && (
+            <div className="mt-1.5">
+              <KategorieBadges value={r.kategorie} size="xs" />
+            </div>
+          )}
+          <div className="flex items-center justify-between mt-2 gap-2">
+            <span className="text-[10px] text-muted-foreground font-mono">
+              {r.auftragsnummer ?? r.rapport_nummer}
+            </span>
+            <div className="flex items-center gap-1.5" onPointerDown={(e) => editing && e.stopPropagation()}>
+              {editing ? (
+                <input
+                  type="number"
+                  step="0.25"
+                  min="0"
+                  autoFocus
+                  value={val}
+                  onChange={(e) => setVal(e.target.value)}
+                  onBlur={commit}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") commit();
+                    if (e.key === "Escape") setEditing(false);
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="w-12 h-5 text-[10px] font-mono px-1 rounded border border-primary bg-background focus:outline-none"
+                />
+              ) : (
+                <button
+                  type="button"
+                  onClick={startEdit}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  className="text-[10px] font-mono text-muted-foreground hover:text-foreground hover:bg-muted px-1.5 py-0.5 rounded transition"
+                  title="Stunden bearbeiten"
+                >
+                  {r.arbeitszeit_stunden != null && r.arbeitszeit_stunden > 0
+                    ? `${r.arbeitszeit_stunden.toLocaleString("de-CH", { maximumFractionDigits: 2 })}h`
+                    : "+ h"}
+                </button>
+              )}
+              {r.mechaniker_zuweisung && (
+                <span className={`text-[10px] px-1.5 py-0.5 rounded border ${MECH_COLOR[r.mechaniker_zuweisung] ?? ""}`}>
+                  {r.mechaniker_zuweisung}
+                </span>
+              )}
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
+      </ContextMenuTrigger>
+      <ContextMenuContent>
+        <ContextMenuItem
+          onSelect={() => onDelete(r)}
+          className="text-destructive focus:text-destructive"
+        >
+          <Trash2 className="h-4 w-4 mr-2" /> Auftrag löschen
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
   );
 }
 
