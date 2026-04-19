@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 
 interface Rapport {
   id: string;
+  updated_at?: string;
   kategorie: string | null;
   arbeit_beschreibung: string | null;
   arbeitszeit_stunden: number | null;
@@ -121,9 +122,12 @@ export function AuftragForm({ rapport, onSaved }: Props) {
 
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dirty = useRef(false);
+  // Letzte bekannte Server-Version: für optimistic concurrency.
+  const lastUpdatedAt = useRef<string | undefined>(rapport.updated_at);
 
   useEffect(() => {
     setR(rapport);
+    lastUpdatedAt.current = rapport.updated_at;
     dirty.current = false;
   }, [rapport]);
 
@@ -145,7 +149,9 @@ export function AuftragForm({ rapport, onSaved }: Props) {
     setState("saving");
     timer.current = setTimeout(async () => {
       try {
-        const { error } = await (supabase as any)
+        // Optimistic concurrency: nur updaten, wenn updated_at noch unsere
+        // bekannte Version ist. Sonst hat jemand anderes zwischenzeitlich gespeichert.
+        let query = (supabase as any)
           .from("arbeitsrapporte")
           .update({
             kategorie: r.kategorie,
@@ -167,7 +173,27 @@ export function AuftragForm({ rapport, onSaved }: Props) {
             chassis_nr: r.chassis_nr,
           })
           .eq("id", r.id);
+        if (lastUpdatedAt.current) {
+          query = query.eq("updated_at", lastUpdatedAt.current);
+        }
+        const { data, error } = await query.select("updated_at");
         if (error) throw error;
+        if (!data || data.length === 0) {
+          // Niemand wurde aktualisiert => Versionskonflikt.
+          setState("idle");
+          dirty.current = false;
+          toast.error("Auftrag wurde von jemand anderem geändert", {
+            description: "Bitte neu laden, um die aktuelle Version zu sehen.",
+            action: {
+              label: "Neu laden",
+              onClick: () => onSaved(),
+            },
+            duration: 10000,
+          });
+          return;
+        }
+        lastUpdatedAt.current = data[0]?.updated_at ?? lastUpdatedAt.current;
+        dirty.current = false;
         setState("saved");
         onSaved();
         setTimeout(() => setState("idle"), 1500);
