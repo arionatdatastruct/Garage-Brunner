@@ -7,6 +7,7 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
 } from "recharts";
 import { KATEGORIEN, parseKategorien } from "@/lib/kategorien";
+import { kapazitaetFuer } from "@/lib/arbeitszeiten";
 
 interface Row {
   id: string;
