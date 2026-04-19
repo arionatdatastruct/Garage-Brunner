@@ -14,13 +14,29 @@ import { format, startOfWeek, addDays, isSameDay, parseISO, getISOWeek, getISOWe
 import { de } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Plus, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import { NeuerAuftragDialog } from "@/components/NeuerAuftragDialog";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { kapazitaetFuer, auslastungsFarbe } from "@/lib/arbeitszeiten";
 import { cn } from "@/lib/utils";
 import { KategorieBadges } from "@/components/KategorieBadges";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Rapport {
   id: string;
