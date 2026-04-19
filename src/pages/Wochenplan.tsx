@@ -587,7 +587,7 @@ export default function Wochenplan() {
       <NeuerAuftragDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
-        onCreated={load}
+        onCreated={handleCreated}
         defaultDate={dialogDate}
       />
 
