@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AuftragStatusBar } from "@/components/AuftragStatusBar";
@@ -7,7 +7,20 @@ import { AuftragForm } from "@/components/AuftragForm";
 import { SicherheitsCheck } from "@/components/SicherheitsCheck";
 import { RapportUebersicht } from "@/components/RapportUebersicht";
 import { BelegPreview } from "@/components/BelegPreview";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
+import { ArrowLeft, Loader2, Trash2 } from "lucide-react";
 
 interface Rapport {
   id: string;
@@ -40,8 +53,37 @@ interface Rapport {
 
 export default function AuftragDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [rapport, setRapport] = useState<Rapport | null>(null);
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!id) return;
+    setDeleting(true);
+    try {
+      // Storage-Dateien im Ordner <rapport.id>/ löschen (belege + fotos)
+      for (const bucket of ["belege", "fotos"] as const) {
+        const { data: files } = await supabase.storage.from(bucket).list(id);
+        if (files && files.length > 0) {
+          await supabase.storage
+            .from(bucket)
+            .remove(files.map((f) => `${id}/${f.name}`));
+        }
+      }
+      const { error } = await (supabase as any)
+        .from("arbeitsrapporte")
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+      toast.success("Auftrag gelöscht");
+      navigate("/");
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e.message ?? "Fehler beim Löschen");
+      setDeleting(false);
+    }
+  };
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -139,7 +181,30 @@ export default function AuftragDetail() {
             )}
           </p>
         </div>
-        <AuftragStatusBar rapportId={rapport.id} status={rapport.status} onChanged={load} />
+        <div className="flex items-center gap-2">
+          <AuftragStatusBar rapportId={rapport.id} status={rapport.status} onChanged={load} />
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" size="icon" className="text-destructive hover:text-destructive" disabled={deleting}>
+                {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Auftrag löschen?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {rapport.rapport_nummer} wird unwiderruflich gelöscht — inkl. PDF und Fotos.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                  Löschen
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       </div>
 
       {/* Desktop: Split-View — PDF grösser (60%), Form rechts (40%) */}
