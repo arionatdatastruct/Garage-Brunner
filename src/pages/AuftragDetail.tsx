@@ -186,11 +186,20 @@ export default function AuftragDetail() {
               </span>
             )}
           </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            {fahrzeugLabel}
-            {rapport.kunde_name && ` · ${rapport.kunde_name}`}
+          <p className="text-sm text-muted-foreground mt-0.5 flex items-center gap-2 flex-wrap">
+            <span>{fahrzeugLabel}</span>
+            {rapport.kennzeichen && (
+              <Link
+                to={`/fahrzeug/${encodeURIComponent(rapport.kennzeichen)}`}
+                className="text-xs text-primary hover:underline inline-flex items-center gap-0.5"
+                title="Service-Historie dieses Fahrzeugs"
+              >
+                Historie →
+              </Link>
+            )}
+            {rapport.kunde_name && <span>· {rapport.kunde_name}</span>}
             {rapport.kundennummer && (
-              <span className="ml-2 font-mono text-xs px-1.5 py-0.5 rounded bg-muted">
+              <span className="font-mono text-xs px-1.5 py-0.5 rounded bg-muted">
                 #{rapport.kundennummer}
               </span>
             )}
