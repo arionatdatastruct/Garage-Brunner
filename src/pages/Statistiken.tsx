@@ -144,27 +144,6 @@ export default function Statistiken() {
         <KpiCard icon={Wrench} label="Stunden" value={kpis.stunden.toLocaleString("de-CH", { maximumFractionDigits: 1 }) + " h"} />
         <KpiCard icon={Users} label="Kunden" value={kpis.kunden.toString()} />
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Top-Kunden</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          {topKunden.length === 0 ? (
-            <div className="p-6 text-center text-sm text-muted-foreground">Noch keine Daten.</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/50 text-xs uppercase tracking-wider text-muted-foreground">
-                  <tr>
-                    <th className="text-left px-4 py-2 font-medium">#</th>
-                    <th className="text-left px-4 py-2 font-medium">Kunde</th>
-                    <th className="text-right px-4 py-2 font-medium">Aufträge</th>
-                    <th className="text-right px-4 py-2 font-medium">Umsatz</th>
-                    <th className="text-right px-4 py-2 font-medium">Letzter</th>
-                  </tr>
-                </thead>
-                <tbody>
       <div className="grid lg:grid-cols-2 gap-4">
         <Card>
           <CardHeader><CardTitle className="text-base">Monats-Umsatz (12 Monate)</CardTitle></CardHeader>
