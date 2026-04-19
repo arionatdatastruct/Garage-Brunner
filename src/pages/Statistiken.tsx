@@ -209,6 +209,29 @@ export default function Statistiken() {
       </div>
 
       <Card>
+        <CardHeader><CardTitle className="text-base">Kategorie-Vergleich (Umsatz)</CardTitle></CardHeader>
+        <CardContent>
+          {kategorieVergleich.every((k) => k.anzahl === 0) ? (
+            <div className="py-12 text-center text-sm text-muted-foreground">Noch keine Daten.</div>
+          ) : (
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={kategorieVergleich}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="label" stroke="hsl(var(--muted-foreground))" fontSize={11} />
+                <YAxis yAxisId="left" stroke="hsl(var(--muted-foreground))" fontSize={11} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
+                <YAxis yAxisId="right" orientation="right" stroke="hsl(var(--muted-foreground))" fontSize={11} />
+                <Tooltip
+                  contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 6, fontSize: 12 }}
+                  formatter={(v: number, name) => name === "Umsatz CHF" ? chf(v) : v}
+                />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+                <Bar yAxisId="left" dataKey="umsatz" name="Umsatz CHF" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                <Bar yAxisId="right" dataKey="anzahl" name="Aufträge" fill="hsl(var(--accent-foreground))" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </CardContent>
+      </Card>
         <CardHeader>
           <CardTitle className="text-base">Top-Kunden</CardTitle>
         </CardHeader>
