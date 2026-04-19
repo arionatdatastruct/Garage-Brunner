@@ -2,6 +2,7 @@ import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { Calendar, Archive, BarChart3, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { GlobalSearch } from "./GlobalSearch";
+import logo from "@/assets/garage-brunner-logo.svg";
 
 const navItems = [
   { to: "/", label: "Wochenplan", icon: Calendar },
@@ -32,10 +33,14 @@ export function AppLayout() {
     <div className="min-h-screen flex flex-col md:flex-row bg-background text-foreground">
       {/* Sidebar Desktop */}
       <aside className="hidden md:flex flex-col w-56 border-r border-border bg-card">
-        <div className="px-6 py-5 border-b border-border space-y-3">
-          <div>
-            <h1 className="text-lg font-bold tracking-tight">Werkstatt</h1>
-            <p className="text-xs text-muted-foreground">Management</p>
+        <div className="px-5 py-5 border-b border-border space-y-3">
+          <div className="flex items-center justify-center">
+            <img
+              src={logo}
+              alt="Garage Brunner Wynigen"
+              className="h-12 w-auto select-none"
+              draggable={false}
+            />
           </div>
           <GlobalSearch />
         </div>
@@ -62,9 +67,14 @@ export function AppLayout() {
 
       {/* Mobile Top Bar */}
       <header className="md:hidden sticky top-0 z-30 bg-card/95 backdrop-blur border-b border-border px-3 py-2 flex flex-col gap-2">
-        <div className="flex items-center justify-between h-8">
-          <h1 className="text-base font-semibold tracking-tight truncate">{pageTitle}</h1>
-          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Werkstatt</span>
+        <div className="flex items-center justify-between h-9 gap-2">
+          <img
+            src={logo}
+            alt="Garage Brunner Wynigen"
+            className="h-7 w-auto select-none shrink-0"
+            draggable={false}
+          />
+          <span className="text-xs text-muted-foreground truncate">{pageTitle}</span>
         </div>
         <GlobalSearch />
       </header>
