@@ -9,6 +9,7 @@ import { Loader2, Search, FileText, Archive as ArchiveIcon, RotateCcw, ExternalL
 import { toast } from "sonner";
 import JSZip from "jszip";
 import { KategorieBadges } from "@/components/KategorieBadges";
+import { downloadStorageFile, toSignedUrl } from "@/lib/storage";
 
 interface Rapport {
   id: string;
@@ -132,9 +133,9 @@ export default function Archiv() {
       await Promise.all(
         withPdf.map(async (r) => {
           try {
-            const res = await fetch(r.pdf_url!);
-            if (!res.ok) return;
-            const buf = await res.arrayBuffer();
+            const blob = await downloadStorageFile(r.pdf_url!);
+            if (!blob) return;
+            const buf = await blob.arrayBuffer();
             const safe = (s: string) => s.replace(/[^a-z0-9-_]+/gi, "_");
             const name = `${r.geplantes_datum}_${safe(r.kennzeichen ?? "")}_${safe(r.auftragsnummer ?? r.rapport_nummer ?? r.id.slice(0, 8))}.pdf`;
             zip.file(name, buf);
@@ -294,11 +295,19 @@ export default function Archiv() {
                           </Button>
                         </Link>
                         {r.pdf_url && (
-                          <a href={r.pdf_url} target="_blank" rel="noreferrer">
-                            <Button size="icon" variant="ghost" className="h-7 w-7" title="PDF">
-                              <FileText className="h-3.5 w-3.5" />
-                            </Button>
-                          </a>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7"
+                            title="PDF öffnen"
+                            onClick={async () => {
+                              const signed = await toSignedUrl(r.pdf_url);
+                              if (signed) window.open(signed, "_blank", "noopener,noreferrer");
+                              else toast.error("PDF konnte nicht geladen werden");
+                            }}
+                          >
+                            <FileText className="h-3.5 w-3.5" />
+                          </Button>
                         )}
                         {r.status === "erledigt" ? (
                           <Button
