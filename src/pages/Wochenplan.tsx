@@ -324,6 +324,8 @@ export default function Wochenplan() {
   const [nextOtherDate, setNextOtherDate] = useState<string | null>(null);
   const [nextOthers, setNextOthers] = useState<Array<{ id: string; geplantes_datum: string; kennzeichen: string | null; rapport_nummer: string | null }>>([]);
   const [overdue, setOverdue] = useState<Array<{ id: string; geplantes_datum: string; kennzeichen: string | null; rapport_nummer: string | null }>>([]);
+  const [actionRapport, setActionRapport] = useState<Rapport | null>(null);
+  const isMobile = useIsMobile();
 
   const days = Array.from({ length: 5 }, (_, i) => addDays(weekStart, i));
 
