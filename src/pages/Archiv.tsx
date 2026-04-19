@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, Search, FileText, Archive as ArchiveIcon, RotateCcw, ExternalLink, Download, FileArchive } from "lucide-react";
 import { toast } from "sonner";
 import JSZip from "jszip";
+import { KategorieBadges } from "@/components/KategorieBadges";
 
 interface Rapport {
   id: string;
@@ -19,6 +20,7 @@ interface Rapport {
   mechaniker_zuweisung: string | null;
   arbeitszeit_stunden: number | null;
   auftragswert_chf: number | null;
+  kategorie: string | null;
   kennzeichen: string | null;
   marke: string | null;
   modell: string | null;
@@ -40,7 +42,7 @@ export default function Archiv() {
     setLoading(true);
     const { data, error } = await (supabase as any)
       .from("arbeitsrapporte")
-      .select("id, rapport_nummer, auftragsnummer, status, geplantes_datum, pdf_url, mechaniker_zuweisung, arbeitszeit_stunden, auftragswert_chf, kennzeichen, marke, modell, kundennummer, kunde_name, kunde_ort")
+      .select("id, rapport_nummer, auftragsnummer, status, geplantes_datum, pdf_url, mechaniker_zuweisung, arbeitszeit_stunden, auftragswert_chf, kategorie, kennzeichen, marke, modell, kundennummer, kunde_name, kunde_ort")
       .in("status", ["erledigt", "archiviert"])
       .order("geplantes_datum", { ascending: false })
       .limit(500);
