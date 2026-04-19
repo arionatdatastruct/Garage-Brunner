@@ -34,19 +34,19 @@ export function useFahrzeugSuche() {
     setSearching(true);
     timeoutRef.current = setTimeout(async () => {
       // Suche flach in arbeitsrapporte; jüngsten Eintrag pro Kennzeichen behalten
+      const q = `%${query}%`;
       const { data } = await (supabase as any)
         .from('arbeitsrapporte')
         .select('id, kennzeichen, marke, modell, kundennummer, kunde_name, kunde_ort, kunde_telefon, kunde_email, created_at')
-        .ilike('kennzeichen', `%${query}%`)
-        .not('kennzeichen', 'is', null)
+        .or(`kennzeichen.ilike.${q},kundennummer.ilike.${q},kunde_name.ilike.${q}`)
         .order('created_at', { ascending: false })
         .limit(50);
 
       const seen = new Set<string>();
       const mapped: Fahrzeug[] = [];
       for (const d of (data || [])) {
-        const key = (d.kennzeichen || '').toUpperCase();
-        if (!key || seen.has(key)) continue;
+        const key = (d.kennzeichen || `__nokz_${d.id}`).toUpperCase();
+        if (seen.has(key)) continue;
         seen.add(key);
         mapped.push({
           id: d.id,

@@ -132,6 +132,11 @@ export default function AuftragDetail() {
           <p className="text-sm text-muted-foreground mt-0.5">
             {fahrzeugLabel}
             {rapport.kunde_name && ` · ${rapport.kunde_name}`}
+            {rapport.kundennummer && (
+              <span className="ml-2 font-mono text-xs px-1.5 py-0.5 rounded bg-muted">
+                #{rapport.kundennummer}
+              </span>
+            )}
           </p>
         </div>
         <AuftragStatusBar rapportId={rapport.id} status={rapport.status} onChanged={load} />
