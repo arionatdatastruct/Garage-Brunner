@@ -325,9 +325,9 @@ export default function Wochenplan() {
   const [nextOthers, setNextOthers] = useState<Array<{ id: string; geplantes_datum: string; kennzeichen: string | null; rapport_nummer: string | null }>>([]);
   const [overdue, setOverdue] = useState<Array<{ id: string; geplantes_datum: string; kennzeichen: string | null; rapport_nummer: string | null }>>([]);
   const [actionRapport, setActionRapport] = useState<Rapport | null>(null);
-  const [mechFilter, setMechFilter] = useState<"alle" | "Roman" | "Pascal" | "offen">(() => {
+  const [mechFilter, setMechFilter] = useState<"alle" | "Roman" | "Pascal">(() => {
     const v = typeof window !== "undefined" ? localStorage.getItem("wp.mechFilter") : null;
-    return v === "Roman" || v === "Pascal" || v === "offen" ? v : "alle";
+    return v === "Roman" || v === "Pascal" ? v : "alle";
   });
   const isMobile = useIsMobile();
 
@@ -335,17 +335,10 @@ export default function Wochenplan() {
     try { localStorage.setItem("wp.mechFilter", mechFilter); } catch {}
   }, [mechFilter]);
 
-  // Mobile: "Offen" ist nicht verfügbar → auf "alle" zurücksetzen
-  useEffect(() => {
-    if (isMobile && mechFilter === "offen") setMechFilter("alle");
-  }, [isMobile, mechFilter]);
-
   const days = Array.from({ length: 5 }, (_, i) => addDays(weekStart, i));
   const visibleRapports =
     mechFilter === "alle"
       ? rapports
-      : mechFilter === "offen"
-      ? rapports.filter((r) => !r.mechaniker_zuweisung)
       : rapports.filter((r) => r.mechaniker_zuweisung === mechFilter);
 
   const sensors = useSensors(
@@ -673,29 +666,19 @@ export default function Wochenplan() {
 
       {/* Mechaniker-Zuweisung — Segmented Control */}
       {(() => {
-        const allOptions = [
+        const options = [
           { key: "alle" as const, label: "Alle", initial: "A", ring: "ring-muted-foreground/30", bg: "bg-muted-foreground" },
           { key: "Roman" as const, label: "Roman", initial: "R", ring: "ring-blue-500/40", bg: "bg-blue-500" },
           { key: "Pascal" as const, label: "Pascal", initial: "P", ring: "ring-emerald-500/40", bg: "bg-emerald-500" },
-          { key: "offen" as const, label: "Offen", initial: "?", ring: "ring-amber-500/40", bg: "bg-amber-500" },
         ];
-        // Mobile zeigt "Offen" nicht — nur Alle/Roman/Pascal
-        const options = isMobile ? allOptions.filter((o) => o.key !== "offen") : allOptions;
-        const sumH = (mech: "Roman" | "Pascal" | "offen" | null) =>
+        const sumH = (mech: "Roman" | "Pascal" | null) =>
           rapports
-            .filter((r) =>
-              mech === null
-                ? true
-                : mech === "offen"
-                ? !r.mechaniker_zuweisung
-                : r.mechaniker_zuweisung === mech
-            )
+            .filter((r) => (mech === null ? true : r.mechaniker_zuweisung === mech))
             .reduce((s, r) => s + (r.arbeitszeit_stunden ?? 0), 0);
         const stats = {
           alle: { h: sumH(null), kap: weekKap },
           Roman: { h: sumH("Roman"), kap: weekKap },
           Pascal: { h: sumH("Pascal"), kap: weekKap },
-          offen: { h: sumH("offen"), kap: weekKap },
         };
         const fmtH = (n: number) =>
           n.toLocaleString("de-CH", { maximumFractionDigits: n % 1 === 0 ? 0 : 1 });
