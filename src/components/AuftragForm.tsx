@@ -201,26 +201,32 @@ export function AuftragForm({ rapport, onSaved }: Props) {
     <div className="rounded-xl border border-border bg-card/60 backdrop-blur-sm">
       {/* Sticky Save-Indikator */}
       <div className="sticky top-0 z-10 flex items-center justify-between gap-2 px-4 py-2.5 border-b border-border bg-card/80 backdrop-blur rounded-t-xl">
-        <span className="text-xs font-medium text-muted-foreground">Auto-Speichern aktiv</span>
+        <span className="text-xs font-medium text-muted-foreground">
+          {hasErrors ? "Bitte Eingaben prüfen" : "Auto-Speichern aktiv"}
+        </span>
         <span
           className={cn(
             "inline-flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 rounded-full transition-all",
-            state === "saving" && "bg-amber-500/15 text-amber-500",
-            state === "saved" && "bg-emerald-500/15 text-emerald-500",
-            state === "idle" && "text-muted-foreground/60"
+            hasErrors && "bg-destructive/15 text-destructive",
+            !hasErrors && state === "saving" && "bg-amber-500/15 text-amber-500",
+            !hasErrors && state === "saved" && "bg-emerald-500/15 text-emerald-500",
+            !hasErrors && state === "idle" && "text-muted-foreground/60"
           )}
         >
-          {state === "saving" && (
+          {hasErrors ? (
+            <>
+              <span className="h-1.5 w-1.5 rounded-full bg-destructive" />
+              Validierung
+            </>
+          ) : state === "saving" ? (
             <>
               <Loader2 className="h-3 w-3 animate-spin" /> Speichert
             </>
-          )}
-          {state === "saved" && (
+          ) : state === "saved" ? (
             <>
               <Check className="h-3 w-3" /> Gespeichert
             </>
-          )}
-          {state === "idle" && (
+          ) : (
             <>
               <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40" />
               Bereit
