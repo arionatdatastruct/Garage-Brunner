@@ -7,6 +7,8 @@ import { AuftragForm } from "@/components/AuftragForm";
 import { SicherheitsCheck } from "@/components/SicherheitsCheck";
 import { RapportUebersicht } from "@/components/RapportUebersicht";
 import { BelegPreview } from "@/components/BelegPreview";
+import { AuftragDetailMobile } from "@/components/AuftragDetailMobile";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
