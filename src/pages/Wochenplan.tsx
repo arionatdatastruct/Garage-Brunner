@@ -114,8 +114,10 @@ function RapportCard({ r, onUpdate, onDelete, highlight }: { r: Rapport; onUpdat
           className={cn(
             "group relative bg-card/60 hover:bg-card border border-border/60 hover:border-border",
             "rounded-lg pl-3 pr-2.5 py-2.5 mb-2 cursor-grab active:cursor-grabbing transition-all touch-none",
-            "overflow-hidden"
+            "overflow-hidden",
+            highlight && "ring-2 ring-primary border-primary animate-pulse"
           )}
+          data-rapport-id={r.id}
         >
           {/* Status-Strich links */}
           <div
