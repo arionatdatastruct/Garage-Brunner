@@ -427,6 +427,15 @@ export default function Wochenplan() {
     setRapports((prev) => prev.map((r) => (r.id === id ? { ...r, arbeitszeit_stunden: h } : r)));
   };
 
+  const jumpToRapport = (datum: string, id: string) => {
+    setWeekStart(startOfWeek(parseISO(datum), { weekStartsOn: 1 }));
+    setHighlightId(id);
+    setTimeout(() => {
+      const el = document.querySelector(`[data-rapport-id="${id}"]`);
+      el?.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+    }, 250);
+  };
+
   const [toDelete, setToDelete] = useState<Rapport | null>(null);
   const [deleting, setDeleting] = useState(false);
 
