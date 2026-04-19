@@ -6,6 +6,7 @@ import { Link } from "react-router-dom";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
 } from "recharts";
+import { KATEGORIEN, parseKategorien } from "@/lib/kategorien";
 
 interface Row {
   id: string;
@@ -15,6 +16,7 @@ interface Row {
   auftragswert_chf: number | null;
   arbeitszeit_stunden: number | null;
   mechaniker_zuweisung: string | null;
+  kategorie: string | null;
   status: string;
   geplantes_datum: string;
 }
@@ -41,7 +43,7 @@ export default function Statistiken() {
     (async () => {
       const { data } = await (supabase as any)
         .from("arbeitsrapporte")
-        .select("id, kundennummer, kunde_name, kunde_ort, auftragswert_chf, arbeitszeit_stunden, mechaniker_zuweisung, status, geplantes_datum")
+        .select("id, kundennummer, kunde_name, kunde_ort, auftragswert_chf, arbeitszeit_stunden, mechaniker_zuweisung, kategorie, status, geplantes_datum")
         .order("geplantes_datum", { ascending: false })
         .limit(1000);
       setRows((data ?? []) as Row[]);
@@ -123,6 +125,26 @@ export default function Statistiken() {
     }));
   }, [rows]);
 
+  // Kategorie-Vergleich (Umsatz + Anzahl pro Kategorie)
+  // Eine Auftrag mit "01,03" zählt für beide Kategorien.
+  const kategorieVergleich = useMemo(() => {
+    const map = new Map<string, { id: string; label: string; umsatz: number; anzahl: number }>();
+    for (const k of KATEGORIEN) {
+      map.set(k.id, { id: k.id, label: `${k.id} ${k.label}`, umsatz: 0, anzahl: 0 });
+    }
+    for (const r of rows) {
+      const ids = parseKategorien(r.kategorie);
+      if (ids.length === 0) continue;
+      for (const id of ids) {
+        const ex = map.get(id);
+        if (!ex) continue;
+        ex.umsatz += r.auftragswert_chf ?? 0;
+        ex.anzahl += 1;
+      }
+    }
+    return Array.from(map.values()).map((x) => ({ ...x, umsatz: Math.round(x.umsatz) }));
+  }, [rows]);
+
   if (loading) {
     return (
       <div className="p-6 flex items-center gap-2 text-muted-foreground">
@@ -185,6 +207,31 @@ export default function Statistiken() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader><CardTitle className="text-base">Kategorie-Vergleich (Umsatz)</CardTitle></CardHeader>
+        <CardContent>
+          {kategorieVergleich.every((k) => k.anzahl === 0) ? (
+            <div className="py-12 text-center text-sm text-muted-foreground">Noch keine Daten.</div>
+          ) : (
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={kategorieVergleich}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="label" stroke="hsl(var(--muted-foreground))" fontSize={11} />
+                <YAxis yAxisId="left" stroke="hsl(var(--muted-foreground))" fontSize={11} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
+                <YAxis yAxisId="right" orientation="right" stroke="hsl(var(--muted-foreground))" fontSize={11} />
+                <Tooltip
+                  contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 6, fontSize: 12 }}
+                  formatter={(v: number, name) => name === "Umsatz CHF" ? chf(v) : v}
+                />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+                <Bar yAxisId="left" dataKey="umsatz" name="Umsatz CHF" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                <Bar yAxisId="right" dataKey="anzahl" name="Aufträge" fill="hsl(var(--accent-foreground))" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
