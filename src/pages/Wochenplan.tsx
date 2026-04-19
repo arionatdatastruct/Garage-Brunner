@@ -533,6 +533,8 @@ export default function Wochenplan() {
           </span>
         </button>
       )}
+
+      <DndContext sensors={sensors} onDragEnd={onDragEnd}>
         {/* Mobile: Snap-Karussell, eine Spalte pro Screen */}
         <div
           className="md:hidden flex gap-3 overflow-x-auto snap-x snap-mandatory pb-4 -mx-3 px-3 scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
