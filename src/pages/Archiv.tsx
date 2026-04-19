@@ -5,8 +5,9 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Search, FileText, Archive as ArchiveIcon, RotateCcw, ExternalLink } from "lucide-react";
+import { Loader2, Search, FileText, Archive as ArchiveIcon, RotateCcw, ExternalLink, Download, FileArchive } from "lucide-react";
 import { toast } from "sonner";
+import JSZip from "jszip";
 
 interface Rapport {
   id: string;
