@@ -27,8 +27,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { AuftragForm } from "@/components/AuftragForm";
 import { SicherheitsCheck } from "@/components/SicherheitsCheck";
-import { RapportUebersicht } from "@/components/RapportUebersicht";
-import { BelegPreview } from "@/components/BelegPreview";
+import { BelegMitRapport } from "@/components/BelegMitRapport";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -228,12 +227,12 @@ export function AuftragDetailMobile({ rapport, onChanged, onDelete, deleting }: 
         </div>
 
 
-        {/* PROMINENT: Beleg (PDF) – immer sichtbar, expandierbar */}
+        {/* PROMINENT: Beleg + Rapport-Übersicht – immer sichtbar, expandierbar */}
         <div className="rounded-xl border-2 border-primary/30 bg-card overflow-hidden">
           <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-primary/5">
             <span className="flex items-center gap-2 text-sm font-semibold">
               <FileText className="h-4 w-4 text-primary" />
-              Beleg / Arbeitsauftrag
+              Beleg & Rapport
             </span>
             <div className="flex items-center gap-1">
               {rapport.pdf_url && (
@@ -257,8 +256,8 @@ export function AuftragDetailMobile({ rapport, onChanged, onDelete, deleting }: 
               </button>
             </div>
           </div>
-          <div className={cn("p-2", belegExpanded ? "" : "max-h-[55vh] overflow-y-auto")}>
-            <BelegPreview pdfUrl={rapport.pdf_url} />
+          <div className={cn("p-2", belegExpanded ? "" : "max-h-[65vh] overflow-y-auto")}>
+            <BelegMitRapport rapport={rapport} />
           </div>
         </div>
 
