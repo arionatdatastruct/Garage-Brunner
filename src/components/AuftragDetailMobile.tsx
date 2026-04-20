@@ -38,7 +38,6 @@ import {
   Pause,
   Play,
   Printer,
-  ShieldCheck,
   Trash2,
   Wrench,
 } from "lucide-react";
