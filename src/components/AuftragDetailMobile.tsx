@@ -281,31 +281,11 @@ export function AuftragDetailMobile({ rapport, onChanged, onDelete, deleting }: 
         </Accordion>
       </div>
 
-      {/* Schwebender Foto-FAB (über Action-Bar) */}
-      <div
-        className="fixed right-4 z-40"
-        style={{ bottom: "calc(8.5rem + env(safe-area-inset-bottom))" }}
-      >
-        <FotoQuickAdd
-          rapportId={rapport.id}
-          fotos={rapport.fotos}
-          onUploaded={onChanged}
-          variant="fab"
-        />
-      </div>
-
       {/* Sticky Bottom Action-Bar */}
       <div
         className="fixed bottom-14 inset-x-0 z-30 border-t border-border bg-card/95 backdrop-blur px-3 py-2.5 flex gap-2"
         style={{ paddingBottom: "calc(0.625rem + env(safe-area-inset-bottom))" }}
       >
-        <TimerButton
-          rapportId={rapport.id}
-          label={rapport.kennzeichen ?? undefined}
-          variant="full"
-          onStopped={onChanged}
-          className="shrink-0"
-        />
         <Button
           className="flex-1 h-12 text-base"
           onClick={openErledigen}
