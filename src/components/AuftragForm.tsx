@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Check, ChevronDown, Loader2, Car, Wrench, User } from "lucide-react";
+import { Check, ChevronDown, Loader2, Wrench } from "lucide-react";
 import { KATEGORIEN, parseKategorien, formatKategorien } from "@/lib/kategorien";
 import { cn } from "@/lib/utils";
 
@@ -21,17 +21,6 @@ interface Rapport {
   mechaniker_zuweisung: "Roman" | "Pascal" | null;
   auftragswert_chf: number | null;
   notizen: string | null;
-  kundennummer: string | null;
-  kunde_name: string | null;
-  kunde_ort: string | null;
-  kunde_strasse: string | null;
-  kunde_plz: string | null;
-  kunde_telefon: string | null;
-  kunde_email: string | null;
-  kennzeichen: string | null;
-  marke: string | null;
-  modell: string | null;
-  chassis_nr: string | null;
 }
 
 interface Props {
@@ -40,25 +29,6 @@ interface Props {
 }
 
 type SaveState = "idle" | "saving" | "saved";
-
-/* ---------- Validierung ---------- */
-
-const validators = {
-  plz: (v: string | null) => {
-    if (!v) return null;
-    return /^\d{4}$/.test(v.trim()) ? null : "PLZ muss 4 Ziffern haben";
-  },
-  email: (v: string | null) => {
-    if (!v) return null;
-    return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim()) ? null : "Ungültige E-Mail";
-  },
-  telefon: (v: string | null) => {
-    if (!v) return null;
-    // Erlaubt CH-Formate: +41..., 0xx xxx xx xx, mit/ohne Leerzeichen, /, -
-    const cleaned = v.replace(/[\s\-/().]/g, "");
-    return /^\+?\d{7,15}$/.test(cleaned) ? null : "Ungültige Telefonnummer";
-  },
-};
 
 /* ---------- Kompakte Field-Primitives ---------- */
 
@@ -99,7 +69,7 @@ function Section({
   title,
   children,
 }: {
-  icon: typeof Car;
+  icon: typeof Wrench;
   title: string;
   children: React.ReactNode;
 }) {
@@ -131,13 +101,7 @@ export function AuftragForm({ rapport, onSaved }: Props) {
     dirty.current = false;
   }, [rapport]);
 
-  // Validierungsfehler (live, sichtbar — blockiert auch Auto-Save)
-  const errors = {
-    plz: validators.plz(r.kunde_plz),
-    email: validators.email(r.kunde_email),
-    telefon: validators.telefon(r.kunde_telefon),
-  };
-  const hasErrors = Object.values(errors).some(Boolean);
+  const hasErrors = false;
 
   useEffect(() => {
     if (!dirty.current) return;
@@ -160,17 +124,6 @@ export function AuftragForm({ rapport, onSaved }: Props) {
             mechaniker_zuweisung: r.mechaniker_zuweisung,
             auftragswert_chf: r.auftragswert_chf,
             notizen: r.notizen,
-            kundennummer: r.kundennummer,
-            kunde_name: r.kunde_name,
-            kunde_ort: r.kunde_ort,
-            kunde_strasse: r.kunde_strasse,
-            kunde_plz: r.kunde_plz,
-            kunde_telefon: r.kunde_telefon,
-            kunde_email: r.kunde_email,
-            kennzeichen: r.kennzeichen,
-            marke: r.marke,
-            modell: r.modell,
-            chassis_nr: r.chassis_nr,
           })
           .eq("id", r.id);
         if (lastUpdatedAt.current) {
@@ -262,33 +215,6 @@ export function AuftragForm({ rapport, onSaved }: Props) {
       </div>
 
       <div className="p-4 md:p-5 space-y-7">
-        {/* Fahrzeug */}
-        <Section icon={Car} title="Fahrzeug">
-          <Field label="Kennzeichen">
-            <Input
-              value={r.kennzeichen ?? ""}
-              onChange={(e) => upd({ kennzeichen: e.target.value })}
-              className={cn(inputCls, "font-mono text-base font-semibold tracking-wider uppercase")}
-              placeholder="BE 123 456"
-            />
-          </Field>
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Marke">
-              <Input value={r.marke ?? ""} onChange={(e) => upd({ marke: e.target.value })} className={inputCls} />
-            </Field>
-            <Field label="Modell">
-              <Input value={r.modell ?? ""} onChange={(e) => upd({ modell: e.target.value })} className={inputCls} />
-            </Field>
-          </div>
-          <Field label="Chassis-Nr.">
-            <Input
-              value={r.chassis_nr ?? ""}
-              onChange={(e) => upd({ chassis_nr: e.target.value })}
-              className={cn(inputCls, "font-mono text-xs")}
-            />
-          </Field>
-        </Section>
-
         {/* Auftrag */}
         <Section icon={Wrench} title="Auftrag">
           <Field label="Kategorie">
@@ -406,69 +332,6 @@ export function AuftragForm({ rapport, onSaved }: Props) {
               placeholder="Interne Bemerkungen…"
             />
           </Field>
-        </Section>
-
-        {/* Kunde */}
-        <Section icon={User} title="Kunde">
-          <div className="grid grid-cols-3 gap-4">
-            <Field label="Kd-Nr." className="col-span-1">
-              <Input
-                value={r.kundennummer ?? ""}
-                onChange={(e) => upd({ kundennummer: e.target.value })}
-                className={cn(inputCls, "font-mono")}
-              />
-            </Field>
-            <Field label="Name" className="col-span-2">
-              <Input
-                value={r.kunde_name ?? ""}
-                onChange={(e) => upd({ kunde_name: e.target.value })}
-                className={inputCls}
-              />
-            </Field>
-          </div>
-          <Field label="Strasse">
-            <Input
-              value={r.kunde_strasse ?? ""}
-              onChange={(e) => upd({ kunde_strasse: e.target.value })}
-              className={inputCls}
-            />
-          </Field>
-          <div className="grid grid-cols-3 gap-4">
-            <Field label="PLZ" error={errors.plz}>
-              <Input
-                value={r.kunde_plz ?? ""}
-                inputMode="numeric"
-                maxLength={4}
-                onChange={(e) => upd({ kunde_plz: e.target.value })}
-                className={cn(inputCls, "font-mono", errors.plz && inputErrorCls)}
-              />
-            </Field>
-            <Field label="Ort" className="col-span-2">
-              <Input
-                value={r.kunde_ort ?? ""}
-                onChange={(e) => upd({ kunde_ort: e.target.value })}
-                className={inputCls}
-              />
-            </Field>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Telefon" error={errors.telefon}>
-              <Input
-                value={r.kunde_telefon ?? ""}
-                inputMode="tel"
-                onChange={(e) => upd({ kunde_telefon: e.target.value })}
-                className={cn(inputCls, "font-mono", errors.telefon && inputErrorCls)}
-              />
-            </Field>
-            <Field label="E-Mail" error={errors.email}>
-              <Input
-                type="email"
-                value={r.kunde_email ?? ""}
-                onChange={(e) => upd({ kunde_email: e.target.value })}
-                className={cn(inputCls, errors.email && inputErrorCls)}
-              />
-            </Field>
-          </div>
         </Section>
       </div>
     </div>

@@ -339,7 +339,9 @@ export default function Wochenplan() {
   const visibleRapports =
     mechFilter === "alle"
       ? rapports
-      : rapports.filter((r) => r.mechaniker_zuweisung === mechFilter);
+      : rapports.filter(
+          (r) => (r.mechaniker_zuweisung ?? "").trim().toLowerCase() === mechFilter.toLowerCase(),
+        );
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
