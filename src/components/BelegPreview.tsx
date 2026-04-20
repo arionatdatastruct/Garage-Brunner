@@ -148,7 +148,7 @@ export function BelegPreview({ pdfUrl }: BelegPreviewProps) {
     };
   }, [pdfUrl, storageTarget]);
 
-  const openHref = blobUrl ?? pdfUrl ?? undefined;
+  const openHref = blobUrl ?? undefined;
 
   if (!pdfUrl) {
     return (
@@ -165,14 +165,16 @@ export function BelegPreview({ pdfUrl }: BelegPreviewProps) {
         <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
           <FileText className="h-3 w-3" /> Original-Beleg
         </span>
-        <a
-          href={openHref}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-        >
-          <ExternalLink className="h-3 w-3" /> Neuer Tab
-        </a>
+        {openHref && (
+          <a
+            href={openHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+          >
+            <ExternalLink className="h-3 w-3" /> Neuer Tab
+          </a>
+        )}
       </div>
 
       {loading ? (
