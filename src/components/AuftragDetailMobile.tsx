@@ -43,6 +43,9 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ErledigenDialog } from "@/components/ErledigenDialog";
+import { useWakeLock } from "@/hooks/useWakeLock";
+import { TimerButton } from "@/components/TimerButton";
+import { FotoQuickAdd } from "@/components/FotoQuickAdd";
 
 type Status = "geplant" | "in_arbeit" | "erledigt" | "archiviert";
 
@@ -71,6 +74,7 @@ interface Rapport {
   marke: string | null;
   modell: string | null;
   chassis_nr: string | null;
+  fotos?: string[] | null;
 }
 
 const STATUS_CFG: Record<Status, { label: string; cls: string; dot: string }> = {
@@ -113,6 +117,9 @@ export function AuftragDetailMobile({ rapport, onChanged, onDelete, deleting }: 
 
   const isErledigt = rapport.status === "erledigt" || rapport.status === "archiviert";
   const sCfg = STATUS_CFG[rapport.status];
+
+  // Bildschirm wach halten solange Auftrag offen ist (Werkstatt-Modus)
+  useWakeLock(!isErledigt);
 
   const setStatus = async (next: Status) => {
     setBusy(true);
@@ -276,11 +283,31 @@ export function AuftragDetailMobile({ rapport, onChanged, onDelete, deleting }: 
         </Accordion>
       </div>
 
+      {/* Schwebender Foto-FAB (über Action-Bar) */}
+      <div
+        className="fixed right-4 z-40"
+        style={{ bottom: "calc(8.5rem + env(safe-area-inset-bottom))" }}
+      >
+        <FotoQuickAdd
+          rapportId={rapport.id}
+          fotos={rapport.fotos}
+          onUploaded={onChanged}
+          variant="fab"
+        />
+      </div>
+
       {/* Sticky Bottom Action-Bar */}
       <div
         className="fixed bottom-14 inset-x-0 z-30 border-t border-border bg-card/95 backdrop-blur px-3 py-2.5 flex gap-2"
         style={{ paddingBottom: "calc(0.625rem + env(safe-area-inset-bottom))" }}
       >
+        <TimerButton
+          rapportId={rapport.id}
+          label={rapport.kennzeichen ?? undefined}
+          variant="full"
+          onStopped={onChanged}
+          className="shrink-0"
+        />
         <Button
           className="flex-1 h-12 text-base"
           onClick={openErledigen}
@@ -291,7 +318,7 @@ export function AuftragDetailMobile({ rapport, onChanged, onDelete, deleting }: 
           ) : (
             <CheckCircle2 className="h-4 w-4 mr-2" />
           )}
-          {isErledigt ? "Erledigt" : "Auftrag erledigen"}
+          {isErledigt ? "Erledigt" : "Erledigen"}
         </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

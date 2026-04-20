@@ -49,6 +49,7 @@ interface Rapport {
   marke: string | null;
   modell: string | null;
   chassis_nr: string | null;
+  fotos: string[] | null;
 }
 
 export default function AuftragDetail() {
