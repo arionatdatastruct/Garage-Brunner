@@ -260,7 +260,7 @@ export function AuftragDetailMobile({ rapport, onChanged, onDelete, deleting }: 
         </div>
 
         {/* Akkordeon: Auftrag bearbeiten (Kategorie, Arbeit, Sicherheitscheck in einem) */}
-        <Accordion type="multiple" defaultValue={[]} className="space-y-3">
+        <Accordion type="multiple" defaultValue={["form"]} className="space-y-3">
           <AccordionItem value="form" className="border-0 rounded-xl bg-transparent">
             <AccordionTrigger className="px-3 py-3 rounded-xl border border-border bg-card hover:no-underline data-[state=open]:rounded-b-none">
               <span className="flex items-center gap-2 text-sm font-semibold">
