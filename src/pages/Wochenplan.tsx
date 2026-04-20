@@ -345,9 +345,13 @@ export default function Wochenplan() {
           (r) => (r.mechaniker_zuweisung ?? "").trim().toLowerCase() === mechFilter.toLowerCase(),
         );
 
+  const [activeId, setActiveId] = useState<string | null>(null);
+
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } })
+    // Etwas grösser, damit Klick (zum Öffnen) nicht versehentlich Drag startet
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    // Touch: Long-Press 180ms, dann ziehen
+    useSensor(TouchSensor, { activationConstraint: { delay: 180, tolerance: 6 } })
   );
 
   const load = useCallback(async () => {
