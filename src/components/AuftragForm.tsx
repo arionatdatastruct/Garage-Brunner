@@ -115,6 +115,19 @@ export function AuftragForm({ rapport, onSaved }: Props) {
   const [r, setR] = useState(rapport);
   const [state, setState] = useState<SaveState>("idle");
 
+  // Sicherheitscheck-State (mit dem Auftrags-State vereint im UI)
+  const initSafety = (): Record<string, SafetyStatus> => {
+    const s: Record<string, SafetyStatus> = {};
+    SAFETY_CHECKS.forEach((c) => {
+      s[c.key] = (rapport.sicherheitscheck?.[c.key] as SafetyStatus) ?? "";
+    });
+    return s;
+  };
+  const [safety, setSafety] = useState<Record<string, SafetyStatus>>(initSafety);
+  const safetyDirty = useRef(false);
+  const safetyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [safetySave, setSafetySave] = useState<SaveState>("idle");
+
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dirty = useRef(false);
   // Letzte bekannte Server-Version: für optimistic concurrency.
@@ -124,7 +137,57 @@ export function AuftragForm({ rapport, onSaved }: Props) {
     setR(rapport);
     lastUpdatedAt.current = rapport.updated_at;
     dirty.current = false;
+    // Sicherheits-Daten neu syncen
+    const s: Record<string, SafetyStatus> = {};
+    SAFETY_CHECKS.forEach((c) => {
+      s[c.key] = (rapport.sicherheitscheck?.[c.key] as SafetyStatus) ?? "";
+    });
+    setSafety(s);
+    safetyDirty.current = false;
   }, [rapport]);
+
+  // Auto-Save Sicherheitscheck
+  useEffect(() => {
+    if (!safetyDirty.current) return;
+    if (safetyTimer.current) clearTimeout(safetyTimer.current);
+    setSafetySave("saving");
+    safetyTimer.current = setTimeout(async () => {
+      try {
+        const { error } = await (supabase as any)
+          .from("arbeitsrapporte")
+          .update({ sicherheitscheck: safety })
+          .eq("id", rapport.id);
+        if (error) throw error;
+        safetyDirty.current = false;
+        setSafetySave("saved");
+        onSaved();
+        setTimeout(() => setSafetySave("idle"), 1500);
+      } catch (e: any) {
+        setSafetySave("idle");
+        toast.error(e.message ?? "Fehler beim Speichern");
+      }
+    }, 600);
+    return () => {
+      if (safetyTimer.current) clearTimeout(safetyTimer.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [safety]);
+
+  const setSafetyValue = (key: string, status: SafetyStatus) => {
+    safetyDirty.current = true;
+    setSafety((prev) => ({ ...prev, [key]: prev[key] === status ? "" : status }));
+  };
+
+  const safetyCounts = Object.values(safety).reduce(
+    (a, v) => {
+      if (v === "rot") a.rot++;
+      else if (v === "gelb") a.gelb++;
+      else if (v === "gruen") a.gruen++;
+      return a;
+    },
+    { gruen: 0, gelb: 0, rot: 0 }
+  );
+  const safetyHasRot = safetyCounts.rot > 0;
 
   const hasErrors = false;
 
