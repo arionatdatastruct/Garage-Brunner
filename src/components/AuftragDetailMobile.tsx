@@ -26,7 +26,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { AuftragForm } from "@/components/AuftragForm";
-import { SicherheitsCheck } from "@/components/SicherheitsCheck";
 import { BelegMitRapport } from "@/components/BelegMitRapport";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";

@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AuftragStatusBar } from "@/components/AuftragStatusBar";
 import { AuftragForm } from "@/components/AuftragForm";
-import { SicherheitsCheck } from "@/components/SicherheitsCheck";
 import { BelegMitRapport } from "@/components/BelegMitRapport";
 import { AuftragDetailMobile } from "@/components/AuftragDetailMobile";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -234,11 +233,6 @@ export default function AuftragDetail() {
         </div>
         <div className="md:col-span-2 overflow-y-auto pr-1 space-y-4">
           <AuftragForm rapport={rapport} onSaved={load} />
-          <SicherheitsCheck
-            rapportId={rapport.id}
-            initial={rapport.sicherheitscheck}
-            onSaved={load}
-          />
         </div>
       </div>
     </div>
