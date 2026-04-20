@@ -83,31 +83,37 @@ export function BelegPreview({ pdfUrl }: BelegPreviewProps) {
       try {
         let pdfBlob: Blob | null = null;
 
-        try {
-          const response = await fetch(pdfUrl);
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-          }
-          pdfBlob = await response.blob();
-        } catch (fetchError) {
-          if (!storageTarget) {
-            throw fetchError;
-          }
-
+        // Wenn die URL auf Supabase Storage zeigt, IMMER über authenticated
+        // download() laden — die in der DB gespeicherten "public"-URLs
+        // funktionieren nicht, weil der Bucket privat ist (gibt 404 JSON zurück).
+        if (storageTarget) {
           const { data, error: downloadError } = await supabase.storage
             .from(storageTarget.bucket)
             .download(storageTarget.path);
 
           if (downloadError || !data) {
-            throw downloadError ?? fetchError;
+            throw downloadError ?? new Error("Beleg konnte nicht geladen werden");
           }
-
           pdfBlob = data;
+        } else {
+          // Externe URL → direkter fetch
+          const response = await fetch(pdfUrl);
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+          pdfBlob = await response.blob();
         }
 
         if (!active || !pdfBlob) return;
 
-        const normalizedBlob = pdfBlob.type
+        // Validieren, dass es wirklich ein PDF ist (erste 4 Bytes = "%PDF")
+        const headerBuffer = await pdfBlob.slice(0, 4).arrayBuffer();
+        const header = new TextDecoder().decode(headerBuffer);
+        if (header !== "%PDF") {
+          throw new Error("Datei ist kein gültiges PDF");
+        }
+
+        const normalizedBlob = pdfBlob.type === "application/pdf"
           ? pdfBlob
           : new Blob([pdfBlob], { type: "application/pdf" });
         const arrayBuffer = await normalizedBlob.arrayBuffer();
@@ -142,7 +148,7 @@ export function BelegPreview({ pdfUrl }: BelegPreviewProps) {
     };
   }, [pdfUrl, storageTarget]);
 
-  const openHref = blobUrl ?? pdfUrl ?? undefined;
+  const openHref = blobUrl ?? undefined;
 
   if (!pdfUrl) {
     return (
@@ -159,14 +165,16 @@ export function BelegPreview({ pdfUrl }: BelegPreviewProps) {
         <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
           <FileText className="h-3 w-3" /> Original-Beleg
         </span>
-        <a
-          href={openHref}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-        >
-          <ExternalLink className="h-3 w-3" /> Neuer Tab
-        </a>
+        {openHref && (
+          <a
+            href={openHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+          >
+            <ExternalLink className="h-3 w-3" /> Neuer Tab
+          </a>
+        )}
       </div>
 
       {loading ? (
