@@ -74,6 +74,7 @@ interface Rapport {
   marke: string | null;
   modell: string | null;
   chassis_nr: string | null;
+  fotos?: string[] | null;
 }
 
 const STATUS_CFG: Record<Status, { label: string; cls: string; dot: string }> = {
@@ -116,6 +117,9 @@ export function AuftragDetailMobile({ rapport, onChanged, onDelete, deleting }: 
 
   const isErledigt = rapport.status === "erledigt" || rapport.status === "archiviert";
   const sCfg = STATUS_CFG[rapport.status];
+
+  // Bildschirm wach halten solange Auftrag offen ist (Werkstatt-Modus)
+  useWakeLock(!isErledigt);
 
   const setStatus = async (next: Status) => {
     setBusy(true);
