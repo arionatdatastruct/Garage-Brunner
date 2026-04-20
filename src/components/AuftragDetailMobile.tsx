@@ -293,20 +293,6 @@ export function AuftragDetailMobile({ rapport, onChanged, onDelete, deleting }: 
             </AccordionContent>
           </AccordionItem>
 
-          {isErledigt && (
-            <AccordionItem value="ueber" className="border-0 rounded-xl bg-transparent">
-              <AccordionTrigger className="px-3 py-3 rounded-xl border border-border bg-card hover:no-underline data-[state=open]:rounded-b-none">
-                <span className="flex items-center gap-2 text-sm font-semibold">
-                  <FileText className="h-4 w-4 text-primary" /> Rapport-Übersicht
-                </span>
-              </AccordionTrigger>
-              <AccordionContent className="border border-t-0 border-border rounded-b-xl bg-card -mt-px">
-                <div className="p-2">
-                  <RapportUebersicht rapport={rapport as any} />
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          )}
         </Accordion>
       </div>
 
