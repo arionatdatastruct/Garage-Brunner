@@ -59,7 +59,7 @@ function MobileCard({ r, highlight, overdue, onAction }: CardProps) {
       // Haptik wenn verfügbar
       if ("vibrate" in navigator) navigator.vibrate(15);
       onAction(r);
-    }, 450);
+    }, 280);
   };
 
   const cancelPress = () => {

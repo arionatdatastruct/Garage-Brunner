@@ -7,7 +7,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import { format, addDays, parseISO, getDay, isBefore, startOfDay } from "date-fns";
+import { format, addDays, parseISO, getDay, isBefore, startOfDay, startOfWeek, isSameDay } from "date-fns";
 import { de } from "date-fns/locale";
 import { naechsterWerktag, istArbeitstag } from "@/lib/arbeitszeiten";
 import { cn } from "@/lib/utils";
@@ -130,6 +130,95 @@ export function RapportActionSheet({ rapport, onOpenChange, onChanged, onDelete 
         </DrawerHeader>
 
         <div className="space-y-5 overflow-y-auto">
+          {/* Verschieben — als wichtigste Aktion ganz oben (Drag&Drop-Ersatz) */}
+          <section>
+            <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium mb-2 flex items-center gap-1">
+              <CalendarIcon className="h-3 w-3" /> Auf anderen Tag verschieben
+            </div>
+            {/* Aktuelle Woche – Mo–Fr als Pills (wie eine D&D-Spaltenwahl) */}
+            {(() => {
+              const currentWeekStart = startOfWeek(parseISO(rapport.geplantes_datum), { weekStartsOn: 1 });
+              const today = startOfDay(new Date());
+              return (
+                <div className="grid grid-cols-5 gap-1.5 mb-2">
+                  {Array.from({ length: 5 }, (_, i) => addDays(currentWeekStart, i)).map((d) => {
+                    const iso = format(d, "yyyy-MM-dd");
+                    const isCurrent = rapport.geplantes_datum === iso;
+                    const isPast = isBefore(d, today);
+                    const isToday = isSameDay(d, new Date());
+                    return (
+                      <button
+                        key={iso}
+                        type="button"
+                        onClick={() => verschieben(iso)}
+                        disabled={busy || isCurrent || isPast}
+                        className={cn(
+                          "h-16 rounded-lg border flex flex-col items-center justify-center gap-0.5 text-xs font-medium transition active:scale-95",
+                          isCurrent
+                            ? "border-primary bg-primary/15 text-primary cursor-default"
+                            : isPast
+                              ? "border-border bg-muted/30 text-muted-foreground/40"
+                              : isToday
+                                ? "border-primary/60 bg-primary/5 hover:bg-primary/15"
+                                : "border-border bg-card hover:bg-muted"
+                        )}
+                      >
+                        <span className="text-[10px] uppercase tracking-wider opacity-70">
+                          {format(d, "EEE", { locale: de })}
+                        </span>
+                        <span className="text-base font-bold tabular-nums leading-none">
+                          {format(d, "d")}
+                        </span>
+                        <span className="text-[9px] opacity-60 font-mono">
+                          {format(d, "MMM", { locale: de })}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+            {/* Schnellsprünge */}
+            <div className="grid grid-cols-2 gap-2 mb-2">
+              <button
+                type="button"
+                onClick={() => verschieben(format(naechsterWerktag(addDays(parseISO(rapport.geplantes_datum), 7)), "yyyy-MM-dd"))}
+                disabled={busy}
+                className="h-10 rounded-lg border border-border bg-card hover:bg-muted text-xs font-medium active:scale-95 transition flex items-center justify-center gap-1.5"
+              >
+                <ArrowRight className="h-3 w-3" /> Nächste Woche
+              </button>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full h-10 justify-center font-normal text-xs">
+                    <CalendarIcon className="mr-1.5 h-3.5 w-3.5" />
+                    Datum wählen…
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={parseISO(rapport.geplantes_datum)}
+                    onSelect={(d) => d && verschieben(format(d, "yyyy-MM-dd"))}
+                    disabled={(date) => {
+                      const day = getDay(date);
+                      if (day === 0 || day === 6) return true;
+                      return isBefore(date, startOfDay(new Date()));
+                    }}
+                    weekStartsOn={1}
+                    locale={de}
+                    initialFocus
+                    className={cn(
+                      "p-3 pointer-events-auto",
+                      "[&_thead_tr>th:nth-child(6)]:hidden [&_thead_tr>th:nth-child(7)]:hidden",
+                      "[&_tbody_tr>td:nth-child(6)]:hidden [&_tbody_tr>td:nth-child(7)]:hidden"
+                    )}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          </section>
+
           {/* Status */}
           <section>
             <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium mb-2">
@@ -194,73 +283,6 @@ export function RapportActionSheet({ rapport, onOpenChange, onChanged, onDelete 
                 </button>
               ))}
             </div>
-          </section>
-
-          {/* Verschieben */}
-          <section>
-            <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium mb-2 flex items-center gap-1">
-              <CalendarIcon className="h-3 w-3" /> Verschieben
-            </div>
-            <div className="grid grid-cols-3 gap-2 mb-2">
-              <button
-                type="button"
-                onClick={() => verschieben(today)}
-                disabled={busy || !istArbeitstag(today) || rapport.geplantes_datum === today}
-                className="h-12 rounded-lg border border-border bg-card hover:bg-muted disabled:opacity-40 text-xs font-medium active:scale-95 transition"
-              >
-                Heute
-              </button>
-              <button
-                type="button"
-                onClick={() => verschieben(tomorrow)}
-                disabled={busy || rapport.geplantes_datum === tomorrow}
-                className="h-12 rounded-lg border border-border bg-card hover:bg-muted disabled:opacity-40 text-xs font-medium active:scale-95 transition"
-              >
-                Morgen<br />
-                <span className="text-[10px] text-muted-foreground font-mono">
-                  {format(tomorrowDate, "d. MMM", { locale: de })}
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => verschieben(dayAfter)}
-                disabled={busy || rapport.geplantes_datum === dayAfter}
-                className="h-12 rounded-lg border border-border bg-card hover:bg-muted disabled:opacity-40 text-xs font-medium active:scale-95 transition"
-              >
-                Übermorgen<br />
-                <span className="text-[10px] text-muted-foreground font-mono">
-                  {format(dayAfterDate, "d. MMM", { locale: de })}
-                </span>
-              </button>
-            </div>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="w-full h-11 justify-start font-normal">
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  Datum wählen…
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={parseISO(rapport.geplantes_datum)}
-                  onSelect={(d) => d && verschieben(format(d, "yyyy-MM-dd"))}
-                  disabled={(date) => {
-                    const day = getDay(date);
-                    if (day === 0 || day === 6) return true;
-                    return isBefore(date, startOfDay(new Date()));
-                  }}
-                  weekStartsOn={1}
-                  locale={de}
-                  initialFocus
-                  className={cn(
-                    "p-3 pointer-events-auto",
-                    "[&_thead_tr>th:nth-child(6)]:hidden [&_thead_tr>th:nth-child(7)]:hidden",
-                    "[&_tbody_tr>td:nth-child(6)]:hidden [&_tbody_tr>td:nth-child(7)]:hidden"
-                  )}
-                />
-              </PopoverContent>
-            </Popover>
           </section>
 
           {/* Aktionen */}

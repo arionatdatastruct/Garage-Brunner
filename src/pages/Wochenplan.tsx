@@ -2,6 +2,8 @@ import { useEffect, useState, useCallback } from "react";
 import {
   DndContext,
   DragEndEvent,
+  DragStartEvent,
+  DragOverlay,
   PointerSensor,
   TouchSensor,
   useSensor,
@@ -80,7 +82,7 @@ function RapportCard({ r, onUpdate, onDelete, highlight, overdue }: { r: Rapport
 
   const style = {
     transform: CSS.Translate.toString(transform),
-    opacity: isDragging ? 0.4 : 1,
+    opacity: isDragging ? 0 : 1,
   };
 
   const startEdit = (e: React.MouseEvent) => {
@@ -294,8 +296,10 @@ function DayColumn({
       <div
         ref={setNodeRef}
         className={cn(
-          "flex-1 p-2 min-h-[200px] transition-colors",
-          isOver && "bg-primary/10",
+          "flex-1 p-2 min-h-[200px] rounded-md transition-all",
+          isOver
+            ? "bg-primary/15 ring-2 ring-primary ring-offset-1 ring-offset-background outline-dashed outline-2 outline-primary/40"
+            : "ring-0",
         )}
       >
         {rapports.map((r) => {
@@ -305,8 +309,11 @@ function DayColumn({
           );
         })}
         {rapports.length === 0 && (
-          <div className="text-[11px] text-muted-foreground/50 text-center py-8 italic">
-            Keine Aufträge
+          <div className={cn(
+            "text-[11px] text-center py-8 italic transition-colors",
+            isOver ? "text-primary font-medium not-italic" : "text-muted-foreground/50"
+          )}>
+            {isOver ? "Hier ablegen" : "Keine Aufträge"}
           </div>
         )}
       </div>
@@ -343,9 +350,13 @@ export default function Wochenplan() {
           (r) => (r.mechaniker_zuweisung ?? "").trim().toLowerCase() === mechFilter.toLowerCase(),
         );
 
+  const [activeId, setActiveId] = useState<string | null>(null);
+
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } })
+    // Etwas grösser, damit Klick (zum Öffnen) nicht versehentlich Drag startet
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    // Touch: Long-Press 180ms, dann ziehen
+    useSensor(TouchSensor, { activationConstraint: { delay: 180, tolerance: 6 } })
   );
 
   const load = useCallback(async () => {
@@ -424,13 +435,21 @@ export default function Wochenplan() {
     return () => window.removeEventListener("open-neuer-auftrag", handler);
   }, []);
 
+  const onDragStart = (e: DragStartEvent) => {
+    setActiveId(String(e.active.id));
+  };
+
   const onDragEnd = async (e: DragEndEvent) => {
+    setActiveId(null);
     const { active, over } = e;
     if (!over) return;
     const newDate = String(over.id);
     const r = rapports.find((x) => x.id === active.id);
     if (!r || r.geplantes_datum === newDate) return;
 
+    const oldDate = r.geplantes_datum;
+
+    // Optimistic update
     setRapports((prev) => prev.map((x) => x.id === r.id ? { ...x, geplantes_datum: newDate } : x));
     const { error } = await (supabase as any)
       .from("arbeitsrapporte")
@@ -439,7 +458,26 @@ export default function Wochenplan() {
     if (error) {
       toast.error("Update fehlgeschlagen");
       load();
+      return;
     }
+    // Erfolgs-Toast mit Undo
+    const label = format(parseISO(newDate), "EEE d. MMM", { locale: de });
+    toast.success(`Verschoben auf ${label}`, {
+      action: {
+        label: "Rückgängig",
+        onClick: async () => {
+          setRapports((prev) => prev.map((x) => x.id === r.id ? { ...x, geplantes_datum: oldDate } : x));
+          const { error: e2 } = await (supabase as any)
+            .from("arbeitsrapporte")
+            .update({ geplantes_datum: oldDate })
+            .eq("id", r.id);
+          if (e2) {
+            toast.error("Rückgängig fehlgeschlagen");
+            load();
+          }
+        },
+      },
+    });
   };
 
   const openDialog = (date?: Date) => {
@@ -763,7 +801,7 @@ export default function Wochenplan() {
       </div>
 
       {/* Desktop: Grid mit Drag&Drop */}
-      <DndContext sensors={sensors} onDragEnd={onDragEnd}>
+      <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
         <div className="hidden md:grid md:grid-cols-5 gap-3">
           {days.map((d) => {
             const key = format(d, "yyyy-MM-dd");
@@ -775,6 +813,32 @@ export default function Wochenplan() {
             );
           })}
         </div>
+
+        {/* DragOverlay: Karte folgt 1:1 dem Cursor (sauberer als Translate) */}
+        <DragOverlay dropAnimation={{ duration: 180, easing: "cubic-bezier(0.18, 0.67, 0.6, 1.22)" }}>
+          {activeId ? (() => {
+            const r = rapports.find((x) => x.id === activeId);
+            if (!r) return null;
+            return (
+              <div className="bg-card border-2 border-primary rounded-lg pl-3 pr-2.5 py-2.5 shadow-2xl shadow-primary/30 rotate-2 cursor-grabbing min-w-[180px] max-w-[260px]">
+                <div className="flex items-baseline justify-between gap-2 mb-1">
+                  <span className="font-mono font-bold text-[15px] tracking-tight truncate">
+                    {r.kennzeichen ?? "—"}
+                  </span>
+                  {r.mechaniker_zuweisung && (
+                    <span className="flex items-center gap-1 text-[10px] text-muted-foreground shrink-0">
+                      <span className={cn("h-1.5 w-1.5 rounded-full", MECH_DOT[r.mechaniker_zuweisung] ?? "bg-muted-foreground")} />
+                      {r.mechaniker_zuweisung}
+                    </span>
+                  )}
+                </div>
+                <div className="text-xs text-muted-foreground truncate">
+                  {r.marke ?? "Kein Fahrzeug"}
+                </div>
+              </div>
+            );
+          })() : null}
+        </DragOverlay>
       </DndContext>
 
       {/* Mobile: Action-Sheet für Karten-Aktionen */}
