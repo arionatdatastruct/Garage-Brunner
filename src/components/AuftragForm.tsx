@@ -69,7 +69,7 @@ function Section({
   title,
   children,
 }: {
-  icon: typeof Car;
+  icon: typeof Wrench;
   title: string;
   children: React.ReactNode;
 }) {
