@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { Calendar, Archive, BarChart3, Plus } from "lucide-react";
+import { Calendar, Archive, BarChart3 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { GlobalSearch } from "./GlobalSearch";
 import logo from "@/assets/garage-brunner-logo.svg";
@@ -124,18 +124,7 @@ export function AppLayout() {
         ))}
       </nav>
 
-      {/* Mobile Floating Action Button: Neuer Auftrag */}
-      {!onAuftragDetail && (
-        <button
-          type="button"
-          onClick={() => window.dispatchEvent(new CustomEvent("open-neuer-auftrag"))}
-          className="md:hidden fixed right-4 bottom-20 z-40 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 flex items-center justify-center active:scale-95 transition-transform"
-          style={{ marginBottom: "env(safe-area-inset-bottom)" }}
-          aria-label="Neuer Auftrag"
-        >
-          <Plus className="h-6 w-6" />
-        </button>
-      )}
+      {/* FAB entfernt: Auftrag erstellen nur auf PC möglich (Beleg nötig) */}
     </div>
   );
 }
