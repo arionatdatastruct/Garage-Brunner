@@ -430,13 +430,21 @@ export default function Wochenplan() {
     return () => window.removeEventListener("open-neuer-auftrag", handler);
   }, []);
 
+  const onDragStart = (e: DragStartEvent) => {
+    setActiveId(String(e.active.id));
+  };
+
   const onDragEnd = async (e: DragEndEvent) => {
+    setActiveId(null);
     const { active, over } = e;
     if (!over) return;
     const newDate = String(over.id);
     const r = rapports.find((x) => x.id === active.id);
     if (!r || r.geplantes_datum === newDate) return;
 
+    const oldDate = r.geplantes_datum;
+
+    // Optimistic update
     setRapports((prev) => prev.map((x) => x.id === r.id ? { ...x, geplantes_datum: newDate } : x));
     const { error } = await (supabase as any)
       .from("arbeitsrapporte")
@@ -445,7 +453,26 @@ export default function Wochenplan() {
     if (error) {
       toast.error("Update fehlgeschlagen");
       load();
+      return;
     }
+    // Erfolgs-Toast mit Undo
+    const label = format(parseISO(newDate), "EEE d. MMM", { locale: de });
+    toast.success(`Verschoben auf ${label}`, {
+      action: {
+        label: "Rückgängig",
+        onClick: async () => {
+          setRapports((prev) => prev.map((x) => x.id === r.id ? { ...x, geplantes_datum: oldDate } : x));
+          const { error: e2 } = await (supabase as any)
+            .from("arbeitsrapporte")
+            .update({ geplantes_datum: oldDate })
+            .eq("id", r.id);
+          if (e2) {
+            toast.error("Rückgängig fehlgeschlagen");
+            load();
+          }
+        },
+      },
+    });
   };
 
   const openDialog = (date?: Date) => {
