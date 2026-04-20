@@ -421,6 +421,74 @@ export function AuftragForm({ rapport, onSaved }: Props) {
             />
           </Field>
         </Section>
+
+        {/* Sicherheitscheck – im selben Tab */}
+        <Section icon={ShieldCheck} title="Sicherheitscheck">
+          {safetyHasRot && (
+            <div className="flex items-center gap-2 px-3 py-2 -mt-2 rounded-md bg-destructive/10 text-destructive text-xs font-medium border border-destructive/20">
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+              {safetyCounts.rot} {safetyCounts.rot === 1 ? "Mangel" : "Mängel"} festgestellt
+            </div>
+          )}
+          <div className="space-y-1">
+            {SAFETY_CHECKS.map((c) => {
+              const current = safety[c.key] ?? "";
+              return (
+                <div
+                  key={c.key}
+                  className="flex items-center justify-between gap-3 py-2 border-b border-border/50 last:border-b-0"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span className={cn("h-2.5 w-2.5 rounded-full shrink-0 transition-colors", SAFETY_DOT[current])} />
+                    <span className="text-sm truncate">{c.label}</span>
+                  </div>
+                  <div className="flex gap-1 shrink-0">
+                    {(["gruen", "gelb", "rot"] as const).map((s) => {
+                      const isActive = current === s;
+                      return (
+                        <button
+                          key={s}
+                          type="button"
+                          onClick={() => setSafetyValue(c.key, s)}
+                          aria-pressed={isActive}
+                          className={cn(
+                            "h-8 w-8 rounded-md border border-border bg-background hover:bg-muted transition flex items-center justify-center",
+                            isActive && SAFETY_BTN[s]
+                          )}
+                          title={s === "gruen" ? "OK" : s === "gelb" ? "Beobachten" : "Mangel"}
+                        >
+                          {isActive ? (
+                            <Check className="h-3.5 w-3.5" strokeWidth={3} />
+                          ) : (
+                            <span className={cn("h-2 w-2 rounded-full", SAFETY_DOT[s])} />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="flex items-center justify-between gap-3 pt-2 text-xs text-muted-foreground">
+            <span>
+              {SAFETY_CHECKS.length - safetyCounts.gruen - safetyCounts.gelb - safetyCounts.rot} offen
+            </span>
+            <div className="flex items-center gap-3 font-mono tabular-nums">
+              <span className="inline-flex items-center gap-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> {safetyCounts.gruen}
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-amber-500" /> {safetyCounts.gelb}
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-red-500" /> {safetyCounts.rot}
+              </span>
+              {safetySave === "saving" && <Loader2 className="h-3 w-3 animate-spin text-amber-500" />}
+              {safetySave === "saved" && <Check className="h-3 w-3 text-emerald-500" />}
+            </div>
+          </div>
+        </Section>
       </div>
     </div>
   );
