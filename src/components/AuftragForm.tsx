@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Check, ChevronDown, Loader2, Wrench } from "lucide-react";
+import { Check, ChevronDown, Loader2, ShieldCheck, Wrench, AlertTriangle } from "lucide-react";
 import { KATEGORIEN, parseKategorien, formatKategorien } from "@/lib/kategorien";
 import { cn } from "@/lib/utils";
 
@@ -21,12 +21,37 @@ interface Rapport {
   mechaniker_zuweisung: "Roman" | "Pascal" | null;
   auftragswert_chf: number | null;
   notizen: string | null;
+  sicherheitscheck?: Record<string, unknown> | null;
 }
 
 interface Props {
   rapport: Rapport;
   onSaved: () => void;
 }
+
+/* ---------- Sicherheitscheck-Konfig ---------- */
+const SAFETY_CHECKS = [
+  { key: "bremsen_vorne", label: "Bremsen vorne" },
+  { key: "bremsen_hinten", label: "Bremsen hinten" },
+  { key: "beleuchtung", label: "Beleuchtung" },
+  { key: "fluessigkeiten", label: "Flüssigkeitsstände" },
+  { key: "unterboden", label: "Unterboden / Auspuff" },
+] as const;
+
+type SafetyStatus = "" | "gruen" | "gelb" | "rot";
+
+const SAFETY_DOT: Record<SafetyStatus, string> = {
+  "": "bg-muted-foreground/30",
+  gruen: "bg-emerald-500",
+  gelb: "bg-amber-500",
+  rot: "bg-red-500",
+};
+
+const SAFETY_BTN: Record<Exclude<SafetyStatus, "">, string> = {
+  gruen: "bg-emerald-500 text-white border-emerald-500 shadow-sm",
+  gelb: "bg-amber-500 text-white border-amber-500 shadow-sm",
+  rot: "bg-red-500 text-white border-red-500 shadow-sm",
+};
 
 type SaveState = "idle" | "saving" | "saved";
 
