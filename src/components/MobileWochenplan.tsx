@@ -23,6 +23,8 @@ interface Rapport {
   marke: string | null;
   kundennummer: string | null;
   kunde_name: string | null;
+  kunde_telefon?: string | null;
+  fotos?: string[] | null;
 }
 
 const MECH_DOT: Record<string, string> = {
