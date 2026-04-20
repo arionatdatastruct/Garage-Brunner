@@ -145,8 +145,6 @@ export default function AuftragDetail() {
     .filter(Boolean)
     .join(" · ") || "—";
 
-  const isErledigt = rapport.status === "erledigt" || rapport.status === "archiviert";
-
   const PdfPane = () => (
     <div className="w-full h-full min-h-[60vh] overflow-y-auto pr-1">
       <BelegMitRapport rapport={rapport} />
