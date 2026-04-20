@@ -131,13 +131,7 @@ export function AuftragForm({ rapport, onSaved }: Props) {
     dirty.current = false;
   }, [rapport]);
 
-  // Validierungsfehler (live, sichtbar — blockiert auch Auto-Save)
-  const errors = {
-    plz: validators.plz(r.kunde_plz),
-    email: validators.email(r.kunde_email),
-    telefon: validators.telefon(r.kunde_telefon),
-  };
-  const hasErrors = Object.values(errors).some(Boolean);
+  const hasErrors = false;
 
   useEffect(() => {
     if (!dirty.current) return;
