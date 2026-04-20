@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Check, ChevronDown, Loader2, Car, Wrench } from "lucide-react";
+import { Check, ChevronDown, Loader2, Wrench } from "lucide-react";
 import { KATEGORIEN, parseKategorien, formatKategorien } from "@/lib/kategorien";
 import { cn } from "@/lib/utils";
 
@@ -21,17 +21,6 @@ interface Rapport {
   mechaniker_zuweisung: "Roman" | "Pascal" | null;
   auftragswert_chf: number | null;
   notizen: string | null;
-  kundennummer: string | null;
-  kunde_name: string | null;
-  kunde_ort: string | null;
-  kunde_strasse: string | null;
-  kunde_plz: string | null;
-  kunde_telefon: string | null;
-  kunde_email: string | null;
-  kennzeichen: string | null;
-  marke: string | null;
-  modell: string | null;
-  chassis_nr: string | null;
 }
 
 interface Props {
@@ -40,25 +29,6 @@ interface Props {
 }
 
 type SaveState = "idle" | "saving" | "saved";
-
-/* ---------- Validierung ---------- */
-
-const validators = {
-  plz: (v: string | null) => {
-    if (!v) return null;
-    return /^\d{4}$/.test(v.trim()) ? null : "PLZ muss 4 Ziffern haben";
-  },
-  email: (v: string | null) => {
-    if (!v) return null;
-    return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim()) ? null : "Ungültige E-Mail";
-  },
-  telefon: (v: string | null) => {
-    if (!v) return null;
-    // Erlaubt CH-Formate: +41..., 0xx xxx xx xx, mit/ohne Leerzeichen, /, -
-    const cleaned = v.replace(/[\s\-/().]/g, "");
-    return /^\+?\d{7,15}$/.test(cleaned) ? null : "Ungültige Telefonnummer";
-  },
-};
 
 /* ---------- Kompakte Field-Primitives ---------- */
 
