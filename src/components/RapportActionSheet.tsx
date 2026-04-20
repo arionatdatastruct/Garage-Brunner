@@ -7,7 +7,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import { format, addDays, parseISO, getDay, isBefore, startOfDay, startOfWeek } from "date-fns";
+import { format, addDays, parseISO, getDay, isBefore, startOfDay, startOfWeek, isSameDay } from "date-fns";
 import { de } from "date-fns/locale";
 import { naechsterWerktag, istArbeitstag } from "@/lib/arbeitszeiten";
 import { cn } from "@/lib/utils";
@@ -145,7 +145,7 @@ export function RapportActionSheet({ rapport, onOpenChange, onChanged, onDelete 
                     const iso = format(d, "yyyy-MM-dd");
                     const isCurrent = rapport.geplantes_datum === iso;
                     const isPast = isBefore(d, today);
-                    const isToday = isSameToday(d);
+                    const isToday = isSameDay(d, new Date());
                     return (
                       <button
                         key={iso}
