@@ -248,15 +248,7 @@ export function MobileWochenplan({ days, rapports, onAdd, onAction, highlightId 
                 <span className={cn("text-xs font-mono font-semibold tabular-nums px-2 py-0.5 rounded", pillColor)}>
                   {totalH.toLocaleString("de-CH", { maximumFractionDigits: 1 })}/{kap}h
                 </span>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={() => onAdd(d)}
-                  className="h-8 w-8"
-                  aria-label="Auftrag hinzufügen"
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
+                {/* Auftrag erstellen nur auf PC möglich (Beleg nötig) */}
               </div>
             </header>
 
@@ -269,13 +261,9 @@ export function MobileWochenplan({ days, rapports, onAdd, onAction, highlightId 
             {/* Aufträge */}
             <div className="p-2 space-y-2">
               {dayRapports.length === 0 ? (
-                <button
-                  type="button"
-                  onClick={() => onAdd(d)}
-                  className="w-full text-center py-6 text-xs text-muted-foreground/60 italic hover:text-foreground hover:bg-muted/40 rounded-lg transition active:scale-[0.99]"
-                >
-                  Tippen zum Hinzufügen
-                </button>
+                <div className="w-full text-center py-6 text-xs text-muted-foreground/60 italic">
+                  Keine Aufträge
+                </div>
               ) : (
                 dayRapports.map((r) => {
                   const isOverdue = r.status === "geplant" && r.geplantes_datum < todayStr;
