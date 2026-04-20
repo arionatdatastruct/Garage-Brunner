@@ -114,8 +114,14 @@
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
-  body > *:not(.preview-overlay) {
-    display: none !important;
+  /* Hide everything by default during print */
+  body * {
+    visibility: hidden !important;
+  }
+  /* Re-show the preview overlay and all its descendants */
+  .preview-overlay,
+  .preview-overlay * {
+    visibility: visible !important;
   }
   .preview-overlay {
     position: absolute !important;
