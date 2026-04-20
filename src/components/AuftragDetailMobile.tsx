@@ -26,7 +26,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { AuftragForm } from "@/components/AuftragForm";
-import { SicherheitsCheck } from "@/components/SicherheitsCheck";
 import { BelegMitRapport } from "@/components/BelegMitRapport";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -39,7 +38,6 @@ import {
   Pause,
   Play,
   Printer,
-  ShieldCheck,
   Trash2,
   Wrench,
 } from "lucide-react";
@@ -261,12 +259,12 @@ export function AuftragDetailMobile({ rapport, onChanged, onDelete, deleting }: 
           </div>
         </div>
 
-        {/* Akkordeon */}
+        {/* Akkordeon: Auftrag bearbeiten (Kategorie, Arbeit, Sicherheitscheck in einem) */}
         <Accordion type="multiple" defaultValue={[]} className="space-y-3">
           <AccordionItem value="form" className="border-0 rounded-xl bg-transparent">
             <AccordionTrigger className="px-3 py-3 rounded-xl border border-border bg-card hover:no-underline data-[state=open]:rounded-b-none">
               <span className="flex items-center gap-2 text-sm font-semibold">
-                <Wrench className="h-4 w-4 text-primary" /> Daten bearbeiten
+                <Wrench className="h-4 w-4 text-primary" /> Auftrag bearbeiten
               </span>
             </AccordionTrigger>
             <AccordionContent className="border border-t-0 border-border rounded-b-xl bg-card -mt-px">
@@ -275,24 +273,6 @@ export function AuftragDetailMobile({ rapport, onChanged, onDelete, deleting }: 
               </div>
             </AccordionContent>
           </AccordionItem>
-
-          <AccordionItem value="check" className="border-0 rounded-xl bg-transparent">
-            <AccordionTrigger className="px-3 py-3 rounded-xl border border-border bg-card hover:no-underline data-[state=open]:rounded-b-none">
-              <span className="flex items-center gap-2 text-sm font-semibold">
-                <ShieldCheck className="h-4 w-4 text-primary" /> Sicherheitscheck
-              </span>
-            </AccordionTrigger>
-            <AccordionContent className="border border-t-0 border-border rounded-b-xl bg-card -mt-px">
-              <div className="p-1">
-                <SicherheitsCheck
-                  rapportId={rapport.id}
-                  initial={rapport.sicherheitscheck}
-                  onSaved={onChanged}
-                />
-              </div>
-            </AccordionContent>
-          </AccordionItem>
-
         </Accordion>
       </div>
 

@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Check, ChevronDown, Loader2, Wrench } from "lucide-react";
+import { Check, ChevronDown, Loader2, ShieldCheck, Wrench, AlertTriangle } from "lucide-react";
 import { KATEGORIEN, parseKategorien, formatKategorien } from "@/lib/kategorien";
 import { cn } from "@/lib/utils";
 
@@ -21,12 +21,37 @@ interface Rapport {
   mechaniker_zuweisung: "Roman" | "Pascal" | null;
   auftragswert_chf: number | null;
   notizen: string | null;
+  sicherheitscheck?: Record<string, unknown> | null;
 }
 
 interface Props {
   rapport: Rapport;
   onSaved: () => void;
 }
+
+/* ---------- Sicherheitscheck-Konfig ---------- */
+const SAFETY_CHECKS = [
+  { key: "bremsen_vorne", label: "Bremsen vorne" },
+  { key: "bremsen_hinten", label: "Bremsen hinten" },
+  { key: "beleuchtung", label: "Beleuchtung" },
+  { key: "fluessigkeiten", label: "Flüssigkeitsstände" },
+  { key: "unterboden", label: "Unterboden / Auspuff" },
+] as const;
+
+type SafetyStatus = "" | "gruen" | "gelb" | "rot";
+
+const SAFETY_DOT: Record<SafetyStatus, string> = {
+  "": "bg-muted-foreground/30",
+  gruen: "bg-emerald-500",
+  gelb: "bg-amber-500",
+  rot: "bg-red-500",
+};
+
+const SAFETY_BTN: Record<Exclude<SafetyStatus, "">, string> = {
+  gruen: "bg-emerald-500 text-white border-emerald-500 shadow-sm",
+  gelb: "bg-amber-500 text-white border-amber-500 shadow-sm",
+  rot: "bg-red-500 text-white border-red-500 shadow-sm",
+};
 
 type SaveState = "idle" | "saving" | "saved";
 
@@ -90,6 +115,19 @@ export function AuftragForm({ rapport, onSaved }: Props) {
   const [r, setR] = useState(rapport);
   const [state, setState] = useState<SaveState>("idle");
 
+  // Sicherheitscheck-State (mit dem Auftrags-State vereint im UI)
+  const initSafety = (): Record<string, SafetyStatus> => {
+    const s: Record<string, SafetyStatus> = {};
+    SAFETY_CHECKS.forEach((c) => {
+      s[c.key] = (rapport.sicherheitscheck?.[c.key] as SafetyStatus) ?? "";
+    });
+    return s;
+  };
+  const [safety, setSafety] = useState<Record<string, SafetyStatus>>(initSafety);
+  const safetyDirty = useRef(false);
+  const safetyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [safetySave, setSafetySave] = useState<SaveState>("idle");
+
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dirty = useRef(false);
   // Letzte bekannte Server-Version: für optimistic concurrency.
@@ -99,7 +137,57 @@ export function AuftragForm({ rapport, onSaved }: Props) {
     setR(rapport);
     lastUpdatedAt.current = rapport.updated_at;
     dirty.current = false;
+    // Sicherheits-Daten neu syncen
+    const s: Record<string, SafetyStatus> = {};
+    SAFETY_CHECKS.forEach((c) => {
+      s[c.key] = (rapport.sicherheitscheck?.[c.key] as SafetyStatus) ?? "";
+    });
+    setSafety(s);
+    safetyDirty.current = false;
   }, [rapport]);
+
+  // Auto-Save Sicherheitscheck
+  useEffect(() => {
+    if (!safetyDirty.current) return;
+    if (safetyTimer.current) clearTimeout(safetyTimer.current);
+    setSafetySave("saving");
+    safetyTimer.current = setTimeout(async () => {
+      try {
+        const { error } = await (supabase as any)
+          .from("arbeitsrapporte")
+          .update({ sicherheitscheck: safety })
+          .eq("id", rapport.id);
+        if (error) throw error;
+        safetyDirty.current = false;
+        setSafetySave("saved");
+        onSaved();
+        setTimeout(() => setSafetySave("idle"), 1500);
+      } catch (e: any) {
+        setSafetySave("idle");
+        toast.error(e.message ?? "Fehler beim Speichern");
+      }
+    }, 600);
+    return () => {
+      if (safetyTimer.current) clearTimeout(safetyTimer.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [safety]);
+
+  const setSafetyValue = (key: string, status: SafetyStatus) => {
+    safetyDirty.current = true;
+    setSafety((prev) => ({ ...prev, [key]: prev[key] === status ? "" : status }));
+  };
+
+  const safetyCounts = Object.values(safety).reduce(
+    (a, v) => {
+      if (v === "rot") a.rot++;
+      else if (v === "gelb") a.gelb++;
+      else if (v === "gruen") a.gruen++;
+      return a;
+    },
+    { gruen: 0, gelb: 0, rot: 0 }
+  );
+  const safetyHasRot = safetyCounts.rot > 0;
 
   const hasErrors = false;
 
@@ -332,6 +420,74 @@ export function AuftragForm({ rapport, onSaved }: Props) {
               placeholder="Interne Bemerkungen…"
             />
           </Field>
+        </Section>
+
+        {/* Sicherheitscheck – im selben Tab */}
+        <Section icon={ShieldCheck} title="Sicherheitscheck">
+          {safetyHasRot && (
+            <div className="flex items-center gap-2 px-3 py-2 -mt-2 rounded-md bg-destructive/10 text-destructive text-xs font-medium border border-destructive/20">
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+              {safetyCounts.rot} {safetyCounts.rot === 1 ? "Mangel" : "Mängel"} festgestellt
+            </div>
+          )}
+          <div className="space-y-1">
+            {SAFETY_CHECKS.map((c) => {
+              const current = safety[c.key] ?? "";
+              return (
+                <div
+                  key={c.key}
+                  className="flex items-center justify-between gap-3 py-2 border-b border-border/50 last:border-b-0"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span className={cn("h-2.5 w-2.5 rounded-full shrink-0 transition-colors", SAFETY_DOT[current])} />
+                    <span className="text-sm truncate">{c.label}</span>
+                  </div>
+                  <div className="flex gap-1 shrink-0">
+                    {(["gruen", "gelb", "rot"] as const).map((s) => {
+                      const isActive = current === s;
+                      return (
+                        <button
+                          key={s}
+                          type="button"
+                          onClick={() => setSafetyValue(c.key, s)}
+                          aria-pressed={isActive}
+                          className={cn(
+                            "h-8 w-8 rounded-md border border-border bg-background hover:bg-muted transition flex items-center justify-center",
+                            isActive && SAFETY_BTN[s]
+                          )}
+                          title={s === "gruen" ? "OK" : s === "gelb" ? "Beobachten" : "Mangel"}
+                        >
+                          {isActive ? (
+                            <Check className="h-3.5 w-3.5" strokeWidth={3} />
+                          ) : (
+                            <span className={cn("h-2 w-2 rounded-full", SAFETY_DOT[s])} />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="flex items-center justify-between gap-3 pt-2 text-xs text-muted-foreground">
+            <span>
+              {SAFETY_CHECKS.length - safetyCounts.gruen - safetyCounts.gelb - safetyCounts.rot} offen
+            </span>
+            <div className="flex items-center gap-3 font-mono tabular-nums">
+              <span className="inline-flex items-center gap-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> {safetyCounts.gruen}
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-amber-500" /> {safetyCounts.gelb}
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-red-500" /> {safetyCounts.rot}
+              </span>
+              {safetySave === "saving" && <Loader2 className="h-3 w-3 animate-spin text-amber-500" />}
+              {safetySave === "saved" && <Check className="h-3 w-3 text-emerald-500" />}
+            </div>
+          </div>
         </Section>
       </div>
     </div>
