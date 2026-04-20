@@ -5,8 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AuftragStatusBar } from "@/components/AuftragStatusBar";
 import { AuftragForm } from "@/components/AuftragForm";
 import { SicherheitsCheck } from "@/components/SicherheitsCheck";
-import { RapportUebersicht } from "@/components/RapportUebersicht";
-import { BelegPreview } from "@/components/BelegPreview";
+import { BelegMitRapport } from "@/components/BelegMitRapport";
 import { AuftragDetailMobile } from "@/components/AuftragDetailMobile";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
@@ -149,9 +148,8 @@ export default function AuftragDetail() {
   const isErledigt = rapport.status === "erledigt" || rapport.status === "archiviert";
 
   const PdfPane = () => (
-    <div className="w-full h-full min-h-[60vh] flex flex-col gap-3">
-      {isErledigt && <RapportUebersicht rapport={rapport} />}
-      <BelegPreview pdfUrl={rapport.pdf_url} />
+    <div className="w-full h-full min-h-[60vh] overflow-y-auto pr-1">
+      <BelegMitRapport rapport={rapport} />
     </div>
   );
 
