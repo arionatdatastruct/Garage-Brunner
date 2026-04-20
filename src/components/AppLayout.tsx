@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { Calendar, Archive, BarChart3, Plus } from "lucide-react";
+import { Calendar, Archive, BarChart3 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { GlobalSearch } from "./GlobalSearch";
 import logo from "@/assets/garage-brunner-logo.svg";
