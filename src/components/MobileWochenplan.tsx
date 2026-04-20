@@ -49,10 +49,13 @@ interface CardProps {
   highlight?: boolean;
   overdue?: boolean;
   onAction: (r: Rapport) => void;
+  onChanged?: () => void;
 }
 
-function MobileCard({ r, highlight, overdue, onAction }: CardProps) {
+function MobileCard({ r, highlight, overdue, onAction, onChanged }: CardProps) {
   const navigate = useNavigate();
+  const { isRunning, elapsedSec } = useTimer();
+  const running = isRunning(r.id);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressed = useRef(false);
 
@@ -90,6 +93,7 @@ function MobileCard({ r, highlight, overdue, onAction }: CardProps) {
         "relative bg-card border border-border rounded-xl p-3 pl-4 transition-all select-none",
         "active:scale-[0.98] active:bg-muted",
         overdue && "border-destructive/60 bg-destructive/5",
+        running && "ring-2 ring-emerald-500/60 border-emerald-500/40",
         highlight && "ring-2 ring-primary border-primary animate-pulse"
       )}
       style={{ touchAction: "manipulation" }}
@@ -98,7 +102,7 @@ function MobileCard({ r, highlight, overdue, onAction }: CardProps) {
       <div
         className={cn(
           "absolute left-0 top-2 bottom-2 w-1 rounded-r",
-          STATUS_BAR[r.status] ?? "bg-muted-foreground/30"
+          running ? "bg-emerald-500" : (STATUS_BAR[r.status] ?? "bg-muted-foreground/30")
         )}
         aria-hidden
       />
@@ -120,18 +124,25 @@ function MobileCard({ r, highlight, overdue, onAction }: CardProps) {
           )}
         </div>
         <div className="flex items-center gap-1 shrink-0">
-          <span
-            className={cn(
-              "text-sm font-mono font-semibold tabular-nums px-2 py-0.5 rounded",
-              r.arbeitszeit_stunden && r.arbeitszeit_stunden > 0
-                ? "bg-muted text-foreground"
-                : "bg-muted/50 text-muted-foreground/60"
-            )}
-          >
-            {r.arbeitszeit_stunden && r.arbeitszeit_stunden > 0
-              ? `${r.arbeitszeit_stunden.toLocaleString("de-CH", { maximumFractionDigits: 2 })}h`
-              : "— h"}
-          </span>
+          {running ? (
+            <span className="text-xs font-mono font-semibold tabular-nums px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+              ▶ {formatTimer(elapsedSec)}
+            </span>
+          ) : (
+            <span
+              className={cn(
+                "text-sm font-mono font-semibold tabular-nums px-2 py-0.5 rounded",
+                r.arbeitszeit_stunden && r.arbeitszeit_stunden > 0
+                  ? "bg-muted text-foreground"
+                  : "bg-muted/50 text-muted-foreground/60"
+              )}
+            >
+              {r.arbeitszeit_stunden && r.arbeitszeit_stunden > 0
+                ? `${r.arbeitszeit_stunden.toLocaleString("de-CH", { maximumFractionDigits: 2 })}h`
+                : "— h"}
+            </span>
+          )}
+          <TimerButton rapportId={r.id} label={r.kennzeichen ?? undefined} onStopped={onChanged} />
           <button
             type="button"
             onClick={(e) => {
@@ -148,11 +159,27 @@ function MobileCard({ r, highlight, overdue, onAction }: CardProps) {
         </div>
       </div>
 
-      {/* Zeile 2: Marke · Kunde */}
-      <div className="text-xs text-muted-foreground truncate">
-        {r.marke ?? "Kein Fahrzeug"}
-        {r.kunde_name && <span className="mx-1.5">·</span>}
-        {r.kunde_name}
+      {/* Zeile 2: Marke · Kunde + Quick Actions (Anrufen + Foto) */}
+      <div className="flex items-center gap-2">
+        <div className="text-xs text-muted-foreground truncate flex-1 min-w-0">
+          {r.marke ?? "Kein Fahrzeug"}
+          {r.kunde_name && <span className="mx-1.5">·</span>}
+          {r.kunde_name}
+        </div>
+        <div className="flex items-center gap-0.5 shrink-0">
+          {r.kunde_telefon && (
+            <a
+              href={`tel:${r.kunde_telefon}`}
+              onClick={(e) => e.stopPropagation()}
+              onPointerDown={(e) => e.stopPropagation()}
+              aria-label={`Anrufen ${r.kunde_telefon}`}
+              className="h-9 w-9 flex items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-primary active:scale-90 transition"
+            >
+              <Phone className="h-4 w-4" />
+            </a>
+          )}
+          <FotoQuickAdd rapportId={r.id} fotos={r.fotos} onUploaded={onChanged} />
+        </div>
       </div>
 
       {/* Zeile 3: Badges + Status-Pill */}
