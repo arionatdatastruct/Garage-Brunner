@@ -796,7 +796,6 @@ export default function Wochenplan() {
           rapports={visibleRapports}
           onAdd={(d) => openDialog(d)}
           onAction={(r) => setActionRapport(r)}
-          onChanged={load}
           highlightId={highlightId}
         />
       </div>
