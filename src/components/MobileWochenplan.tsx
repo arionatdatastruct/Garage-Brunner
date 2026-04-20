@@ -176,11 +176,10 @@ interface Props {
   rapports: Rapport[];
   onAdd: (date?: Date) => void;
   onAction: (r: Rapport) => void;
-  onChanged?: () => void;
   highlightId?: string | null;
 }
 
-export function MobileWochenplan({ days, rapports, onAdd, onAction, onChanged, highlightId }: Props) {
+export function MobileWochenplan({ days, rapports, onAdd, onAction, highlightId }: Props) {
   const todayStr = format(new Date(), "yyyy-MM-dd");
 
   return (
@@ -274,7 +273,6 @@ export function MobileWochenplan({ days, rapports, onAdd, onAction, onChanged, h
                       highlight={highlightId === r.id}
                       overdue={isOverdue}
                       onAction={onAction}
-                      onChanged={onChanged}
                     />
                   );
                 })

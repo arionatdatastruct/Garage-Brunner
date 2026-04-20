@@ -44,8 +44,6 @@ import {
 import { cn } from "@/lib/utils";
 import { ErledigenDialog } from "@/components/ErledigenDialog";
 import { useWakeLock } from "@/hooks/useWakeLock";
-import { TimerButton } from "@/components/TimerButton";
-import { FotoQuickAdd } from "@/components/FotoQuickAdd";
 
 type Status = "geplant" | "in_arbeit" | "erledigt" | "archiviert";
 
