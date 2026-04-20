@@ -5,7 +5,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { AuthGate } from "@/components/AuthGate";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { TimerProvider } from "@/contexts/TimerContext";
 import Wochenplan from "./pages/Wochenplan";
 import Archiv from "./pages/Archiv";
 import Statistiken from "./pages/Statistiken";
@@ -22,9 +21,8 @@ const App = () => (
       <TooltipProvider>
         <Toaster position="top-center" mobileOffset={{ bottom: "5rem" }} />
         <AuthGate>
-          <TimerProvider>
-            <BrowserRouter>
-              <Routes>
+          <BrowserRouter>
+            <Routes>
               <Route element={<AppLayout />}>
                 <Route path="/" element={<Wochenplan />} />
                 <Route path="/archiv" element={<Archiv />} />
@@ -34,9 +32,8 @@ const App = () => (
                 <Route path="/fahrzeug/:kennzeichen" element={<FahrzeugDetail />} />
               </Route>
               <Route path="*" element={<NotFound />} />
-              </Routes>
-            </BrowserRouter>
-          </TimerProvider>
+            </Routes>
+          </BrowserRouter>
         </AuthGate>
       </TooltipProvider>
     </QueryClientProvider>

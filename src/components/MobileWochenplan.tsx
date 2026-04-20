@@ -5,10 +5,7 @@ import { kapazitaetFuer, auslastungsFarbe } from "@/lib/arbeitszeiten";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { KategorieBadges } from "@/components/KategorieBadges";
-import { MoreVertical, Phone } from "lucide-react";
-import { FotoQuickAdd } from "@/components/FotoQuickAdd";
-import { TimerButton } from "@/components/TimerButton";
-import { useTimer, formatTimer } from "@/contexts/TimerContext";
+import { MoreVertical } from "lucide-react";
 
 interface Rapport {
   id: string;
@@ -23,8 +20,6 @@ interface Rapport {
   marke: string | null;
   kundennummer: string | null;
   kunde_name: string | null;
-  kunde_telefon?: string | null;
-  fotos?: string[] | null;
 }
 
 const MECH_DOT: Record<string, string> = {
