@@ -34,8 +34,9 @@ const App = () => (
                 <Route path="/fahrzeug/:kennzeichen" element={<FahrzeugDetail />} />
               </Route>
               <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
+              </Routes>
+            </BrowserRouter>
+          </TimerProvider>
         </AuthGate>
       </TooltipProvider>
     </QueryClientProvider>
