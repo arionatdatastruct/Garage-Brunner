@@ -296,8 +296,10 @@ function DayColumn({
       <div
         ref={setNodeRef}
         className={cn(
-          "flex-1 p-2 min-h-[200px] transition-colors",
-          isOver && "bg-primary/10",
+          "flex-1 p-2 min-h-[200px] rounded-md transition-all",
+          isOver
+            ? "bg-primary/15 ring-2 ring-primary ring-offset-1 ring-offset-background outline-dashed outline-2 outline-primary/40"
+            : "ring-0",
         )}
       >
         {rapports.map((r) => {
@@ -307,8 +309,11 @@ function DayColumn({
           );
         })}
         {rapports.length === 0 && (
-          <div className="text-[11px] text-muted-foreground/50 text-center py-8 italic">
-            Keine Aufträge
+          <div className={cn(
+            "text-[11px] text-center py-8 italic transition-colors",
+            isOver ? "text-primary font-medium not-italic" : "text-muted-foreground/50"
+          )}>
+            {isOver ? "Hier ablegen" : "Keine Aufträge"}
           </div>
         )}
       </div>
