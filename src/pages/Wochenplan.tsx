@@ -801,7 +801,7 @@ export default function Wochenplan() {
       </div>
 
       {/* Desktop: Grid mit Drag&Drop */}
-      <DndContext sensors={sensors} onDragEnd={onDragEnd}>
+      <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
         <div className="hidden md:grid md:grid-cols-5 gap-3">
           {days.map((d) => {
             const key = format(d, "yyyy-MM-dd");
@@ -813,6 +813,32 @@ export default function Wochenplan() {
             );
           })}
         </div>
+
+        {/* DragOverlay: Karte folgt 1:1 dem Cursor (sauberer als Translate) */}
+        <DragOverlay dropAnimation={{ duration: 180, easing: "cubic-bezier(0.18, 0.67, 0.6, 1.22)" }}>
+          {activeId ? (() => {
+            const r = rapports.find((x) => x.id === activeId);
+            if (!r) return null;
+            return (
+              <div className="bg-card border-2 border-primary rounded-lg pl-3 pr-2.5 py-2.5 shadow-2xl shadow-primary/30 rotate-2 cursor-grabbing min-w-[180px] max-w-[260px]">
+                <div className="flex items-baseline justify-between gap-2 mb-1">
+                  <span className="font-mono font-bold text-[15px] tracking-tight truncate">
+                    {r.kennzeichen ?? "—"}
+                  </span>
+                  {r.mechaniker_zuweisung && (
+                    <span className="flex items-center gap-1 text-[10px] text-muted-foreground shrink-0">
+                      <span className={cn("h-1.5 w-1.5 rounded-full", MECH_DOT[r.mechaniker_zuweisung] ?? "bg-muted-foreground")} />
+                      {r.mechaniker_zuweisung}
+                    </span>
+                  )}
+                </div>
+                <div className="text-xs text-muted-foreground truncate">
+                  {r.marke ?? "Kein Fahrzeug"}
+                </div>
+              </div>
+            );
+          })() : null}
+        </DragOverlay>
       </DndContext>
 
       {/* Mobile: Action-Sheet für Karten-Aktionen */}
