@@ -1,12 +1,14 @@
-import { useState, useRef } from "react";
-import { format, addDays, isSameDay, parseISO } from "date-fns";
+import { useRef } from "react";
+import { format, isSameDay } from "date-fns";
 import { de } from "date-fns/locale";
 import { kapazitaetFuer, auslastungsFarbe } from "@/lib/arbeitszeiten";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { KategorieBadges } from "@/components/KategorieBadges";
-import { MoreVertical } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { MoreVertical, Phone } from "lucide-react";
+import { FotoQuickAdd } from "@/components/FotoQuickAdd";
+import { TimerButton } from "@/components/TimerButton";
+import { useTimer, formatTimer } from "@/contexts/TimerContext";
 
 interface Rapport {
   id: string;
