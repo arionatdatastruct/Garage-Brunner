@@ -5,7 +5,7 @@ import { kapazitaetFuer, auslastungsFarbe } from "@/lib/arbeitszeiten";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { KategorieBadges } from "@/components/KategorieBadges";
-import { Plus, MoreVertical } from "lucide-react";
+import { MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface Rapport {
