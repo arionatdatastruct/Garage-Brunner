@@ -49,7 +49,8 @@ export function RapportUebersicht({ rapport }: Props) {
   const checks = (rapport.sicherheitscheck as Record<string, string>) || {};
 
   return (
-    <Card className="p-5 space-y-4 print:shadow-none print:border-0">
+    <div className="preview-overlay">
+    <Card className="p-5 space-y-4 print:shadow-none print:border-0 a4-paper preview-section">
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="text-xs uppercase tracking-wide text-muted-foreground">
@@ -159,5 +160,6 @@ export function RapportUebersicht({ rapport }: Props) {
         </div>
       )}
     </Card>
+    </div>
   );
 }
