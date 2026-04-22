@@ -6,10 +6,20 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2, FileText, ExternalLink, Banknote, Wrench, Car } from "lucide-react";
 import { kategorienLabels } from "@/lib/kategorien";
 
+interface Kunde {
+  id: string;
+  kundennummer: string | null;
+  name: string | null;
+  ort: string | null;
+  strasse: string | null;
+  plz: string | null;
+  telefon: string | null;
+  email: string | null;
+}
+
 interface Rapport {
   id: string;
   rapport_nummer: string | null;
-  auftragsnummer: string | null;
   status: string;
   geplantes_datum: string;
   pdf_url: string | null;
@@ -17,16 +27,11 @@ interface Rapport {
   arbeitszeit_stunden: number | null;
   auftragswert_chf: number | null;
   kategorie: string | null;
-  kennzeichen: string | null;
-  marke: string | null;
-  modell: string | null;
-  kundennummer: string | null;
-  kunde_name: string | null;
-  kunde_ort: string | null;
-  kunde_strasse: string | null;
-  kunde_plz: string | null;
-  kunde_telefon: string | null;
-  kunde_email: string | null;
+  fahrzeug?: {
+    kennzeichen: string | null;
+    marke: string | null;
+    modell: string | null;
+  } | null;
 }
 
 const chf = (n: number) =>
@@ -34,6 +39,7 @@ const chf = (n: number) =>
 
 export default function KundeDetail() {
   const { nummer } = useParams();
+  const [kunde, setKunde] = useState<Kunde | null>(null);
   const [rows, setRows] = useState<Rapport[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -41,20 +47,51 @@ export default function KundeDetail() {
     if (!nummer) return;
     (async () => {
       setLoading(true);
-      // nummer kann echte Kundennummer ODER URL-encoded Name sein (Fallback)
       const decoded = decodeURIComponent(nummer);
-      const { data } = await (supabase as any)
-        .from("arbeitsrapporte")
+
+      // 1. Kunde finden (via kundennummer ODER name)
+      const { data: kundeData } = await (supabase as any)
+        .from("kunden")
         .select("*")
-        .or(`kundennummer.eq.${decoded},kunde_name.eq.${decoded}`)
+        .or(`kundennummer.eq.${decoded},name.eq.${decoded}`)
+        .limit(1)
+        .maybeSingle();
+
+      if (!kundeData) {
+        setKunde(null);
+        setRows([]);
+        setLoading(false);
+        return;
+      }
+      setKunde(kundeData as Kunde);
+
+      // 2. Alle Fahrzeuge dieses Kunden
+      const { data: fzData } = await (supabase as any)
+        .from("fahrzeuge")
+        .select("id")
+        .eq("kunde_id", kundeData.id);
+      const fzIds = (fzData ?? []).map((f: { id: string }) => f.id);
+
+      if (fzIds.length === 0) {
+        setRows([]);
+        setLoading(false);
+        return;
+      }
+
+      // 3. Rapporte zu diesen Fahrzeugen
+      const { data: rapData } = await (supabase as any)
+        .from("arbeitsrapporte")
+        .select(
+          "id, rapport_nummer, status, geplantes_datum, pdf_url, mechaniker_zuweisung, arbeitszeit_stunden, auftragswert_chf, kategorie, fahrzeug:fahrzeuge(kennzeichen, marke, modell)"
+        )
+        .in("fahrzeug_id", fzIds)
         .order("geplantes_datum", { ascending: false })
         .limit(500);
-      setRows((data ?? []) as Rapport[]);
+
+      setRows((rapData ?? []) as Rapport[]);
       setLoading(false);
     })();
   }, [nummer]);
-
-  const kunde = rows[0];
 
   const stats = useMemo(() => {
     const umsatz = rows.reduce((s, r) => s + (r.auftragswert_chf ?? 0), 0);
@@ -65,17 +102,18 @@ export default function KundeDetail() {
   const fahrzeuge = useMemo(() => {
     const map = new Map<string, { kennzeichen: string; marke: string | null; modell: string | null; anzahl: number; letztes: string }>();
     for (const r of rows) {
-      if (!r.kennzeichen) continue;
-      const key = r.kennzeichen.toUpperCase();
+      const k = r.fahrzeug?.kennzeichen;
+      if (!k) continue;
+      const key = k.toUpperCase();
       const ex = map.get(key);
       if (ex) {
         ex.anzahl += 1;
         if (r.geplantes_datum > ex.letztes) ex.letztes = r.geplantes_datum;
       } else {
         map.set(key, {
-          kennzeichen: r.kennzeichen,
-          marke: r.marke,
-          modell: r.modell,
+          kennzeichen: k,
+          marke: r.fahrzeug?.marke ?? null,
+          modell: r.fahrzeug?.modell ?? null,
           anzahl: 1,
           letztes: r.geplantes_datum,
         });
@@ -109,15 +147,15 @@ export default function KundeDetail() {
         <Link to="/statistiken" className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1">
           <ArrowLeft className="h-3 w-3" /> Statistiken
         </Link>
-        <h1 className="text-2xl font-bold mt-1">{kunde.kunde_name || "Kunde"}</h1>
+        <h1 className="text-2xl font-bold mt-1">{kunde.name || "Kunde"}</h1>
         <div className="text-sm text-muted-foreground flex flex-wrap gap-2 mt-1">
           {kunde.kundennummer && <span className="font-mono">#{kunde.kundennummer}</span>}
-          {kunde.kunde_strasse && <span>· {kunde.kunde_strasse}</span>}
-          {(kunde.kunde_plz || kunde.kunde_ort) && (
-            <span>· {[kunde.kunde_plz, kunde.kunde_ort].filter(Boolean).join(" ")}</span>
+          {kunde.strasse && <span>· {kunde.strasse}</span>}
+          {(kunde.plz || kunde.ort) && (
+            <span>· {[kunde.plz, kunde.ort].filter(Boolean).join(" ")}</span>
           )}
-          {kunde.kunde_telefon && <span>· {kunde.kunde_telefon}</span>}
-          {kunde.kunde_email && <span>· {kunde.kunde_email}</span>}
+          {kunde.telefon && <span>· {kunde.telefon}</span>}
+          {kunde.email && <span>· {kunde.email}</span>}
         </div>
       </div>
 
@@ -187,10 +225,10 @@ export default function KundeDetail() {
                 {rows.map((r) => (
                   <tr key={r.id} className="border-t border-border hover:bg-muted/30">
                     <td className="px-3 py-2 font-mono text-xs whitespace-nowrap">{new Date(r.geplantes_datum).toLocaleDateString("de-CH")}</td>
-                    <td className="px-3 py-2 font-mono text-xs">{r.auftragsnummer || r.rapport_nummer || "—"}</td>
+                    <td className="px-3 py-2 font-mono text-xs">{r.rapport_nummer || "—"}</td>
                     <td className="px-3 py-2">
-                      <div className="font-mono">{r.kennzeichen || "—"}</div>
-                      <div className="text-xs text-muted-foreground">{[r.marke, r.modell].filter(Boolean).join(" ")}</div>
+                      <div className="font-mono">{r.fahrzeug?.kennzeichen || "—"}</div>
+                      <div className="text-xs text-muted-foreground">{[r.fahrzeug?.marke, r.fahrzeug?.modell].filter(Boolean).join(" ")}</div>
                     </td>
                     <td className="px-3 py-2 text-xs">{kategorienLabels(r.kategorie) || "—"}</td>
                     <td className="px-3 py-2 text-xs">{r.mechaniker_zuweisung || "—"}</td>
