@@ -28,26 +28,9 @@ interface Position {
   sort_order: number;
 }
 
-interface Rapport {
-  id: string;
-  rapport_nummer: string | null;
-  status: "geplant" | "in_arbeit" | "erledigt" | "archiviert";
-  geplantes_datum: string;
-  pdf_url: string | null;
-  mechaniker_zuweisung: string | null;
-  arbeitszeit_stunden: number | null;
-  auftragswert_chf: number | null;
-  kategorie: string | null;
-  fahrzeug?: {
-    kennzeichen: string | null;
-    marke: string | null;
-    modell: string | null;
-    kunde?: {
-      name: string | null;
-      kundennummer: string | null;
-      ort: string | null;
-    } | null;
-  } | null;
+import type { RapportListItem } from "@/lib/rapport-relations";
+
+interface Rapport extends RapportListItem {
   positionen?: Position[] | null;
 }
 

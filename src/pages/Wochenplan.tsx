@@ -46,22 +46,12 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { AlertTriangle } from "lucide-react";
 
-interface Rapport {
-  id: string;
-  rapport_nummer: string | null;
-  geplantes_datum: string;
-  status: string;
-  mechaniker_zuweisung: string | null;
-  arbeitszeit_stunden: number | null;
-  kategorie: string | null;
-  fahrzeug_id?: string | null;
-  fahrzeug?: {
-    kennzeichen: string | null;
-    marke: string | null;
-    modell: string | null;
-    kunde?: { name: string | null; kundennummer: string | null } | null;
-  } | null;
-}
+import type { RapportListItem } from "@/lib/rapport-relations";
+
+// Page-spezifischer Alias auf den shared type — verhindert Snapshot-Felder
+// per Compile-Time, weil `RapportListItem` nur die normalisierten JOIN-
+// Felder kennt.
+type Rapport = RapportListItem;
 
 const MECH_DOT: Record<string, string> = {
   Roman: "bg-blue-500",
