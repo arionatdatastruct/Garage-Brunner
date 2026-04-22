@@ -2,11 +2,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ExternalLink, FileText, Loader2, TriangleAlert } from "lucide-react";
 import { Document, Page, pdfjs } from "react-pdf";
+// Lokaler Worker via Vite — kein CDN, keine Network-Blockaden in Sandbox/Prod.
+// `?url` gibt die gebundelte Asset-URL zurück, die mit der pdfjs-Version übereinstimmt.
+import workerSrc from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
-// Pin the worker to the EXACT API version bundled inside react-pdf
-// (pdfjs.version), not the project's installed pdfjs-dist, otherwise
-// PDF.js refuses to render with "API version does not match Worker version".
-pdfjs.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
 
 interface BelegPreviewProps {
   pdfUrl: string | null;
@@ -27,9 +27,17 @@ function getStorageTarget(pdfUrl: string) {
       };
     }
   }
-
   return null;
 }
+
+// iOS Safari: pdf.js ist instabil → direkt iframe (nativer PDF-Viewer)
+const isIosSafari = (() => {
+  if (typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent;
+  return /iP(ad|hone|od)/.test(ua) && /WebKit/.test(ua) && !/CriOS|FxiOS|EdgiOS/.test(ua);
+})();
+
+type RenderMode = "pdfjs" | "iframe";
 
 export function BelegPreview({ pdfUrl }: BelegPreviewProps) {
   const previewRef = useRef<HTMLDivElement | null>(null);
@@ -39,6 +47,7 @@ export function BelegPreview({ pdfUrl }: BelegPreviewProps) {
   const [previewWidth, setPreviewWidth] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [mode, setMode] = useState<RenderMode>(isIosSafari ? "iframe" : "pdfjs");
 
   const storageTarget = useMemo(() => {
     if (!pdfUrl) return null;
@@ -53,13 +62,10 @@ export function BelegPreview({ pdfUrl }: BelegPreviewProps) {
   useEffect(() => {
     const element = previewRef.current;
     if (!element || !pdfData) return;
-
     const updateWidth = () => setPreviewWidth(element.clientWidth);
     updateWidth();
-
     const observer = new ResizeObserver(updateWidth);
     observer.observe(element);
-
     return () => observer.disconnect();
   }, [pdfData]);
 
@@ -82,36 +88,25 @@ export function BelegPreview({ pdfUrl }: BelegPreviewProps) {
 
       try {
         let pdfBlob: Blob | null = null;
-
-        // Wenn die URL auf Supabase Storage zeigt, IMMER über authenticated
-        // download() laden — die in der DB gespeicherten "public"-URLs
-        // funktionieren nicht, weil der Bucket privat ist (gibt 404 JSON zurück).
         if (storageTarget) {
           const { data, error: downloadError } = await supabase.storage
             .from(storageTarget.bucket)
             .download(storageTarget.path);
-
           if (downloadError || !data) {
             throw downloadError ?? new Error("Beleg konnte nicht geladen werden");
           }
           pdfBlob = data;
         } else {
-          // Externe URL → direkter fetch
           const response = await fetch(pdfUrl);
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-          }
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
           pdfBlob = await response.blob();
         }
 
         if (!active || !pdfBlob) return;
 
-        // Validieren, dass es wirklich ein PDF ist (erste 4 Bytes = "%PDF")
         const headerBuffer = await pdfBlob.slice(0, 4).arrayBuffer();
         const header = new TextDecoder().decode(headerBuffer);
-        if (header !== "%PDF") {
-          throw new Error("Datei ist kein gültiges PDF");
-        }
+        if (header !== "%PDF") throw new Error("Datei ist kein gültiges PDF");
 
         const normalizedBlob = pdfBlob.type === "application/pdf"
           ? pdfBlob
@@ -132,19 +127,14 @@ export function BelegPreview({ pdfUrl }: BelegPreviewProps) {
             : "Der Original-Beleg konnte nicht geladen werden."
         );
       } finally {
-        if (active) {
-          setLoading(false);
-        }
+        if (active) setLoading(false);
       }
     }
 
     void loadPdf();
-
     return () => {
       active = false;
-      if (nextBlobUrl) {
-        URL.revokeObjectURL(nextBlobUrl);
-      }
+      if (nextBlobUrl) URL.revokeObjectURL(nextBlobUrl);
     };
   }, [pdfUrl, storageTarget]);
 
@@ -165,22 +155,46 @@ export function BelegPreview({ pdfUrl }: BelegPreviewProps) {
         <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
           <FileText className="h-3 w-3" /> Original-Beleg
         </span>
-        {openHref && (
-          <a
-            href={openHref}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-          >
-            <ExternalLink className="h-3 w-3" /> Neuer Tab
-          </a>
-        )}
+        <div className="flex items-center gap-3">
+          {mode === "pdfjs" && blobUrl && (
+            <button
+              type="button"
+              onClick={() => setMode("iframe")}
+              className="text-xs text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
+              title="Falls die Vorschau leer bleibt"
+            >
+              Browser-Viewer
+            </button>
+          )}
+          {openHref && (
+            <a
+              href={openHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+            >
+              <ExternalLink className="h-3 w-3" /> Neuer Tab
+            </a>
+          )}
+        </div>
       </div>
 
       {loading ? (
         <div className="flex min-h-[55vh] flex-1 items-center justify-center gap-2 rounded-md border border-border bg-muted text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" /> Beleg wird geladen…
         </div>
+      ) : !blobUrl ? (
+        <div className="flex min-h-[40vh] flex-col items-center justify-center gap-2 rounded-md border border-dashed border-border px-6 text-center text-muted-foreground">
+          <TriangleAlert className="h-8 w-8 text-destructive" />
+          <p className="text-sm">Der Beleg konnte nicht geladen werden.</p>
+          {error && <p className="break-all text-[11px] text-muted-foreground/80">{error}</p>}
+        </div>
+      ) : mode === "iframe" ? (
+        <iframe
+          src={blobUrl}
+          title="Original-Beleg"
+          className="flex-1 min-h-[70vh] w-full rounded-md border border-border bg-background"
+        />
       ) : documentFile ? (
         <div
           ref={previewRef}
@@ -193,9 +207,17 @@ export function BelegPreview({ pdfUrl }: BelegPreviewProps) {
               <div className="flex min-h-[40vh] flex-col items-center justify-center gap-2 rounded-md border border-dashed border-border bg-muted px-6 text-center text-muted-foreground">
                 <TriangleAlert className="h-8 w-8 text-destructive" />
                 <p className="text-sm">Die PDF konnte nicht gerendert werden.</p>
-                <p className="text-xs">Bitte öffne den Beleg im neuen Tab.</p>
+                <button
+                  type="button"
+                  onClick={() => setMode("iframe")}
+                  className="text-xs text-primary hover:underline"
+                >
+                  Mit Browser-Viewer öffnen
+                </button>
               </div>
             }
+            onLoadError={() => setMode("iframe")}
+            onSourceError={() => setMode("iframe")}
             onLoadSuccess={({ numPages }) => setPageCount(numPages)}
           >
             <div className="flex flex-col items-center gap-3">
@@ -215,14 +237,7 @@ export function BelegPreview({ pdfUrl }: BelegPreviewProps) {
             </div>
           </Document>
         </div>
-      ) : (
-        <div className="flex min-h-[40vh] flex-col items-center justify-center gap-2 rounded-md border border-dashed border-border px-6 text-center text-muted-foreground">
-          <TriangleAlert className="h-8 w-8 text-destructive" />
-          <p className="text-sm">Der Beleg konnte im Browser nicht direkt angezeigt werden.</p>
-          <p className="text-xs">Bitte öffne ihn im neuen Tab. Falls ein Werbeblocker aktiv ist, erlaube Supabase-Dateien.</p>
-          {error && <p className="break-all text-[11px] text-muted-foreground/80">{error}</p>}
-        </div>
-      )}
+      ) : null}
     </div>
   );
 }
