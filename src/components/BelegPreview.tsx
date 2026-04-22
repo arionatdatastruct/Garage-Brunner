@@ -191,6 +191,15 @@ export function BelegPreview({ pdfUrl }: BelegPreviewProps) {
               Browser-Viewer
             </button>
           )}
+          {dataUrl && (
+            <a
+              href={dataUrl}
+              download={fileName}
+              className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+            >
+              <Download className="h-3 w-3" /> Download
+            </a>
+          )}
           {openHref && (
             <a
               href={openHref}
@@ -216,7 +225,7 @@ export function BelegPreview({ pdfUrl }: BelegPreviewProps) {
         </div>
       ) : mode === "iframe" ? (
         <iframe
-          src={blobUrl}
+          src={iframeSrc}
           title="Original-Beleg"
           className="flex-1 min-h-[70vh] w-full rounded-md border border-border bg-background"
         />
