@@ -28,6 +28,7 @@ interface Props {
 }
 
 const EINHEITEN_MATERIAL = ["Stk", "Liter", "m", "Set", "kg", "Pauschal"];
+const POSITIONEN_EVENT = "rapport-positionen-changed";
 const DEFAULT_EINHEIT = "Stk";
 
 export function PositionenEditor({ rapportId }: Props) {

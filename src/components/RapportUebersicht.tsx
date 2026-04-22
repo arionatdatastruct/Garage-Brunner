@@ -45,6 +45,8 @@ const CHECK_LABELS: Record<string, string> = {
   unterboden: "Unterboden / Auspuff",
 };
 
+const POSITIONEN_EVENT = "rapport-positionen-changed";
+
 function statusIcon(v: string) {
   if (v === "ok" || v === "gruen" || v === "gelb")
     return <CheckCircle2 className="h-4 w-4 text-emerald-500" />;
