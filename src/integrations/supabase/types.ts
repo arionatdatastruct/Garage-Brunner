@@ -167,6 +167,7 @@ export type Database = {
           beschreibung: string | null
           created_at: string
           einheit: string | null
+          erledigt: boolean
           id: string
           menge: number | null
           rapport_id: string
@@ -177,6 +178,7 @@ export type Database = {
           beschreibung?: string | null
           created_at?: string
           einheit?: string | null
+          erledigt?: boolean
           id?: string
           menge?: number | null
           rapport_id: string
@@ -187,6 +189,7 @@ export type Database = {
           beschreibung?: string | null
           created_at?: string
           einheit?: string | null
+          erledigt?: boolean
           id?: string
           menge?: number | null
           rapport_id?: string

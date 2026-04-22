@@ -19,6 +19,7 @@ export interface Position {
   beschreibung: string | null;
   menge: number | null;
   einheit: string | null;
+  erledigt: boolean;
   sort_order: number;
 }
 
@@ -27,12 +28,7 @@ interface Props {
 }
 
 const EINHEITEN_MATERIAL = ["Stk", "Liter", "m", "Set", "kg", "Pauschal"];
-
-// Convention für Arbeit-Checkliste:
-//   menge = 1  → erledigt (checked)
-//   menge = 0  → offen (unchecked)
-//   einheit   → "Check" (Marker, damit DB-Spalten gefüllt sind)
-const ARBEIT_EINHEIT = "Check";
+const DEFAULT_EINHEIT = "Stk";
 
 export function PositionenEditor({ rapportId }: Props) {
   const [positionen, setPositionen] = useState<Position[]>([]);
@@ -64,8 +60,8 @@ export function PositionenEditor({ rapportId }: Props) {
       Math.max(0, ...positionen.filter((p) => p.typ === typ).map((p) => p.sort_order)) + 1;
     const payload =
       typ === "arbeit"
-        ? { rapport_id: rapportId, typ, beschreibung: "", menge: 0, einheit: ARBEIT_EINHEIT, sort_order }
-        : { rapport_id: rapportId, typ, beschreibung: "", menge: 1, einheit: "Stk", sort_order };
+        ? { rapport_id: rapportId, typ, beschreibung: "", erledigt: false, sort_order }
+        : { rapport_id: rapportId, typ, beschreibung: "", menge: 1, einheit: DEFAULT_EINHEIT, sort_order };
     const { data, error } = await (supabase as any)
       .from("rapport_positionen")
       .insert(payload)
@@ -152,19 +148,26 @@ function ArbeitSektion({
           <p className="text-xs text-muted-foreground italic px-1">Noch keine Aufgabe.</p>
         )}
         {positionen.map((p) => {
-          const checked = (p.menge ?? 0) > 0;
+          const checked = !!p.erledigt;
           return (
             <div
               key={p.id}
-              className="rounded-lg border border-border bg-background/50 p-2.5 flex items-center gap-2"
+              className={cn(
+                "rounded-lg border p-2.5 flex items-center gap-2 transition-colors",
+                checked
+                  ? "border-emerald-500/40 bg-emerald-500/10"
+                  : "border-border bg-background/50",
+              )}
             >
               <Checkbox
                 checked={checked}
-                onCheckedChange={(v) =>
-                  onUpdate(p.id, { menge: v ? 1 : 0, einheit: ARBEIT_EINHEIT })
-                }
+                onCheckedChange={(v) => onUpdate(p.id, { erledigt: !!v })}
                 aria-label="Aufgabe erledigt"
-                className="h-5 w-5"
+                className={cn(
+                  "h-6 w-6 shrink-0",
+                  checked &&
+                    "border-emerald-500 bg-emerald-500 text-white data-[state=checked]:bg-emerald-500 data-[state=checked]:text-white",
+                )}
               />
               <Input
                 defaultValue={p.beschreibung ?? ""}
@@ -174,7 +177,7 @@ function ArbeitSektion({
                 }}
                 placeholder="Aufgabe"
                 className={cn(
-                  "h-10 bg-transparent flex-1",
+                  "h-10 bg-transparent flex-1 border-0 focus-visible:ring-0 px-2",
                   checked && "line-through text-muted-foreground",
                 )}
               />
@@ -182,7 +185,7 @@ function ArbeitSektion({
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="h-10 w-10 text-muted-foreground hover:text-destructive shrink-0"
+                className="h-9 w-9 text-muted-foreground hover:text-destructive shrink-0"
                 onClick={() => onRemove(p.id)}
                 aria-label="Aufgabe löschen"
               >
@@ -227,61 +230,67 @@ function MaterialSektion({
         {positionen.length === 0 && (
           <p className="text-xs text-muted-foreground italic px-1">Noch keine Position.</p>
         )}
-        {positionen.map((p) => (
-          <div
-            key={p.id}
-            className="rounded-lg border border-border bg-background/50 p-2.5 space-y-2"
-          >
-            <Input
-              defaultValue={p.beschreibung ?? ""}
-              onBlur={(e) => {
-                const v = e.target.value;
-                if (v !== (p.beschreibung ?? "")) onUpdate(p.id, { beschreibung: v });
-              }}
-              placeholder="Beschreibung"
-              className="h-10 bg-transparent"
-            />
-            <div className="flex items-center gap-2">
+        {positionen.map((p) => {
+          // Fallback to default unit so the Select always has a valid value
+          const einheit = p.einheit && EINHEITEN_MATERIAL.includes(p.einheit)
+            ? p.einheit
+            : DEFAULT_EINHEIT;
+          return (
+            <div
+              key={p.id}
+              className="rounded-lg border border-border bg-background/50 p-2.5 space-y-2"
+            >
               <Input
-                type="number"
-                step="0.25"
-                min="0"
-                defaultValue={p.menge ?? ""}
+                defaultValue={p.beschreibung ?? ""}
                 onBlur={(e) => {
-                  const v = e.target.value === "" ? null : Number(e.target.value);
-                  if (v !== p.menge) onUpdate(p.id, { menge: v });
+                  const v = e.target.value;
+                  if (v !== (p.beschreibung ?? "")) onUpdate(p.id, { beschreibung: v });
                 }}
-                className="h-10 w-24 font-mono tabular-nums"
-                placeholder="Menge"
+                placeholder="Beschreibung"
+                className="h-10 bg-transparent"
               />
-              <Select
-                value={p.einheit ?? ""}
-                onValueChange={(v) => onUpdate(p.id, { einheit: v })}
-              >
-                <SelectTrigger className="h-10 w-28">
-                  <SelectValue placeholder="Einheit" />
-                </SelectTrigger>
-                <SelectContent>
-                  {EINHEITEN_MATERIAL.map((e) => (
-                    <SelectItem key={e} value={e}>
-                      {e}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-10 w-10 ml-auto text-muted-foreground hover:text-destructive"
-                onClick={() => onRemove(p.id)}
-                aria-label="Position löschen"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  step="0.25"
+                  min="0"
+                  defaultValue={p.menge ?? ""}
+                  onBlur={(e) => {
+                    const v = e.target.value === "" ? null : Number(e.target.value);
+                    if (v !== p.menge) onUpdate(p.id, { menge: v });
+                  }}
+                  className="h-10 w-24 font-mono tabular-nums"
+                  placeholder="Menge"
+                />
+                <Select
+                  value={einheit}
+                  onValueChange={(v) => onUpdate(p.id, { einheit: v })}
+                >
+                  <SelectTrigger className="h-10 w-28">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {EINHEITEN_MATERIAL.map((e) => (
+                      <SelectItem key={e} value={e}>
+                        {e}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-10 w-10 ml-auto text-muted-foreground hover:text-destructive"
+                  onClick={() => onRemove(p.id)}
+                  aria-label="Position löschen"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
       <Button
         type="button"

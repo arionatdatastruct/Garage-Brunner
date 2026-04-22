@@ -29,6 +29,7 @@ interface Position {
   beschreibung: string | null;
   menge: number | null;
   einheit: string | null;
+  erledigt: boolean;
   sort_order: number;
 }
 
@@ -61,7 +62,7 @@ export function RapportUebersicht({ rapport }: Props) {
     (async () => {
       const { data } = await (supabase as any)
         .from("rapport_positionen")
-        .select("id, typ, beschreibung, menge, einheit, sort_order")
+        .select("id, typ, beschreibung, menge, einheit, erledigt, sort_order")
         .eq("rapport_id", rapport.id)
         .order("typ")
         .order("sort_order");
@@ -163,7 +164,7 @@ export function RapportUebersicht({ rapport }: Props) {
             </div>
             <ul className="space-y-1 text-sm">
               {arbeit.map((p) => {
-                const done = (p.menge ?? 0) > 0;
+                const done = !!p.erledigt;
                 return (
                   <li key={p.id} className="flex items-center gap-2">
                     {done ? (
