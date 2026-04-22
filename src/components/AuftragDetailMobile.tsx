@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Maximize2, Minimize2, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Accordion,
@@ -27,6 +26,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { AuftragForm } from "@/components/AuftragForm";
 import { BelegMitRapport } from "@/components/BelegMitRapport";
+import { FotoHinzufuegen } from "@/components/FotoHinzufuegen";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -36,6 +36,7 @@ import {
   Loader2,
   MoreVertical,
   Pause,
+  Phone,
   Play,
   Printer,
   Trash2,
@@ -111,7 +112,6 @@ export function AuftragDetailMobile({ rapport, onChanged, onDelete, deleting }: 
   const [erledigenRapport, setErledigenRapport] = useState<any>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [belegExpanded, setBelegExpanded] = useState(false);
 
   const isErledigt = rapport.status === "erledigt" || rapport.status === "archiviert";
   const sCfg = STATUS_CFG[rapport.status];
@@ -157,114 +157,106 @@ export function AuftragDetailMobile({ rapport, onChanged, onDelete, deleting }: 
 
   return (
     <div className="md:hidden flex flex-col min-h-screen">
-      {/* Kompakter Top-Bar (nicht sticky – AppLayout-Header genügt) */}
-      <header className="flex items-center gap-2 px-3 py-2 border-b border-border bg-card">
-        <Link
-          to="/"
-          className="h-10 w-10 -ml-1 flex items-center justify-center rounded-md hover:bg-muted text-muted-foreground active:scale-95 transition"
-          aria-label="Zurück"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </Link>
-        <div className="flex-1 min-w-0">
-          <div className="font-mono font-bold text-base truncate leading-tight">
-            {rapport.kennzeichen ?? "—"}
+      {/* Top-Bar mit GROSSEM Kennzeichen & Kundenname */}
+      <header className="px-3 pt-2 pb-3 border-b border-border bg-card">
+        <div className="flex items-start gap-2">
+          <Link
+            to="/"
+            className="h-12 w-12 -ml-1 flex items-center justify-center rounded-md hover:bg-muted text-muted-foreground active:scale-95 transition shrink-0"
+            aria-label="Zurück"
+          >
+            <ArrowLeft className="h-6 w-6" />
+          </Link>
+          <div className="flex-1 min-w-0 pt-0.5">
+            <div className="font-mono font-bold text-2xl tracking-tight leading-none truncate">
+              {rapport.kennzeichen ?? "—"}
+            </div>
+            <div className="text-base font-semibold mt-1 truncate">
+              {rapport.kunde_name ?? "—"}
+            </div>
+            <div className="text-xs text-muted-foreground truncate mt-0.5">
+              {[rapport.marke, rapport.modell].filter(Boolean).join(" ") || "—"}
+            </div>
           </div>
-          <div className="text-[11px] text-muted-foreground truncate">
-            {[rapport.marke, rapport.modell].filter(Boolean).join(" ") || "—"}
-            {rapport.kunde_name && ` · ${rapport.kunde_name}`}
-          </div>
-        </div>
-        {/* Status-Pill (tap zum Ändern) */}
-        <DropdownMenu open={statusOpen} onOpenChange={setStatusOpen}>
-          <DropdownMenuTrigger asChild>
-            <button
-              type="button"
-              disabled={busy}
-              className={cn(
-                "inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-semibold active:scale-95 transition shrink-0",
-                sCfg.cls
-              )}
-            >
-              <span className={cn("h-1.5 w-1.5 rounded-full", sCfg.dot)} />
-              {sCfg.label}
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-44">
-            {(["geplant", "in_arbeit"] as Status[]).map((s) => (
-              <DropdownMenuItem
-                key={s}
-                disabled={rapport.status === s}
-                onClick={() => setStatus(s)}
+          <DropdownMenu open={statusOpen} onOpenChange={setStatusOpen}>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                disabled={busy}
+                className={cn(
+                  "inline-flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold active:scale-95 transition shrink-0 self-start mt-0.5",
+                  sCfg.cls
+                )}
               >
-                {s === "geplant" ? <Pause className="h-4 w-4 mr-2" /> : <Play className="h-4 w-4 mr-2" />}
-                {STATUS_CFG[s].label}
+                <span className={cn("h-1.5 w-1.5 rounded-full", sCfg.dot)} />
+                {sCfg.label}
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-44">
+              {(["geplant", "in_arbeit"] as Status[]).map((s) => (
+                <DropdownMenuItem
+                  key={s}
+                  disabled={rapport.status === s}
+                  onClick={() => setStatus(s)}
+                >
+                  {s === "geplant" ? <Pause className="h-4 w-4 mr-2" /> : <Play className="h-4 w-4 mr-2" />}
+                  {STATUS_CFG[s].label}
+                </DropdownMenuItem>
+              ))}
+              <DropdownMenuItem disabled={isErledigt} onClick={openErledigen}>
+                <CheckCircle2 className="h-4 w-4 mr-2" />
+                Erledigen…
               </DropdownMenuItem>
-            ))}
-            <DropdownMenuItem disabled={isErledigt} onClick={openErledigen}>
-              <CheckCircle2 className="h-4 w-4 mr-2" />
-              Erledigen…
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </header>
 
       {/* Inhalt scrollbar */}
       <div className="flex-1 px-3 pt-3 pb-28 space-y-3">
-        {/* Mini-Meta-Zeile (Datum / Stunden / Telefon) */}
+        {/* Mini-Meta-Zeile */}
         <div className="flex items-center gap-2 text-xs">
-          <span className="font-mono px-2 py-1 rounded bg-muted">
+          <span className="font-mono px-2 py-1.5 rounded bg-muted">
             📅 {rapport.geplantes_datum}
           </span>
-          <span className="font-mono px-2 py-1 rounded bg-muted tabular-nums">
+          <span className="font-mono px-2 py-1.5 rounded bg-muted tabular-nums">
             ⏱ {rapport.arbeitszeit_stunden ?? "—"}h
           </span>
           {rapport.kunde_telefon && (
             <a
               href={`tel:${rapport.kunde_telefon}`}
-              className="ml-auto inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary font-medium active:scale-95 transition"
+              className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 text-primary font-medium active:scale-95 transition"
             >
-              📞 Anrufen
+              <Phone className="h-3.5 w-3.5" /> Anrufen
             </a>
           )}
         </div>
 
+        {/* Foto hinzufügen — gross & gelb */}
+        <FotoHinzufuegen
+          rapportId={rapport.id}
+          currentFotos={rapport.fotos}
+          onUploaded={onChanged}
+        />
 
-        {/* PROMINENT: Beleg + Rapport-Übersicht – immer sichtbar, expandierbar */}
-        <div className="rounded-xl border-2 border-primary/30 bg-card overflow-hidden">
-          <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-primary/5">
-            <span className="flex items-center gap-2 text-sm font-semibold">
-              <FileText className="h-4 w-4 text-primary" />
-              Beleg & Rapport
-            </span>
-            <div className="flex items-center gap-1">
-              {rapport.pdf_url && (
-                <a
-                  href={rapport.pdf_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="h-8 w-8 flex items-center justify-center rounded-md hover:bg-muted text-muted-foreground active:scale-95"
-                  aria-label="In neuem Tab öffnen"
-                >
-                  <ExternalLink className="h-4 w-4" />
-                </a>
-              )}
-              <button
-                type="button"
-                onClick={() => setBelegExpanded((v) => !v)}
-                className="h-8 w-8 flex items-center justify-center rounded-md hover:bg-muted text-muted-foreground active:scale-95"
-                aria-label={belegExpanded ? "Verkleinern" : "Vergrössern"}
+        {/* Foto-Thumbs (falls vorhanden) */}
+        {rapport.fotos && rapport.fotos.length > 0 && (
+          <div className="flex gap-2 overflow-x-auto pb-1 -mx-3 px-3">
+            {rapport.fotos.map((url, i) => (
+              <a
+                key={i}
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="shrink-0 h-16 w-16 rounded-md overflow-hidden border border-border bg-muted"
               >
-                {belegExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-              </button>
-            </div>
+                <img src={url} alt={`Foto ${i + 1}`} className="h-full w-full object-cover" />
+              </a>
+            ))}
           </div>
-          <div className={cn("p-2", belegExpanded ? "" : "max-h-[65vh] overflow-y-auto")}>
-            <BelegMitRapport rapport={rapport} />
-          </div>
-        </div>
+        )}
 
-        {/* Akkordeon: Auftrag bearbeiten (Kategorie, Arbeit, Sicherheitscheck in einem) */}
+        {/* Auftrag bearbeiten — Akkordeon, default offen */}
         <Accordion type="multiple" defaultValue={["form"]} className="space-y-3">
           <AccordionItem value="form" className="border-0 rounded-xl bg-transparent">
             <AccordionTrigger className="px-3 py-3 rounded-xl border border-border bg-card hover:no-underline data-[state=open]:rounded-b-none">
@@ -275,6 +267,20 @@ export function AuftragDetailMobile({ rapport, onChanged, onDelete, deleting }: 
             <AccordionContent className="border border-t-0 border-border rounded-b-xl bg-card -mt-px">
               <div className="p-1">
                 <AuftragForm rapport={rapport} onSaved={onChanged} />
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+
+          {/* Original-Beleg — Akkordeon ganz unten, default ZU */}
+          <AccordionItem value="beleg" className="border-0 rounded-xl bg-transparent">
+            <AccordionTrigger className="px-3 py-3 rounded-xl border border-border bg-card hover:no-underline data-[state=open]:rounded-b-none">
+              <span className="flex items-center gap-2 text-sm font-semibold">
+                <FileText className="h-4 w-4 text-primary" /> Original-Beleg prüfen
+              </span>
+            </AccordionTrigger>
+            <AccordionContent className="border border-t-0 border-border rounded-b-xl bg-card -mt-px">
+              <div className="p-2">
+                <BelegMitRapport rapport={rapport} />
               </div>
             </AccordionContent>
           </AccordionItem>
@@ -326,7 +332,6 @@ export function AuftragDetailMobile({ rapport, onChanged, onDelete, deleting }: 
         </DropdownMenu>
       </div>
 
-      {/* Erledigen-Dialog */}
       {erledigenRapport && (
         <ErledigenDialog
           open={erledigenOpen}
@@ -336,7 +341,6 @@ export function AuftragDetailMobile({ rapport, onChanged, onDelete, deleting }: 
         />
       )}
 
-      {/* Löschen-Dialog */}
       <AlertDialog open={confirmDelete} onOpenChange={(o) => !o && !deleting && setConfirmDelete(false)}>
         <AlertDialogContent>
           <AlertDialogHeader>
