@@ -31,7 +31,6 @@ interface Position {
 interface Rapport {
   id: string;
   rapport_nummer: string | null;
-  auftragsnummer: string | null;
   status: "geplant" | "in_arbeit" | "erledigt" | "archiviert";
   geplantes_datum: string;
   pdf_url: string | null;
@@ -39,12 +38,16 @@ interface Rapport {
   arbeitszeit_stunden: number | null;
   auftragswert_chf: number | null;
   kategorie: string | null;
-  kennzeichen: string | null;
-  marke: string | null;
-  modell: string | null;
-  kundennummer: string | null;
-  kunde_name: string | null;
-  kunde_ort: string | null;
+  fahrzeug?: {
+    kennzeichen: string | null;
+    marke: string | null;
+    modell: string | null;
+    kunde?: {
+      name: string | null;
+      kundennummer: string | null;
+      ort: string | null;
+    } | null;
+  } | null;
   positionen?: Position[] | null;
 }
 
@@ -60,13 +63,13 @@ const SORT_LABELS: Record<SortKey, string> = {
   kennzeichen: "Kennzeichen",
 };
 
-const sortFieldOf = (k: SortKey): keyof Rapport => ({
-  datum: "geplantes_datum",
-  umsatz: "auftragswert_chf",
-  stunden: "arbeitszeit_stunden",
-  kunde: "kunde_name",
-  kennzeichen: "kennzeichen",
-} as const)[k];
+// Hilfs-Accessoren auf die JOIN-Felder
+const kennz = (r: Rapport) => r.fahrzeug?.kennzeichen ?? null;
+const marke = (r: Rapport) => r.fahrzeug?.marke ?? null;
+const modell = (r: Rapport) => r.fahrzeug?.modell ?? null;
+const kdName = (r: Rapport) => r.fahrzeug?.kunde?.name ?? null;
+const kdNr = (r: Rapport) => r.fahrzeug?.kunde?.kundennummer ?? null;
+const kdOrt = (r: Rapport) => r.fahrzeug?.kunde?.ort ?? null;
 
 interface ChipProps {
   label: string;
@@ -124,7 +127,9 @@ export default function Archiv() {
     setLoading(true);
     const { data, error } = await (supabase as any)
       .from("arbeitsrapporte")
-      .select("id, rapport_nummer, auftragsnummer, status, geplantes_datum, pdf_url, mechaniker_zuweisung, arbeitszeit_stunden, auftragswert_chf, kategorie, kennzeichen, marke, modell, kundennummer, kunde_name, kunde_ort, positionen:rapport_positionen(beschreibung, typ, menge, einheit, sort_order)")
+      .select(
+        "id, rapport_nummer, status, geplantes_datum, pdf_url, mechaniker_zuweisung, arbeitszeit_stunden, auftragswert_chf, kategorie, fahrzeug:fahrzeuge(kennzeichen, marke, modell, kunde:kunden(name, kundennummer, ort)), positionen:rapport_positionen(beschreibung, typ, menge, einheit, sort_order)"
+      )
       .in("status", ["erledigt", "archiviert"])
       .order("geplantes_datum", { ascending: false })
       .limit(500);
@@ -159,8 +164,8 @@ export default function Archiv() {
         .map((p) => p.beschreibung ?? "")
         .join(" ");
       const hay = [
-        r.kennzeichen, r.marke, r.modell, r.kunde_name,
-        r.kundennummer, r.kunde_ort, r.rapport_nummer, r.auftragsnummer,
+        kennz(r), marke(r), modell(r), kdName(r),
+        kdNr(r), kdOrt(r), r.rapport_nummer,
         positionenText,
       ].filter(Boolean).join(" ").toLowerCase();
       return hay.includes(term);
@@ -169,11 +174,19 @@ export default function Archiv() {
 
   const sorted = useMemo(() => {
     const arr = [...filtered];
-    const field = sortFieldOf(sortKey);
     const dir = sortDir === "asc" ? 1 : -1;
+    const getVal = (r: Rapport): string | number | null => {
+      switch (sortKey) {
+        case "datum": return r.geplantes_datum;
+        case "umsatz": return r.auftragswert_chf;
+        case "stunden": return r.arbeitszeit_stunden;
+        case "kunde": return kdName(r);
+        case "kennzeichen": return kennz(r);
+      }
+    };
     arr.sort((a, b) => {
-      const av = a[field];
-      const bv = b[field];
+      const av = getVal(a);
+      const bv = getVal(b);
       if (av == null && bv == null) return 0;
       if (av == null) return 1;
       if (bv == null) return -1;
@@ -212,11 +225,11 @@ export default function Archiv() {
   const [exporting, setExporting] = useState<null | "csv" | "zip">(null);
 
   const exportCsv = () => {
-    const header = ["Datum", "Rapport-Nr", "Auftragsnr", "Status", "Kennzeichen", "Marke", "Modell", "Kundennr", "Kunde", "Ort", "Mechaniker", "Stunden", "CHF"];
+    const header = ["Datum", "Rapport-Nr", "Status", "Kennzeichen", "Marke", "Modell", "Kundennr", "Kunde", "Ort", "Mechaniker", "Stunden", "CHF"];
     const rowsCsv = sorted.map((r) => [
-      r.geplantes_datum, r.rapport_nummer ?? "", r.auftragsnummer ?? "", r.status,
-      r.kennzeichen ?? "", r.marke ?? "", r.modell ?? "", r.kundennummer ?? "",
-      r.kunde_name ?? "", r.kunde_ort ?? "", r.mechaniker_zuweisung ?? "",
+      r.geplantes_datum, r.rapport_nummer ?? "", r.status,
+      kennz(r) ?? "", marke(r) ?? "", modell(r) ?? "", kdNr(r) ?? "",
+      kdName(r) ?? "", kdOrt(r) ?? "", r.mechaniker_zuweisung ?? "",
       r.arbeitszeit_stunden ?? "", r.auftragswert_chf ?? "",
     ]);
     const escape = (v: any) => {
@@ -244,7 +257,7 @@ export default function Archiv() {
           if (!blob) return;
           const buf = await blob.arrayBuffer();
           const safe = (s: string) => s.replace(/[^a-z0-9-_]+/gi, "_");
-          const name = `${r.geplantes_datum}_${safe(r.kennzeichen ?? "")}_${safe(r.auftragsnummer ?? r.rapport_nummer ?? r.id.slice(0, 8))}.pdf`;
+          const name = `${r.geplantes_datum}_${safe(kennz(r) ?? "")}_${safe(r.rapport_nummer ?? r.id.slice(0, 8))}.pdf`;
           zip.file(name, buf); ok++;
         } catch { /* skip */ }
       }));
@@ -457,15 +470,15 @@ export default function Archiv() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-baseline gap-2 flex-wrap">
                     <span className="font-mono font-bold text-base md:text-lg tracking-tight">
-                      {r.kennzeichen || "—"}
+                      {kennz(r) || "—"}
                     </span>
                     <span className="text-xs text-muted-foreground truncate">
-                      {[r.marke, r.modell].filter(Boolean).join(" ")}
+                      {[marke(r), modell(r)].filter(Boolean).join(" ")}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5 flex-wrap">
-                    <span className="truncate">{r.kunde_name || "—"}</span>
-                    {r.kunde_ort && <><span>·</span><span className="truncate">{r.kunde_ort}</span></>}
+                    <span className="truncate">{kdName(r) || "—"}</span>
+                    {kdOrt(r) && <><span>·</span><span className="truncate">{kdOrt(r)}</span></>}
                     {r.mechaniker_zuweisung && <><span>·</span><span>{r.mechaniker_zuweisung}</span></>}
                   </div>
                   <div className="mt-1.5 hidden sm:block">

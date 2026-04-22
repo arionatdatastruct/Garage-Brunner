@@ -11,15 +11,19 @@ import { cn } from "@/lib/utils";
 
 interface Row {
   id: string;
-  kundennummer: string | null;
-  kunde_name: string | null;
-  kunde_ort: string | null;
   auftragswert_chf: number | null;
   arbeitszeit_stunden: number | null;
   mechaniker_zuweisung: string | null;
   kategorie: string | null;
   status: string;
   geplantes_datum: string;
+  fahrzeug?: {
+    kunde?: {
+      name: string | null;
+      kundennummer: string | null;
+      ort: string | null;
+    } | null;
+  } | null;
 }
 
 interface KundenAgg {
@@ -39,6 +43,11 @@ const chf = (n: number) =>
 const chfShort = (n: number) =>
   n >= 1000 ? `${(n / 1000).toLocaleString("de-CH", { maximumFractionDigits: 1 })}k` : n.toFixed(0);
 
+// Hilfs-Accessoren auf JOIN-Felder
+const kdName = (r: Row) => r.fahrzeug?.kunde?.name ?? null;
+const kdNr = (r: Row) => r.fahrzeug?.kunde?.kundennummer ?? null;
+const kdOrt = (r: Row) => r.fahrzeug?.kunde?.ort ?? null;
+
 export default function Statistiken() {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,7 +56,7 @@ export default function Statistiken() {
     (async () => {
       const { data } = await (supabase as any)
         .from("arbeitsrapporte")
-        .select("id, kundennummer, kunde_name, kunde_ort, auftragswert_chf, arbeitszeit_stunden, mechaniker_zuweisung, kategorie, status, geplantes_datum")
+        .select("id, auftragswert_chf, arbeitszeit_stunden, mechaniker_zuweisung, kategorie, status, geplantes_datum, fahrzeug:fahrzeuge(kunde:kunden(name, kundennummer, ort))")
         .order("geplantes_datum", { ascending: false })
         .limit(1000);
       setRows((data ?? []) as Row[]);
@@ -59,14 +68,14 @@ export default function Statistiken() {
     const total = rows.length;
     const umsatz = rows.reduce((s, r) => s + (r.auftragswert_chf ?? 0), 0);
     const stunden = rows.reduce((s, r) => s + (r.arbeitszeit_stunden ?? 0), 0);
-    const kunden = new Set(rows.map((r) => r.kundennummer || r.kunde_name).filter(Boolean)).size;
+    const kunden = new Set(rows.map((r) => kdNr(r) || kdName(r)).filter(Boolean)).size;
     return { total, umsatz, stunden, kunden };
   }, [rows]);
 
   const topKunden = useMemo<KundenAgg[]>(() => {
     const map = new Map<string, KundenAgg>();
     for (const r of rows) {
-      const key = (r.kundennummer || r.kunde_name || "").trim();
+      const key = (kdNr(r) || kdName(r) || "").trim();
       if (!key) continue;
       const existing = map.get(key);
       if (existing) {
@@ -79,9 +88,9 @@ export default function Statistiken() {
       } else {
         map.set(key, {
           key,
-          kundennummer: r.kundennummer,
-          kunde_name: r.kunde_name,
-          kunde_ort: r.kunde_ort,
+          kundennummer: kdNr(r),
+          kunde_name: kdName(r),
+          kunde_ort: kdOrt(r),
           anzahl: 1,
           umsatz: r.auftragswert_chf ?? 0,
           letzterAuftragId: r.id,

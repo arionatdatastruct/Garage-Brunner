@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import {
   ArrowLeft,
   Loader2,
@@ -19,10 +18,23 @@ import { format, parseISO } from "date-fns";
 import { de } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 
+interface Fahrzeug {
+  id: string;
+  kennzeichen: string | null;
+  marke: string | null;
+  modell: string | null;
+  chassis_nr: string | null;
+  kunde?: {
+    id: string;
+    name: string | null;
+    kundennummer: string | null;
+    telefon: string | null;
+  } | null;
+}
+
 interface Rapport {
   id: string;
   rapport_nummer: string | null;
-  auftragsnummer: string | null;
   status: string;
   geplantes_datum: string;
   pdf_url: string | null;
@@ -30,15 +42,7 @@ interface Rapport {
   arbeitszeit_stunden: number | null;
   auftragswert_chf: number | null;
   kategorie: string | null;
-  arbeit_beschreibung: string | null;
   notizen: string | null;
-  kennzeichen: string | null;
-  marke: string | null;
-  modell: string | null;
-  chassis_nr: string | null;
-  kundennummer: string | null;
-  kunde_name: string | null;
-  kunde_telefon: string | null;
 }
 
 const chf = (n: number) =>
@@ -53,6 +57,7 @@ const STATUS_CLS: Record<string, string> = {
 
 export default function FahrzeugDetail() {
   const { kennzeichen } = useParams();
+  const [fahrzeug, setFahrzeug] = useState<Fahrzeug | null>(null);
   const [rows, setRows] = useState<Rapport[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -61,20 +66,36 @@ export default function FahrzeugDetail() {
     (async () => {
       setLoading(true);
       const decoded = decodeURIComponent(kennzeichen).toUpperCase();
+
+      // 1. Fahrzeug finden
+      const { data: fzData } = await (supabase as any)
+        .from("fahrzeuge")
+        .select("id, kennzeichen, marke, modell, chassis_nr, kunde:kunden(id, name, kundennummer, telefon)")
+        .ilike("kennzeichen", decoded)
+        .limit(1)
+        .maybeSingle();
+
+      if (!fzData) {
+        setFahrzeug(null);
+        setRows([]);
+        setLoading(false);
+        return;
+      }
+      setFahrzeug(fzData as Fahrzeug);
+
+      // 2. Rapporte zu diesem Fahrzeug
       const { data } = await (supabase as any)
         .from("arbeitsrapporte")
         .select(
-          "id, rapport_nummer, auftragsnummer, status, geplantes_datum, pdf_url, mechaniker_zuweisung, arbeitszeit_stunden, auftragswert_chf, kategorie, arbeit_beschreibung, notizen, kennzeichen, marke, modell, chassis_nr, kundennummer, kunde_name, kunde_telefon"
+          "id, rapport_nummer, status, geplantes_datum, pdf_url, mechaniker_zuweisung, arbeitszeit_stunden, auftragswert_chf, kategorie, notizen"
         )
-        .ilike("kennzeichen", decoded)
+        .eq("fahrzeug_id", fzData.id)
         .order("geplantes_datum", { ascending: false })
         .limit(500);
       setRows((data ?? []) as Rapport[]);
       setLoading(false);
     })();
   }, [kennzeichen]);
-
-  const fahrzeug = rows[0];
 
   const stats = useMemo(() => {
     const umsatz = rows.reduce((s, r) => s + (r.auftragswert_chf ?? 0), 0);
@@ -102,6 +123,8 @@ export default function FahrzeugDetail() {
     );
   }
 
+  const kunde = fahrzeug.kunde;
+
   return (
     <div className="p-4 md:p-6 max-w-6xl mx-auto space-y-5">
       <div>
@@ -122,28 +145,28 @@ export default function FahrzeugDetail() {
             Chassis: {fahrzeug.chassis_nr}
           </div>
         )}
-        {fahrzeug.kunde_name && (
+        {kunde?.name && (
           <div className="text-sm mt-2 flex items-center gap-2">
             <User className="h-3.5 w-3.5 text-muted-foreground" />
-            {fahrzeug.kundennummer ? (
+            {kunde.kundennummer ? (
               <Link
-                to={`/kunde/${encodeURIComponent(fahrzeug.kundennummer)}`}
+                to={`/kunde/${encodeURIComponent(kunde.kundennummer)}`}
                 className="hover:underline font-medium"
               >
-                {fahrzeug.kunde_name}
+                {kunde.name}
               </Link>
             ) : (
-              <span className="font-medium">{fahrzeug.kunde_name}</span>
+              <span className="font-medium">{kunde.name}</span>
             )}
-            {fahrzeug.kundennummer && (
-              <span className="font-mono text-xs text-muted-foreground">#{fahrzeug.kundennummer}</span>
+            {kunde.kundennummer && (
+              <span className="font-mono text-xs text-muted-foreground">#{kunde.kundennummer}</span>
             )}
-            {fahrzeug.kunde_telefon && (
+            {kunde.telefon && (
               <a
-                href={`tel:${fahrzeug.kunde_telefon}`}
+                href={`tel:${kunde.telefon}`}
                 className="text-xs text-primary hover:underline"
               >
-                {fahrzeug.kunde_telefon}
+                {kunde.telefon}
               </a>
             )}
           </div>
@@ -221,7 +244,7 @@ export default function FahrzeugDetail() {
                             })}
                           </span>
                           <span className="font-mono text-xs font-semibold">
-                            {r.auftragsnummer || r.rapport_nummer || "—"}
+                            {r.rapport_nummer || "—"}
                           </span>
                           <span
                             className={cn(
@@ -242,9 +265,9 @@ export default function FahrzeugDetail() {
                             <span className="text-muted-foreground italic">Kein Service-Typ</span>
                           )}
                         </div>
-                        {r.arbeit_beschreibung && (
+                        {r.notizen && (
                           <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
-                            {r.arbeit_beschreibung}
+                            {r.notizen}
                           </div>
                         )}
                       </div>
