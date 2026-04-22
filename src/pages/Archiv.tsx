@@ -471,6 +471,19 @@ export default function Archiv() {
                   <div className="mt-1.5 hidden sm:block">
                     <KategorieBadges value={r.kategorie} size="xs" />
                   </div>
+                  {(() => {
+                    const mat = (r.positionen ?? []).filter((p) => p.typ === "material");
+                    if (mat.length === 0) return null;
+                    const first = mat.slice(0, 3).map((p) =>
+                      `${p.beschreibung ?? "—"}${p.menge != null ? ` ×${p.menge}${p.einheit ? p.einheit : ""}` : ""}`
+                    );
+                    const rest = mat.length - first.length;
+                    return (
+                      <div className="mt-1 text-[11px] text-muted-foreground truncate">
+                        📦 {first.join(", ")}{rest > 0 ? `, +${rest} weitere` : ""}
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* Datum + Werte */}
