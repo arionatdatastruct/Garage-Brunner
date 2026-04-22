@@ -134,11 +134,14 @@ export const RAPPORT_SELECT_LIST = `
  */
 export function selectRapporte(variant: "list" | "full" = "list") {
   const sel = variant === "full" ? RAPPORT_SELECT_FULL : RAPPORT_SELECT_LIST;
-  // Cast: der dynamische JOIN-String wird von den generierten DB-Typen
-  // nicht exakt erfasst.
+  // Dynamischer JOIN-String wird von den generierten DB-Typen nicht eng
+  // erfasst — Konsumenten casten `data` auf `RapportListItem[]` /
+  // `RapportFull` über die Helper-Typen.
   return (supabase as unknown as {
-    from: (t: string) => { select: (s: string) => unknown };
+    from: (t: string) => {
+      select: (s: string) => ReturnType<ReturnType<typeof supabase.from>["select"]>;
+    };
   })
     .from("arbeitsrapporte")
-    .select(sel) as ReturnType<typeof supabase.from<"arbeitsrapporte">>;
+    .select(sel);
 }
