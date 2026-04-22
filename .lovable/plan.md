@@ -1,118 +1,78 @@
 
 
-# Datenbank-Normalisierung + Mobile-UX + PDF-Fix
+# Datenbank-Normalisierung abschliessen + Code anpassen
 
-> **Wichtig zur DB-Migration:** Das ist eine **grosse strukturelle Änderung** mit Auswirkungen auf alle 18 Dateien, die heute `kunde_*`, `kennzeichen`, `material_liste` etc. direkt aus `arbeitsrapporte` lesen — sowie auf den **n8n-Workflow**, der die Aufträge anlegt. Die Datenmigration läuft "human-in-the-loop": eine SQL-Migration legt die neuen Tabellen an und kopiert bestehende Daten automatisch nach `kunden`/`fahrzeuge` (dedupliziert per `kennzeichen`/`kundennummer`). Bestehende Snapshot-Spalten in `arbeitsrapporte` bleiben **temporär als Fallback** erhalten und werden erst entfernt, nachdem du n8n umgestellt hast.
+Sorry für die Verzögerung — ich war im Plan-Modus und habe auf dein OK gewartet, statt loszulegen. Hier der finale Plan, kurz und konkret.
 
-## 1. Neue Datenbank-Struktur (3NF)
+## 1. Datenbank-Migration
 
-**Migration 1 — Tabellen anlegen:**
-- `kunden(id uuid pk, kundennummer text unique, name, strasse, plz, ort, telefon, email, created_at, updated_at)`
-- `fahrzeuge(id uuid pk, chassis_nr text unique nullable, kennzeichen text, marke, modell, kunde_id uuid fk → kunden, created_at, updated_at)` — Index auf `kennzeichen`
-- `rapport_positionen(id uuid pk, rapport_id uuid fk → arbeitsrapporte on delete cascade, typ text check in ('arbeit','material'), beschreibung text, menge numeric, einheit text, sort_order int, created_at)`
-- `arbeitsrapporte` bekommt `fahrzeug_id uuid` (nullable FK), `total_betrag` (alias zu auftragswert_chf, bleibt) — Snapshots bleiben als Fallback bestehen.
-- RLS-Policies analog zu `arbeitsrapporte`: `authenticated` darf SELECT/INSERT/UPDATE/DELETE.
-- Trigger `update_updated_at_column` auf alle neuen Tabellen.
+**Daten löschen** (sauberer Start):
+- `TRUNCATE arbeitsrapporte, rapport_positionen, fahrzeuge, kunden CASCADE`
+- Zugehörige Storage-Files (`belege/`, `fotos/`) bleiben — kannst du manuell im Dashboard leeren falls nötig.
 
-**Migration 2 — Datenmigration (idempotent):**
-- Für jeden eindeutigen `kundennummer` aus `arbeitsrapporte` → INSERT in `kunden` (ON CONFLICT DO NOTHING).
-- Für jedes eindeutige `(kennzeichen, chassis_nr)` → INSERT in `fahrzeuge` mit `kunde_id`.
-- `arbeitsrapporte.fahrzeug_id` setzen.
-- `material_liste` JSONB → `rapport_positionen` typ='material' (jeder Array-Eintrag eine Zeile).
-- `arbeit_beschreibung` Text → `rapport_positionen` typ='arbeit' menge=1 einheit='Std' (eine Zeile pro Rapport).
+**Snapshot-Spalten aus `arbeitsrapporte` entfernen:**
+- Kunde: `kunde_name`, `kunde_ort`, `kunde_strasse`, `kunde_plz`, `kunde_telefon`, `kunde_email`, `kundennummer`
+- Fahrzeug: `kennzeichen`, `marke`, `modell`, `chassis_nr`
+- Inhalt: `material_liste`, `arbeit_beschreibung`
+- Auch `auftragsnummer` (ungenutzt, `rapport_nummer` bleibt)
 
-## 2. PDF-Vorschau definitiv reparieren
+**Constraints + FKs:**
+- `kunden.kundennummer` → UNIQUE NOT NULL
+- `fahrzeuge.chassis_nr` → UNIQUE (nullable, aber wenn gesetzt eindeutig)
+- `fahrzeuge.kennzeichen` → Index (nicht unique, kann wechseln)
+- `fahrzeuge.kunde_id` → FK → `kunden(id)` ON DELETE RESTRICT
+- `arbeitsrapporte.fahrzeug_id` → FK → `fahrzeuge(id)` ON DELETE RESTRICT, **NOT NULL**
+- `rapport_positionen.rapport_id` → FK → `arbeitsrapporte(id)` ON DELETE CASCADE
 
-`src/components/BelegPreview.tsx` umbauen:
-- Worker lokal via Vite-Bundle: `import workerSrc from "pdfjs-dist/build/pdf.worker.min.mjs?url"` — kein CDN mehr.
-- **Iframe-Fallback**: state `mode: "pdfjs" | "iframe"`. Bei `onLoadError` oder Worker-Mismatch automatisch auf `<iframe src={blobUrl} type="application/pdf">` wechseln. Auf iOS Safari direkt iframe als Default (pdf.js dort instabil).
-- Loading-State mit klarem Spinner; "Im neuen Tab öffnen" bleibt als Notausgang.
+**Trigger:**
+- `update_updated_at_column` auf `kunden`, `fahrzeuge`, `arbeitsrapporte`
+- `generate_rapport_nummer` BEFORE INSERT auf `arbeitsrapporte`
 
-## 3. Mobile-Layout (`AuftragDetailMobile.tsx`)
+## 2. n8n-Mapping (für dich zur Info)
 
-Neue Reihenfolge von oben nach unten:
+n8n muss ab sofort in dieser Reihenfolge schreiben:
 
 ```text
-┌─────────────────────────────────┐
-│ ← │ ZH 123 456    │ [In Arbeit]│  Header mit grossem Kennzeichen
-│   │ Müller Hans   │             │  (1.5rem mono bold + 1rem semibold)
-├─────────────────────────────────┤
-│ 📅 22.04.  ⏱ 2.5h  📞 Anrufen   │
-├─────────────────────────────────┤
-│ ┃ 📷 Foto hinzufügen ┃          │  Grosser gelber Button (h-14)
-├─────────────────────────────────┤
-│ ▼ Auftrag bearbeiten            │  Akkordeon offen
-│   • Kategorie / Mechaniker      │
-│   • Arbeitszeit-Stepper [-][+]  │
-│   • Positionen (Arbeit/Material)│
-│   • Sicherheitscheck OK/Mangel  │
-│   • Notizen                     │
-├─────────────────────────────────┤
-│ ▶ Original-Beleg prüfen         │  Akkordeon zu (Default)
-└─────────────────────────────────┘
-│ [   Erledigen   ] [⋮]           │  Sticky Bottom (h-12, schon ≥48px)
+1. UPSERT kunden  (key: kundennummer)        → erhält kunden.id
+2. UPSERT fahrzeuge (key: chassis_nr,
+   sonst kennzeichen) mit kunde_id           → erhält fahrzeuge.id
+3. INSERT arbeitsrapporte mit fahrzeug_id
+4. INSERT rapport_positionen[] mit rapport_id
+   (typ='material' oder 'arbeit')
 ```
 
-## 4. Form-Komponenten (`AuftragForm.tsx`)
+## 3. Code-Anpassungen (alle Lese-Stellen auf JOIN umstellen)
 
-**a) Arbeitszeit-Stepper** ersetzt `<Input type="number">`:
-- Layout: `[ − ]  2.25 h  [ + ]`, beide Buttons `h-12 w-12`, Schritt 0.25h, min 0.
-- Auto-Save wie bisher.
+Überall wo heute `rapport.kunde_name`, `rapport.kennzeichen`, `rapport.marke`, `rapport.material_liste`, `rapport.arbeit_beschreibung` etc. gelesen wird → über `fahrzeug:fahrzeuge(*, kunde:kunden(*))` joinen.
 
-**b) Positions-Editor** (neue Sub-Komponente `PositionenEditor`):
-- Zwei Sektionen: **"Arbeit"** und **"Material"** mit eigenen Listen.
-- Jede Position = Karte mit `beschreibung` (Input), `menge` (Number-Input), `einheit` (Select: Std/Stk/Liter/m/Set), Lösch-Icon.
-- Pro Sektion ein **"Position hinzufügen"**-Button.
-- Persistenz: bei jedem Blur/Edit → upsert/delete in `rapport_positionen`. Optimistic Update lokal.
-- Geladen wird `rapport_positionen` per `useEffect` zum Mount.
+**Betroffene Dateien:**
 
-**c) Sicherheitscheck**: nur noch `ok` (grün) und `mangel` (rot). Gelb entfällt. Bei `mangel` erscheint direkt darunter ein Pflicht-Textfeld **"Bemerkung zum Mangel"**, gespeichert als `<key>_bemerkung` im selben `sicherheitscheck`-JSONB.
-
-## 5. Foto-Quick-Add
-
-Neue Komponente `src/components/FotoHinzufuegen.tsx`:
-- Grosser gelber Button `h-14`, Icon Camera, Text "Foto hinzufügen".
-- `<input type="file" accept="image/*" capture="environment">` öffnet Kamera.
-- Nutzt `compressImage()` → upload in `fotos`-Bucket (Pfad `{rapport.id}/{timestamp}.jpg`) → URL ans `arbeitsrapporte.fotos`-Array anhängen.
-- Toast-Feedback mit Mini-Thumbnail.
-
-## 6. Archiv-Verbesserungen (`Archiv.tsx`)
-
-- **Globale Suche erweitert**: zusätzliches Predicate sucht in `rapport_positionen.beschreibung` (per `select(...arbeitsrapporte..., positionen:rapport_positionen(beschreibung,typ,menge,einheit))` und Filter clientseitig). Suchfeld-Placeholder ergänzt: "…oder Material/Arbeit (z.B. 'Öl')".
-- **Material-Zusammenfassung pro Rapport-Karte**: kompakte Zeile mit den ersten 3 Material-Positionen (`Ölfilter ×1, Öl 5W30 ×4L, Bremsbeläge ×1`) und "+N weitere" wenn mehr.
-
-## 7. Design / Kontrast
-
-`src/index.css`:
-- `--foreground` 0 0% 96% → 0 0% 100%
-- `--muted-foreground` 220 8% 65% → 220 8% 78%
-- `--border` 220 12% 20% → 220 12% 28%
-- Sticky-Bottom-Buttons sind bereits `h-12` (48px) — bleibt.
-
-## Geänderte / neue Dateien
-
-| Datei | Aktion |
+| Datei | Änderung |
 |---|---|
-| `supabase/migrations/*` (neu, 2 Files) | Schema + Datenmigration |
-| `src/components/BelegPreview.tsx` | Lokaler Worker + iframe-Fallback |
-| `src/components/AuftragForm.tsx` | Stepper + PositionenEditor + Sicherheitscheck-Bemerkung |
-| `src/components/PositionenEditor.tsx` (neu) | Material/Arbeit-Karten |
-| `src/components/AuftragDetailMobile.tsx` | Header gross, Foto-Button oben, Beleg ans Ende |
-| `src/components/FotoHinzufuegen.tsx` (neu) | Kamera-Button |
-| `src/components/RapportUebersicht.tsx` | Positionen-Liste statt freier Text/Material |
-| `src/pages/Archiv.tsx` | Suche in Positionen + Material-Zusammenfassung |
-| `src/components/AuftragDetail.tsx`, `BelegMitRapport.tsx` | Beleg-Anzeige nur noch unten im Akkordeon |
-| `src/index.css` | Kontrast-Tokens |
+| `src/pages/AuftragDetail.tsx` | Select erweitern: `*, fahrzeug:fahrzeuge(*, kunde:kunden(*))`; Header liest aus `rapport.fahrzeug.kennzeichen` etc. |
+| `src/components/AuftragDetailMobile.tsx` | Props-Typ erweitern, alle Snapshot-Lesungen → `rapport.fahrzeug?.…` / `rapport.fahrzeug?.kunde?.…` |
+| `src/components/RapportUebersicht.tsx` | JOIN-Daten verwenden; `material_liste`/`arbeit_beschreibung` entfallen (kommt eh schon aus `rapport_positionen`) |
+| `src/pages/Archiv.tsx` | Select um `fahrzeug:fahrzeuge(kennzeichen, marke, modell, kunde:kunden(name, ort, kundennummer))` erweitern; Filter/Sort/Suche/CSV anpassen |
+| `src/pages/Wochenplan.tsx` + `MobileWochenplan.tsx` + `RapportCard` | Karten zeigen `fahrzeug.kennzeichen` + `fahrzeug.kunde.name` via JOIN |
+| `src/pages/Statistiken.tsx` | Top-Kunden-Aggregation über `fahrzeug.kunde.kundennummer`/`name` |
+| `src/pages/KundeDetail.tsx` | Query: `kunden` lesen + `arbeitsrapporte` über `fahrzeug.kunde_id` joinen |
+| `src/pages/FahrzeugDetail.tsx` | Query: `fahrzeuge` per `kennzeichen` lesen, dann Rapporte über `fahrzeug_id` |
+| `src/components/GlobalSearch.tsx` | Suche über `fahrzeuge` (kennzeichen, marke, modell) + `kunden` (name, kundennummer), dann zugehörige Rapporte |
+| `src/hooks/useFahrzeugSuche.ts` | Komplett auf `fahrzeuge`-Tabelle + `kunden`-JOIN umstellen statt `arbeitsrapporte`-Snapshots |
+| `src/components/NeuerAuftragDialog.tsx` + `NeuerAuftragSheet.tsx` | Beim Anlegen kein Snapshot mehr — `fahrzeug_id` ist beim manuellen Anlegen offen (Dialog erstellt Rapport ohne Fahrzeug; n8n setzt `fahrzeug_id` beim PDF-Verarbeiten) |
+| `src/components/ErledigenDialog.tsx` | Typ anpassen, kein Snapshot-Read |
+| `src/components/RapportActionSheet.tsx` | JOIN-Daten verwenden |
+| `src/components/BelegMitRapport.tsx` | Falls Snapshot-Reads → JOIN |
 
-## ⚠️ Was du danach manuell tun musst
+## 4. Hinweise / Risiken
 
-1. **n8n-Workflow umstellen**: Aktuell schreibt n8n vermutlich `kunde_name`, `kennzeichen`, `material_liste` direkt in `arbeitsrapporte`. Nach der Migration sollte n8n stattdessen:
-   - `kunden` upserten (key: `kundennummer`)
-   - `fahrzeuge` upserten (key: `kennzeichen` oder `chassis_nr`) mit `kunde_id`
-   - `arbeitsrapporte` mit `fahrzeug_id` einfügen
-   - Material als mehrere Zeilen in `rapport_positionen` schreiben (typ='material')
-   
-   Bis du n8n umgestellt hast, läuft der bestehende Flow weiter — die Snapshot-Spalten bleiben übergangsweise als Fallback. Code liest **bevorzugt aus `kunden`/`fahrzeuge`**, fällt auf Snapshots zurück, wenn `fahrzeug_id` null ist.
+- **Manuell angelegte Aufträge** (über „Neuer Auftrag"-Dialog mit PDF) haben anfangs `fahrzeug_id = NULL`. Da die Spalte NOT NULL werden soll → entweder (a) `fahrzeug_id` doch nullable lassen, bis n8n verarbeitet hat, oder (b) UI zwingt vorher zur Fahrzeug-/Kundenauswahl. **Empfehlung: nullable lassen** — n8n füllt nach PDF-Parse nach.
+- Nach der Migration sind **alle Daten weg** — du hast das so bestätigt.
+- Bis n8n umgestellt ist, werden neue Rapporte ohne `fahrzeug_id` angelegt und zeigen leere Kennzeichen/Kunden — das ist erwartet.
 
-2. **Nach erfolgreicher n8n-Umstellung**: separate Folge-Migration zum endgültigen Entfernen der Snapshot-Spalten — sag mir Bescheid wann.
+## Bestätigung
+
+Wenn du zustimmst, führe ich aus:
+1. Migration (TRUNCATE + DROP columns + FKs + Trigger), `fahrzeug_id` bleibt **nullable**
+2. Refactor aller oben gelisteten Code-Dateien auf JOIN-Reads
 
