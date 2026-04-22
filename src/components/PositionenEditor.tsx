@@ -148,7 +148,8 @@ function ArbeitSektion({
           <p className="text-xs text-muted-foreground italic px-1">Noch keine Aufgabe.</p>
         )}
         {positionen.map((p) => {
-          const checked = !!p.erledigt;
+          // Backwards-compat: legacy rows used menge>0 instead of erledigt
+          const checked = !!p.erledigt || (p.menge ?? 0) > 0;
           return (
             <div
               key={p.id}
