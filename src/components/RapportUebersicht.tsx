@@ -164,7 +164,8 @@ export function RapportUebersicht({ rapport }: Props) {
             </div>
             <ul className="space-y-1 text-sm">
               {arbeit.map((p) => {
-                const done = !!p.erledigt;
+                // Backwards-compat: legacy rows used menge>0 instead of erledigt
+                const done = !!p.erledigt || (p.menge ?? 0) > 0;
                 return (
                   <li key={p.id} className="flex items-center gap-2">
                     {done ? (
