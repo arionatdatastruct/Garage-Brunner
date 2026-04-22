@@ -10,16 +10,17 @@ import { MoreVertical } from "lucide-react";
 interface Rapport {
   id: string;
   rapport_nummer: string | null;
-  auftragsnummer: string | null;
   geplantes_datum: string;
   status: string;
   mechaniker_zuweisung: string | null;
   arbeitszeit_stunden: number | null;
   kategorie: string | null;
-  kennzeichen: string | null;
-  marke: string | null;
-  kundennummer: string | null;
-  kunde_name: string | null;
+  fahrzeug?: {
+    kennzeichen: string | null;
+    marke: string | null;
+    modell: string | null;
+    kunde?: { name: string | null; kundennummer: string | null } | null;
+  } | null;
 }
 
 const MECH_DOT: Record<string, string> = {
@@ -55,7 +56,6 @@ function MobileCard({ r, highlight, overdue, onAction }: CardProps) {
     longPressed.current = false;
     longPressTimer.current = setTimeout(() => {
       longPressed.current = true;
-      // Haptik wenn verfügbar
       if ("vibrate" in navigator) navigator.vibrate(15);
       onAction(r);
     }, 280);
@@ -73,6 +73,10 @@ function MobileCard({ r, highlight, overdue, onAction }: CardProps) {
     navigate(`/auftrag/${r.id}`);
   };
 
+  const kennzeichen = r.fahrzeug?.kennzeichen ?? null;
+  const marke = r.fahrzeug?.marke ?? null;
+  const kundeName = r.fahrzeug?.kunde?.name ?? null;
+
   return (
     <div
       onPointerDown={startPress}
@@ -89,7 +93,6 @@ function MobileCard({ r, highlight, overdue, onAction }: CardProps) {
       )}
       style={{ touchAction: "manipulation" }}
     >
-      {/* Status-Strich links (4px für Touch) */}
       <div
         className={cn(
           "absolute left-0 top-2 bottom-2 w-1 rounded-r",
@@ -98,11 +101,10 @@ function MobileCard({ r, highlight, overdue, onAction }: CardProps) {
         aria-hidden
       />
 
-      {/* Zeile 1: Kennzeichen + Stunden + Action-Knopf */}
       <div className="flex items-center justify-between gap-2 mb-1">
         <div className="flex items-center gap-2 min-w-0">
           <span className="font-mono font-bold text-base tracking-tight truncate">
-            {r.kennzeichen ?? "—"}
+            {kennzeichen ?? "—"}
           </span>
           {r.mechaniker_zuweisung && (
             <span
@@ -143,14 +145,12 @@ function MobileCard({ r, highlight, overdue, onAction }: CardProps) {
         </div>
       </div>
 
-      {/* Zeile 2: Marke · Kunde */}
       <div className="text-xs text-muted-foreground truncate">
-        {r.marke ?? "Kein Fahrzeug"}
-        {r.kunde_name && <span className="mx-1.5">·</span>}
-        {r.kunde_name}
+        {marke ?? "Kein Fahrzeug"}
+        {kundeName && <span className="mx-1.5">·</span>}
+        {kundeName}
       </div>
 
-      {/* Zeile 3: Badges + Status-Pill */}
       <div className="flex items-center justify-between gap-2 mt-2">
         <div className="min-w-0">
           {r.kategorie && <KategorieBadges value={r.kategorie} size="xs" />}
@@ -213,7 +213,6 @@ export function MobileWochenplan({ days, rapports, onAdd, onAction, highlightId 
               isToday ? "border-primary/40" : "border-border"
             )}
           >
-            {/* Day-Header (nicht sticky, da overflow-hidden parent sticky bricht) */}
             <header
               className={cn(
                 "flex items-center justify-between gap-3 px-3 py-2.5 border-b rounded-t-xl",
@@ -247,17 +246,13 @@ export function MobileWochenplan({ days, rapports, onAdd, onAction, highlightId 
                 <span className={cn("text-xs font-mono font-semibold tabular-nums px-2 py-0.5 rounded", pillColor)}>
                   {totalH.toLocaleString("de-CH", { maximumFractionDigits: 1 })}/{kap}h
                 </span>
-                {/* Auftrag erstellen nur auf PC möglich (Beleg nötig) */}
               </div>
             </header>
 
-            {/* Auslastungs-Balken */}
             <div className="h-1 bg-muted overflow-hidden">
               <div className={cn("h-full transition-all", barColor)} style={{ width: `${pct}%` }} />
             </div>
 
-
-            {/* Aufträge */}
             <div className="p-2 space-y-2">
               {dayRapports.length === 0 ? (
                 <div className="w-full text-center py-6 text-xs text-muted-foreground/60 italic">

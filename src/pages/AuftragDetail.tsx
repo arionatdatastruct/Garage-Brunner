@@ -1,7 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AuftragStatusBar } from "@/components/AuftragStatusBar";
 import { AuftragForm } from "@/components/AuftragForm";
 import { BelegMitRapport } from "@/components/BelegMitRapport";
@@ -21,34 +20,28 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { ArrowLeft, Loader2, Trash2 } from "lucide-react";
+import {
+  RAPPORT_SELECT_FULL,
+  fzKennzeichen, fzMarke, fzModell,
+  kdName, kdNummer,
+  type FahrzeugRel,
+} from "@/lib/rapport-relations";
 
 interface Rapport {
   id: string;
   rapport_nummer: string | null;
-  auftragsnummer: string | null;
   status: "geplant" | "in_arbeit" | "erledigt" | "archiviert";
   pdf_url: string | null;
   geplantes_datum: string;
   kategorie: string | null;
-  arbeit_beschreibung: string | null;
   arbeitszeit_stunden: number | null;
   mechaniker_zuweisung: "Roman" | "Pascal" | null;
   auftragswert_chf: number | null;
   notizen: string | null;
   sicherheitscheck: Record<string, unknown> | null;
-  // Snapshot Kunde
-  kundennummer: string | null;
-  kunde_name: string | null;
-  kunde_ort: string | null;
-  kunde_strasse: string | null;
-  kunde_plz: string | null;
-  kunde_telefon: string | null;
-  kunde_email: string | null;
-  // Snapshot Fahrzeug
-  kennzeichen: string | null;
-  marke: string | null;
-  modell: string | null;
-  chassis_nr: string | null;
+  fahrzeug_id: string | null;
+  fahrzeug: FahrzeugRel | null;
+  fotos?: string[] | null;
 }
 
 export default function AuftragDetail() {
@@ -63,7 +56,6 @@ export default function AuftragDetail() {
     if (!id) return;
     setDeleting(true);
     try {
-      // Storage-Dateien im Ordner <rapport.id>/ löschen (belege + fotos)
       for (const bucket of ["belege", "fotos"] as const) {
         const { data: files } = await supabase.storage.from(bucket).list(id);
         if (files && files.length > 0) {
@@ -90,7 +82,7 @@ export default function AuftragDetail() {
     if (!id) return;
     const { data: rap, error } = await (supabase as any)
       .from("arbeitsrapporte")
-      .select("*")
+      .select(RAPPORT_SELECT_FULL)
       .eq("id", id)
       .single();
     if (error || !rap) {
@@ -105,7 +97,6 @@ export default function AuftragDetail() {
     load();
   }, [load]);
 
-  // Realtime: n8n schreibt -> Felder live aktualisieren
   useEffect(() => {
     if (!id) return;
     const channel = supabase
@@ -140,9 +131,12 @@ export default function AuftragDetail() {
     );
   }
 
-  const fahrzeugLabel = [rapport.kennzeichen, rapport.marke, rapport.modell]
+  const kennzeichen = fzKennzeichen(rapport);
+  const fahrzeugLabel = [kennzeichen, fzMarke(rapport), fzModell(rapport)]
     .filter(Boolean)
     .join(" · ") || "—";
+  const kundeName = kdName(rapport);
+  const kundeNummer = kdNummer(rapport);
 
   const PdfPane = () => (
     <div className="w-full h-full min-h-[60vh] overflow-y-auto pr-1">
@@ -150,7 +144,6 @@ export default function AuftragDetail() {
     </div>
   );
 
-  // Mobile: komplett eigene Ansicht
   if (isMobile) {
     return (
       <AuftragDetailMobile
@@ -164,7 +157,6 @@ export default function AuftragDetail() {
 
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-4">
-      {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <Link
@@ -175,27 +167,22 @@ export default function AuftragDetail() {
           </Link>
           <h1 className="text-2xl font-bold mt-1">
             {rapport.rapport_nummer ?? "Rapport"}
-            {rapport.auftragsnummer && (
-              <span className="text-muted-foreground text-base font-normal ml-2">
-                · Auftrag {rapport.auftragsnummer}
-              </span>
-            )}
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5 flex items-center gap-2 flex-wrap">
             <span>{fahrzeugLabel}</span>
-            {rapport.kennzeichen && (
+            {kennzeichen && (
               <Link
-                to={`/fahrzeug/${encodeURIComponent(rapport.kennzeichen)}`}
+                to={`/fahrzeug/${encodeURIComponent(kennzeichen)}`}
                 className="text-xs text-primary hover:underline inline-flex items-center gap-0.5"
                 title="Service-Historie dieses Fahrzeugs"
               >
                 Historie →
               </Link>
             )}
-            {rapport.kunde_name && <span>· {rapport.kunde_name}</span>}
-            {rapport.kundennummer && (
+            {kundeName && <span>· {kundeName}</span>}
+            {kundeNummer && (
               <span className="font-mono text-xs px-1.5 py-0.5 rounded bg-muted">
-                #{rapport.kundennummer}
+                #{kundeNummer}
               </span>
             )}
           </p>
@@ -226,7 +213,6 @@ export default function AuftragDetail() {
         </div>
       </div>
 
-      {/* Desktop: Split-View */}
       <div className="hidden md:grid md:grid-cols-5 md:gap-4 md:h-[calc(100vh-8rem)]">
         <div className="md:col-span-3 overflow-hidden">
           <PdfPane />

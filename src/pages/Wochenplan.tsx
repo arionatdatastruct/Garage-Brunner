@@ -49,16 +49,18 @@ import { AlertTriangle } from "lucide-react";
 interface Rapport {
   id: string;
   rapport_nummer: string | null;
-  auftragsnummer: string | null;
   geplantes_datum: string;
   status: string;
   mechaniker_zuweisung: string | null;
   arbeitszeit_stunden: number | null;
   kategorie: string | null;
-  kennzeichen: string | null;
-  marke: string | null;
-  kundennummer: string | null;
-  kunde_name: string | null;
+  fahrzeug_id: string | null;
+  fahrzeug?: {
+    kennzeichen: string | null;
+    marke: string | null;
+    modell: string | null;
+    kunde?: { name: string | null; kundennummer: string | null } | null;
+  } | null;
 }
 
 const MECH_DOT: Record<string, string> = {

@@ -17,7 +17,6 @@ interface Rapport {
   id: string;
   updated_at?: string;
   kategorie: string | null;
-  arbeit_beschreibung: string | null;
   arbeitszeit_stunden: number | null;
   mechaniker_zuweisung: "Roman" | "Pascal" | null;
   auftragswert_chf: number | null;

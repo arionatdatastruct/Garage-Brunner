@@ -45,34 +45,28 @@ import {
 import { cn } from "@/lib/utils";
 import { ErledigenDialog } from "@/components/ErledigenDialog";
 import { useWakeLock } from "@/hooks/useWakeLock";
+import {
+  fzKennzeichen, fzMarke, fzModell,
+  kdName, kdTelefon,
+  type FahrzeugRel,
+} from "@/lib/rapport-relations";
 
 type Status = "geplant" | "in_arbeit" | "erledigt" | "archiviert";
 
 interface Rapport {
   id: string;
   rapport_nummer: string | null;
-  auftragsnummer: string | null;
   status: Status;
   pdf_url: string | null;
   geplantes_datum: string;
   kategorie: string | null;
-  arbeit_beschreibung: string | null;
   arbeitszeit_stunden: number | null;
   mechaniker_zuweisung: "Roman" | "Pascal" | null;
   auftragswert_chf: number | null;
   notizen: string | null;
   sicherheitscheck: Record<string, unknown> | null;
-  kundennummer: string | null;
-  kunde_name: string | null;
-  kunde_ort: string | null;
-  kunde_strasse: string | null;
-  kunde_plz: string | null;
-  kunde_telefon: string | null;
-  kunde_email: string | null;
-  kennzeichen: string | null;
-  marke: string | null;
-  modell: string | null;
-  chassis_nr: string | null;
+  fahrzeug_id: string | null;
+  fahrzeug?: FahrzeugRel | null;
   fotos?: string[] | null;
 }
 
@@ -116,8 +110,13 @@ export function AuftragDetailMobile({ rapport, onChanged, onDelete, deleting }: 
   const isErledigt = rapport.status === "erledigt" || rapport.status === "archiviert";
   const sCfg = STATUS_CFG[rapport.status];
 
-  // Bildschirm wach halten solange Auftrag offen ist (Werkstatt-Modus)
   useWakeLock(!isErledigt);
+
+  const kennzeichen = fzKennzeichen(rapport);
+  const marke = fzMarke(rapport);
+  const modell = fzModell(rapport);
+  const kundeName = kdName(rapport);
+  const kundeTel = kdTelefon(rapport);
 
   const setStatus = async (next: Status) => {
     setBusy(true);
@@ -157,7 +156,6 @@ export function AuftragDetailMobile({ rapport, onChanged, onDelete, deleting }: 
 
   return (
     <div className="md:hidden flex flex-col min-h-screen">
-      {/* Top-Bar mit GROSSEM Kennzeichen & Kundenname */}
       <header className="px-3 pt-2 pb-3 border-b border-border bg-card">
         <div className="flex items-start gap-2">
           <Link
@@ -169,13 +167,13 @@ export function AuftragDetailMobile({ rapport, onChanged, onDelete, deleting }: 
           </Link>
           <div className="flex-1 min-w-0 pt-0.5">
             <div className="font-mono font-bold text-2xl tracking-tight leading-none truncate">
-              {rapport.kennzeichen ?? "—"}
+              {kennzeichen ?? "—"}
             </div>
             <div className="text-base font-semibold mt-1 truncate">
-              {rapport.kunde_name ?? "—"}
+              {kundeName ?? "—"}
             </div>
             <div className="text-xs text-muted-foreground truncate mt-0.5">
-              {[rapport.marke, rapport.modell].filter(Boolean).join(" ") || "—"}
+              {[marke, modell].filter(Boolean).join(" ") || "—"}
             </div>
           </div>
           <DropdownMenu open={statusOpen} onOpenChange={setStatusOpen}>
@@ -212,9 +210,7 @@ export function AuftragDetailMobile({ rapport, onChanged, onDelete, deleting }: 
         </div>
       </header>
 
-      {/* Inhalt scrollbar */}
       <div className="flex-1 px-3 pt-3 pb-28 space-y-3">
-        {/* Mini-Meta-Zeile */}
         <div className="flex items-center gap-2 text-xs">
           <span className="font-mono px-2 py-1.5 rounded bg-muted">
             📅 {rapport.geplantes_datum}
@@ -222,9 +218,9 @@ export function AuftragDetailMobile({ rapport, onChanged, onDelete, deleting }: 
           <span className="font-mono px-2 py-1.5 rounded bg-muted tabular-nums">
             ⏱ {rapport.arbeitszeit_stunden ?? "—"}h
           </span>
-          {rapport.kunde_telefon && (
+          {kundeTel && (
             <a
-              href={`tel:${rapport.kunde_telefon}`}
+              href={`tel:${kundeTel}`}
               className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 text-primary font-medium active:scale-95 transition"
             >
               <Phone className="h-3.5 w-3.5" /> Anrufen
@@ -232,14 +228,12 @@ export function AuftragDetailMobile({ rapport, onChanged, onDelete, deleting }: 
           )}
         </div>
 
-        {/* Foto hinzufügen — gross & gelb */}
         <FotoHinzufuegen
           rapportId={rapport.id}
           currentFotos={rapport.fotos}
           onUploaded={onChanged}
         />
 
-        {/* Foto-Thumbs (falls vorhanden) */}
         {rapport.fotos && rapport.fotos.length > 0 && (
           <div className="flex gap-2 overflow-x-auto pb-1 -mx-3 px-3">
             {rapport.fotos.map((url, i) => (
@@ -256,7 +250,6 @@ export function AuftragDetailMobile({ rapport, onChanged, onDelete, deleting }: 
           </div>
         )}
 
-        {/* Auftrag bearbeiten — Akkordeon, default offen */}
         <Accordion type="multiple" defaultValue={["form"]} className="space-y-3">
           <AccordionItem value="form" className="border-0 rounded-xl bg-transparent">
             <AccordionTrigger className="px-3 py-3 rounded-xl border border-border bg-card hover:no-underline data-[state=open]:rounded-b-none">
@@ -271,7 +264,6 @@ export function AuftragDetailMobile({ rapport, onChanged, onDelete, deleting }: 
             </AccordionContent>
           </AccordionItem>
 
-          {/* Original-Beleg — Akkordeon ganz unten, default ZU */}
           <AccordionItem value="beleg" className="border-0 rounded-xl bg-transparent">
             <AccordionTrigger className="px-3 py-3 rounded-xl border border-border bg-card hover:no-underline data-[state=open]:rounded-b-none">
               <span className="flex items-center gap-2 text-sm font-semibold">
@@ -287,7 +279,6 @@ export function AuftragDetailMobile({ rapport, onChanged, onDelete, deleting }: 
         </Accordion>
       </div>
 
-      {/* Sticky Bottom Action-Bar */}
       <div
         className="fixed bottom-14 inset-x-0 z-30 border-t border-border bg-card/95 backdrop-blur px-3 py-2.5 flex gap-2"
         style={{ paddingBottom: "calc(0.625rem + env(safe-area-inset-bottom))" }}
