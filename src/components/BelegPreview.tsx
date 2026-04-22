@@ -43,6 +43,8 @@ export function BelegPreview({ pdfUrl }: BelegPreviewProps) {
   const previewRef = useRef<HTMLDivElement | null>(null);
   const [pdfData, setPdfData] = useState<Uint8Array | null>(null);
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
+  const [dataUrl, setDataUrl] = useState<string | null>(null);
+  const [fileName, setFileName] = useState<string>("beleg.pdf");
   const [pageCount, setPageCount] = useState(0);
   const [previewWidth, setPreviewWidth] = useState(0);
   const [loading, setLoading] = useState(false);
