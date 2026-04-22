@@ -28,16 +28,18 @@ type Status = "geplant" | "in_arbeit" | "erledigt";
 interface Rapport {
   id: string;
   rapport_nummer: string | null;
-  auftragsnummer: string | null;
   geplantes_datum: string;
   status: string;
   mechaniker_zuweisung: string | null;
   arbeitszeit_stunden: number | null;
   kategorie: string | null;
-  kennzeichen: string | null;
-  marke: string | null;
-  kundennummer: string | null;
-  kunde_name: string | null;
+  // Eingebettetes Fahrzeug (3NF)
+  fahrzeug?: {
+    kennzeichen: string | null;
+    marke: string | null;
+    modell: string | null;
+    kunde?: { name: string | null; kundennummer: string | null } | null;
+  } | null;
 }
 
 interface Props {
@@ -108,34 +110,29 @@ export function RapportActionSheet({ rapport, onOpenChange, onChanged, onDelete 
     close();
   };
 
-  const today = format(new Date(), "yyyy-MM-dd");
-  const tomorrowDate = naechsterWerktag(addDays(new Date(), 1));
-  const tomorrow = format(tomorrowDate, "yyyy-MM-dd");
-  const dayAfterDate = naechsterWerktag(addDays(tomorrowDate, 1));
-  const dayAfter = format(dayAfterDate, "yyyy-MM-dd");
+  const kennzeichen = rapport.fahrzeug?.kennzeichen ?? null;
+  const marke = rapport.fahrzeug?.marke ?? null;
 
   return (
     <Drawer open={!!rapport} onOpenChange={onOpenChange}>
       <DrawerContent className="px-4 pb-6 max-h-[92vh]">
         <DrawerHeader className="px-0 pt-2 pb-3">
           <DrawerTitle className="flex items-baseline justify-between gap-2">
-            <span className="font-mono text-xl font-bold">{rapport.kennzeichen ?? "—"}</span>
+            <span className="font-mono text-xl font-bold">{kennzeichen ?? "—"}</span>
             <span className="text-xs font-normal text-muted-foreground font-mono">
-              {rapport.auftragsnummer ?? rapport.rapport_nummer}
+              {rapport.rapport_nummer}
             </span>
           </DrawerTitle>
-          {rapport.marke && (
-            <p className="text-xs text-muted-foreground text-left">{rapport.marke}</p>
+          {marke && (
+            <p className="text-xs text-muted-foreground text-left">{marke}</p>
           )}
         </DrawerHeader>
 
         <div className="space-y-5 overflow-y-auto">
-          {/* Verschieben — als wichtigste Aktion ganz oben (Drag&Drop-Ersatz) */}
           <section>
             <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium mb-2 flex items-center gap-1">
               <CalendarIcon className="h-3 w-3" /> Auf anderen Tag verschieben
             </div>
-            {/* Aktuelle Woche – Mo–Fr als Pills (wie eine D&D-Spaltenwahl) */}
             {(() => {
               const currentWeekStart = startOfWeek(parseISO(rapport.geplantes_datum), { weekStartsOn: 1 });
               const today = startOfDay(new Date());
@@ -178,7 +175,6 @@ export function RapportActionSheet({ rapport, onOpenChange, onChanged, onDelete 
                 </div>
               );
             })()}
-            {/* Schnellsprünge */}
             <div className="grid grid-cols-2 gap-2 mb-2">
               <button
                 type="button"
@@ -219,7 +215,6 @@ export function RapportActionSheet({ rapport, onOpenChange, onChanged, onDelete 
             </div>
           </section>
 
-          {/* Status */}
           <section>
             <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium mb-2">
               Status
@@ -249,7 +244,6 @@ export function RapportActionSheet({ rapport, onOpenChange, onChanged, onDelete 
             </div>
           </section>
 
-          {/* Stunden */}
           <section>
             <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium mb-2 flex items-center gap-1">
               <Clock className="h-3 w-3" /> Arbeitszeit
@@ -285,7 +279,6 @@ export function RapportActionSheet({ rapport, onOpenChange, onChanged, onDelete 
             </div>
           </section>
 
-          {/* Aktionen */}
           <section className="pt-2 border-t border-border space-y-2">
             <Button
               className="w-full h-12"

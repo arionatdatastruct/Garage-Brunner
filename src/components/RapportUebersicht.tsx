@@ -4,27 +4,23 @@ import { Button } from "@/components/ui/button";
 import { Printer, CheckCircle2, AlertTriangle, Circle, Wrench, Package } from "lucide-react";
 import { kategorienLabels } from "@/lib/kategorien";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  fzKennzeichen, fzMarke, fzModell, fzChassis,
+  kdName, kdNummer, kdOrt, kdTelefon,
+  type FahrzeugRel,
+} from "@/lib/rapport-relations";
 
 interface Rapport {
   id: string;
   rapport_nummer: string | null;
-  auftragsnummer: string | null;
   geplantes_datum: string;
   kategorie: string | null;
-  arbeit_beschreibung: string | null;
   arbeitszeit_stunden: number | null;
   mechaniker_zuweisung: "Roman" | "Pascal" | null;
   auftragswert_chf: number | null;
   notizen: string | null;
   sicherheitscheck: Record<string, unknown> | null;
-  kundennummer: string | null;
-  kunde_name: string | null;
-  kunde_ort: string | null;
-  kunde_telefon: string | null;
-  kennzeichen: string | null;
-  marke: string | null;
-  modell: string | null;
-  chassis_nr: string | null;
+  fahrzeug?: FahrzeugRel | null;
 }
 
 interface Position {
@@ -82,6 +78,15 @@ export function RapportUebersicht({ rapport }: Props) {
   const fmtMenge = (p: Position) =>
     `${p.menge ?? ""}${p.einheit ? " " + p.einheit : ""}`.trim();
 
+  const kennzeichen = fzKennzeichen(rapport);
+  const marke = fzMarke(rapport);
+  const modell = fzModell(rapport);
+  const chassis = fzChassis(rapport);
+  const kundeName = kdName(rapport);
+  const kundeNummer = kdNummer(rapport);
+  const kundeOrt = kdOrt(rapport);
+  const kundeTel = kdTelefon(rapport);
+
   return (
     <div className="preview-overlay">
       <Card className="p-5 space-y-4 print:shadow-none print:border-0 a4-paper preview-section">
@@ -92,11 +97,6 @@ export function RapportUebersicht({ rapport }: Props) {
             </div>
             <h2 className="text-xl font-bold">
               {rapport.rapport_nummer ?? "Rapport"}
-              {rapport.auftragsnummer && (
-                <span className="text-muted-foreground font-normal ml-2 text-base">
-                  · {rapport.auftragsnummer}
-                </span>
-              )}
             </h2>
             <p className="text-sm text-muted-foreground">
               {new Date(rapport.geplantes_datum).toLocaleDateString("de-CH", {
@@ -120,25 +120,23 @@ export function RapportUebersicht({ rapport }: Props) {
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
             <div className="text-xs text-muted-foreground mb-1">Kunde</div>
-            <div className="font-medium">{rapport.kunde_name ?? "—"}</div>
-            {rapport.kundennummer && (
-              <div className="text-muted-foreground text-xs">Nr. {rapport.kundennummer}</div>
+            <div className="font-medium">{kundeName ?? "—"}</div>
+            {kundeNummer && (
+              <div className="text-muted-foreground text-xs">Nr. {kundeNummer}</div>
             )}
-            {rapport.kunde_ort && <div className="text-muted-foreground">{rapport.kunde_ort}</div>}
-            {rapport.kunde_telefon && (
-              <div className="text-muted-foreground">{rapport.kunde_telefon}</div>
-            )}
+            {kundeOrt && <div className="text-muted-foreground">{kundeOrt}</div>}
+            {kundeTel && <div className="text-muted-foreground">{kundeTel}</div>}
           </div>
           <div>
             <div className="text-xs text-muted-foreground mb-1">Fahrzeug</div>
-            <div className="font-medium">{rapport.kennzeichen ?? "—"}</div>
-            {(rapport.marke || rapport.modell) && (
+            <div className="font-medium">{kennzeichen ?? "—"}</div>
+            {(marke || modell) && (
               <div className="text-muted-foreground">
-                {[rapport.marke, rapport.modell].filter(Boolean).join(" ")}
+                {[marke, modell].filter(Boolean).join(" ")}
               </div>
             )}
-            {rapport.chassis_nr && (
-              <div className="text-muted-foreground text-xs">FIN: {rapport.chassis_nr}</div>
+            {chassis && (
+              <div className="text-muted-foreground text-xs">FIN: {chassis}</div>
             )}
           </div>
         </div>
