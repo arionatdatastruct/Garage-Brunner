@@ -157,22 +157,19 @@ export function AuftragDetailMobile({ rapport, onChanged, onDelete, deleting }: 
   return (
     <div className="md:hidden flex flex-col min-h-screen">
       <header className="px-3 pt-2 pb-3 border-b border-border bg-card">
-        <div className="flex items-start gap-2">
+        <div className="flex items-center gap-2">
           <Link
             to="/"
-            className="h-12 w-12 -ml-1 flex items-center justify-center rounded-md hover:bg-muted text-muted-foreground active:scale-95 transition shrink-0"
+            className="h-11 w-11 -ml-1 flex items-center justify-center rounded-md hover:bg-muted text-muted-foreground active:scale-95 transition shrink-0"
             aria-label="Zurück"
           >
             <ArrowLeft className="h-6 w-6" />
           </Link>
-          <div className="flex-1 min-w-0 pt-0.5">
-            <div className="font-mono font-bold text-2xl tracking-tight leading-none truncate">
+          <div className="flex-1 min-w-0">
+            <div className="font-mono font-bold text-xl tracking-tight leading-none truncate">
               {kennzeichen ?? "—"}
             </div>
-            <div className="text-base font-semibold mt-1 truncate">
-              {kundeName ?? "—"}
-            </div>
-            <div className="text-xs text-muted-foreground truncate mt-0.5">
+            <div className="text-sm text-muted-foreground truncate mt-1">
               {[marke, modell].filter(Boolean).join(" ") || "—"}
             </div>
           </div>
@@ -182,7 +179,7 @@ export function AuftragDetailMobile({ rapport, onChanged, onDelete, deleting }: 
                 type="button"
                 disabled={busy}
                 className={cn(
-                  "inline-flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold active:scale-95 transition shrink-0 self-start mt-0.5",
+                  "inline-flex items-center gap-1.5 px-3 h-9 rounded-full text-xs font-semibold active:scale-95 transition shrink-0",
                   sCfg.cls
                 )}
               >
@@ -208,10 +205,18 @@ export function AuftragDetailMobile({ rapport, onChanged, onDelete, deleting }: 
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
+        {kundeName && (
+          <div className="text-base font-semibold mt-2 truncate pl-12">
+            {kundeName}
+          </div>
+        )}
       </header>
 
-      <div className="flex-1 px-3 pt-3 pb-28 space-y-3">
-        <div className="flex items-center gap-2 text-xs">
+      <div
+        className="flex-1 px-3 pt-3 space-y-3 overflow-y-auto"
+        style={{ paddingBottom: "calc(5.5rem + env(safe-area-inset-bottom))" }}
+      >
+        <div className="flex items-center gap-2 text-xs flex-wrap">
           <span className="font-mono px-2 py-1.5 rounded bg-muted">
             📅 {rapport.geplantes_datum}
           </span>
@@ -235,14 +240,14 @@ export function AuftragDetailMobile({ rapport, onChanged, onDelete, deleting }: 
         />
 
         {rapport.fotos && rapport.fotos.length > 0 && (
-          <div className="flex gap-2 overflow-x-auto pb-1 -mx-3 px-3">
+          <div className="flex gap-2 overflow-x-auto pb-1 -mx-3 px-3 snap-x snap-mandatory">
             {rapport.fotos.map((url, i) => (
               <a
                 key={i}
                 href={url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="shrink-0 h-16 w-16 rounded-md overflow-hidden border border-border bg-muted"
+                className="shrink-0 h-24 w-24 rounded-lg overflow-hidden border border-border bg-muted snap-start"
               >
                 <img src={url} alt={`Foto ${i + 1}`} className="h-full w-full object-cover" />
               </a>
@@ -258,7 +263,7 @@ export function AuftragDetailMobile({ rapport, onChanged, onDelete, deleting }: 
               </span>
             </AccordionTrigger>
             <AccordionContent className="border border-t-0 border-border rounded-b-xl bg-card -mt-px">
-              <div className="p-1">
+              <div className="p-3">
                 <AuftragForm rapport={rapport} onSaved={onChanged} />
               </div>
             </AccordionContent>
@@ -271,7 +276,7 @@ export function AuftragDetailMobile({ rapport, onChanged, onDelete, deleting }: 
               </span>
             </AccordionTrigger>
             <AccordionContent className="border border-t-0 border-border rounded-b-xl bg-card -mt-px">
-              <div className="p-2">
+              <div className="p-2 overflow-x-auto">
                 <BelegMitRapport rapport={rapport} />
               </div>
             </AccordionContent>
@@ -280,7 +285,7 @@ export function AuftragDetailMobile({ rapport, onChanged, onDelete, deleting }: 
       </div>
 
       <div
-        className="fixed bottom-14 inset-x-0 z-30 border-t border-border bg-card/95 backdrop-blur px-3 py-2.5 flex gap-2"
+        className="fixed bottom-0 inset-x-0 z-40 border-t border-border bg-card/95 backdrop-blur px-3 py-2.5 flex gap-2"
         style={{ paddingBottom: "calc(0.625rem + env(safe-area-inset-bottom))" }}
       >
         <Button
@@ -301,7 +306,7 @@ export function AuftragDetailMobile({ rapport, onChanged, onDelete, deleting }: 
               <MoreVertical className="h-5 w-5" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuContent align="end" side="top" className="w-48">
             {rapport.pdf_url && (
               <DropdownMenuItem asChild>
                 <a href={rapport.pdf_url} target="_blank" rel="noopener noreferrer">
