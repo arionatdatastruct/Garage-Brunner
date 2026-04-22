@@ -119,26 +119,26 @@ export const RAPPORT_SELECT_LIST = `
 
 // ---------- Reusable Query-Builder ----------
 
-type QueryVariant = "list" | "full";
-
 /**
- * Liefert ein vorkonfiguriertes Supabase-Query-Builder-Objekt für
- * `arbeitsrapporte`, inkl. JOIN auf `fahrzeuge` + `kunden`.
+ * Liefert einen vorkonfigurierten Supabase-Query-Builder für
+ * `arbeitsrapporte` inkl. JOIN auf `fahrzeuge` + `kunden`.
+ *
+ * Anschliessend können `.eq`, `.in`, `.order`, `.limit`, `.single` etc.
+ * verkettet werden — exakt wie auf dem Original-Builder.
  *
  * Beispiel:
  *   const { data } = await selectRapporte("list")
  *     .eq("status", "geplant")
  *     .order("geplantes_datum");
+ *   const rows = (data ?? []) as RapportListItem[];
  */
-export function selectRapporte(variant: QueryVariant = "list") {
+export function selectRapporte(variant: "list" | "full" = "list") {
   const sel = variant === "full" ? RAPPORT_SELECT_FULL : RAPPORT_SELECT_LIST;
-  // Cast nötig, weil die generierten DB-Typen die Snapshot-Spalten noch
-  // referenzieren bzw. den dynamischen JOIN-String nicht eng typisieren.
+  // Cast: der dynamische JOIN-String wird von den generierten DB-Typen
+  // nicht exakt erfasst.
   return (supabase as unknown as {
     from: (t: string) => { select: (s: string) => unknown };
-  }).from("arbeitsrapporte").select(sel) as ReturnType<
-    typeof supabase.from
-  >["select"] extends (...a: unknown[]) => infer R
-    ? R
-    : never;
+  })
+    .from("arbeitsrapporte")
+    .select(sel) as ReturnType<typeof supabase.from<"arbeitsrapporte">>;
 }
