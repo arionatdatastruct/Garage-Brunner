@@ -54,7 +54,7 @@ interface Rapport {
   mechaniker_zuweisung: string | null;
   arbeitszeit_stunden: number | null;
   kategorie: string | null;
-  fahrzeug_id: string | null;
+  fahrzeug_id?: string | null;
   fahrzeug?: {
     kennzeichen: string | null;
     marke: string | null;
@@ -139,7 +139,7 @@ function RapportCard({ r, onUpdate, onDelete, highlight, overdue }: { r: Rapport
           {/* Kennzeichen + Mechaniker-Dot */}
           <div className="flex items-baseline justify-between gap-2 mb-1 pl-1">
             <span className="font-mono font-bold text-[15px] tracking-tight truncate">
-              {r.kennzeichen ?? "—"}
+              {r.fahrzeug?.kennzeichen ?? "—"}
             </span>
             {r.mechaniker_zuweisung && (
               <span className="flex items-center gap-1 text-[10px] text-muted-foreground shrink-0">
@@ -151,11 +151,11 @@ function RapportCard({ r, onUpdate, onDelete, highlight, overdue }: { r: Rapport
 
           {/* Fahrzeug + Kunde */}
           <div className="text-xs text-muted-foreground truncate pl-1">
-            {r.marke ?? "Kein Fahrzeug"}
+            {[r.fahrzeug?.marke, r.fahrzeug?.modell].filter(Boolean).join(" ") || "Kein Fahrzeug"}
           </div>
-          {(r.kunde_name || r.kundennummer) && (
+          {(r.fahrzeug?.kunde?.name || r.fahrzeug?.kunde?.kundennummer) && (
             <div className="text-[11px] text-muted-foreground/80 truncate mt-0.5 pl-1">
-              {r.kunde_name}
+              {r.fahrzeug?.kunde?.name}
             </div>
           )}
 
@@ -169,7 +169,7 @@ function RapportCard({ r, onUpdate, onDelete, highlight, overdue }: { r: Rapport
           {/* Footer: Auftragsnr · Stunden */}
           <div className="flex items-center justify-between mt-2 gap-2 pl-1">
             <span className="text-[10px] text-muted-foreground/70 font-mono truncate">
-              {r.auftragsnummer ?? r.rapport_nummer}
+              {r.rapport_nummer}
             </span>
             <div onPointerDown={(e) => editing && e.stopPropagation()}>
               {editing ? (
@@ -366,7 +366,7 @@ export default function Wochenplan() {
     const to = format(addDays(weekStart, 4), "yyyy-MM-dd");
     const { data, error } = await (supabase as any)
       .from("arbeitsrapporte")
-      .select("id, rapport_nummer, auftragsnummer, geplantes_datum, status, mechaniker_zuweisung, arbeitszeit_stunden, kategorie, kennzeichen, marke, kundennummer, kunde_name")
+      .select("id, rapport_nummer, geplantes_datum, status, mechaniker_zuweisung, arbeitszeit_stunden, kategorie, fahrzeug_id, fahrzeug:fahrzeuge(kennzeichen, marke, modell, kunde:kunden(name, kundennummer))")
       .in("status", ["geplant", "in_arbeit"])
       .gte("geplantes_datum", from)
       .lte("geplantes_datum", to)
@@ -386,14 +386,22 @@ export default function Wochenplan() {
     const to = format(addDays(weekStart, 4), "yyyy-MM-dd");
     const today = format(new Date(), "yyyy-MM-dd");
     (async () => {
+      const sel = "id, geplantes_datum, rapport_nummer, fahrzeug:fahrzeuge(kennzeichen)";
+      const mapList = (raw: any[]) =>
+        raw.map((x) => ({
+          id: x.id,
+          geplantes_datum: x.geplantes_datum,
+          rapport_nummer: x.rapport_nummer,
+          kennzeichen: x.fahrzeug?.kennzeichen ?? null,
+        }));
       const { data } = await (supabase as any)
         .from("arbeitsrapporte")
-        .select("id, geplantes_datum, kennzeichen, rapport_nummer")
+        .select(sel)
         .in("status", ["geplant", "in_arbeit"])
         .gte("geplantes_datum", today)
         .or(`geplantes_datum.lt.${from},geplantes_datum.gt.${to}`)
         .order("geplantes_datum", { ascending: true });
-      const list = (data ?? []) as Array<{ id: string; geplantes_datum: string; kennzeichen: string | null; rapport_nummer: string | null }>;
+      const list = mapList((data ?? []) as any[]);
       setOtherWeeksCount(list.length);
       setNextOtherDate(list[0]?.geplantes_datum ?? null);
       setNextOthers(list.slice(0, 3));
@@ -401,11 +409,11 @@ export default function Wochenplan() {
       // Überfällige: Status 'geplant' und Datum < heute
       const { data: od } = await (supabase as any)
         .from("arbeitsrapporte")
-        .select("id, geplantes_datum, kennzeichen, rapport_nummer")
+        .select(sel)
         .eq("status", "geplant")
         .lt("geplantes_datum", today)
         .order("geplantes_datum", { ascending: true });
-      setOverdue((od ?? []) as Array<{ id: string; geplantes_datum: string; kennzeichen: string | null; rapport_nummer: string | null }>);
+      setOverdue(mapList((od ?? []) as any[]));
     })();
   }, [weekStart, rapports]);
 
@@ -825,7 +833,7 @@ export default function Wochenplan() {
               <div className="bg-card border-2 border-primary rounded-lg pl-3 pr-2.5 py-2.5 shadow-2xl shadow-primary/30 rotate-2 cursor-grabbing min-w-[180px] max-w-[260px]">
                 <div className="flex items-baseline justify-between gap-2 mb-1">
                   <span className="font-mono font-bold text-[15px] tracking-tight truncate">
-                    {r.kennzeichen ?? "—"}
+                    {r.fahrzeug?.kennzeichen ?? "—"}
                   </span>
                   {r.mechaniker_zuweisung && (
                     <span className="flex items-center gap-1 text-[10px] text-muted-foreground shrink-0">
@@ -835,7 +843,7 @@ export default function Wochenplan() {
                   )}
                 </div>
                 <div className="text-xs text-muted-foreground truncate">
-                  {r.marke ?? "Kein Fahrzeug"}
+                  {[r.fahrzeug?.marke, r.fahrzeug?.modell].filter(Boolean).join(" ") || "Kein Fahrzeug"}
                 </div>
               </div>
             );
