@@ -44,7 +44,11 @@ export function PositionenEditor({ rapportId }: Props) {
       .order("typ")
       .order("sort_order");
     if (error) toast.error("Positionen konnten nicht geladen werden");
-    setPositionen((data ?? []) as Position[]);
+    const next = (data ?? []) as Position[];
+    setPositionen(next);
+    window.dispatchEvent(new CustomEvent(POSITIONEN_EVENT, {
+      detail: { rapportId, positionen: next },
+    }));
     setLoading(false);
   };
 
