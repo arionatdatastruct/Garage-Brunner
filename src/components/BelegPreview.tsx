@@ -79,6 +79,7 @@ export function BelegPreview({ pdfUrl }: BelegPreviewProps) {
       if (!pdfUrl) {
         setPdfData(null);
         setBlobUrl(null);
+        setDataUrl(null);
         setError(null);
         setPageCount(0);
         return;
@@ -90,6 +91,7 @@ export function BelegPreview({ pdfUrl }: BelegPreviewProps) {
 
       try {
         let pdfBlob: Blob | null = null;
+        let derivedName = "beleg.pdf";
         if (storageTarget) {
           const { data, error: downloadError } = await supabase.storage
             .from(storageTarget.bucket)
@@ -98,6 +100,8 @@ export function BelegPreview({ pdfUrl }: BelegPreviewProps) {
             throw downloadError ?? new Error("Beleg konnte nicht geladen werden");
           }
           pdfBlob = data;
+          const segs = storageTarget.path.split("/");
+          derivedName = segs[segs.length - 1] || derivedName;
         } else {
           const response = await fetch(pdfUrl);
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -117,12 +121,30 @@ export function BelegPreview({ pdfUrl }: BelegPreviewProps) {
         if (!active) return;
 
         nextBlobUrl = URL.createObjectURL(normalizedBlob);
-        setPdfData(new Uint8Array(arrayBuffer));
+
+        // data: URL als Fallback — Edge/Chrome blockieren teils blob: in iframes
+        // wenn der Tab in einem fremden Origin (Sandbox/Lovable Preview) läuft.
+        const bytes = new Uint8Array(arrayBuffer);
+        let binary = "";
+        const CHUNK = 0x8000;
+        for (let i = 0; i < bytes.length; i += CHUNK) {
+          binary += String.fromCharCode.apply(
+            null,
+            Array.from(bytes.subarray(i, i + CHUNK)) as unknown as number[]
+          );
+        }
+        const base64 = btoa(binary);
+        const nextDataUrl = `data:application/pdf;base64,${base64}`;
+
+        setPdfData(bytes);
         setBlobUrl(nextBlobUrl);
+        setDataUrl(nextDataUrl);
+        setFileName(derivedName);
       } catch (err) {
         if (!active) return;
         setPdfData(null);
         setBlobUrl(null);
+        setDataUrl(null);
         setError(
           err instanceof Error
             ? err.message
@@ -140,7 +162,8 @@ export function BelegPreview({ pdfUrl }: BelegPreviewProps) {
     };
   }, [pdfUrl, storageTarget]);
 
-  const openHref = blobUrl ?? undefined;
+  const openHref = blobUrl ?? dataUrl ?? undefined;
+  const iframeSrc = dataUrl ?? blobUrl ?? undefined;
 
   if (!pdfUrl) {
     return (
