@@ -22,6 +22,7 @@ export type Database = {
           auftragswert_chf: number | null
           chassis_nr: string | null
           created_at: string
+          fahrzeug_id: string | null
           fotos: string[] | null
           geplantes_datum: string
           id: string
@@ -54,6 +55,7 @@ export type Database = {
           auftragswert_chf?: number | null
           chassis_nr?: string | null
           created_at?: string
+          fahrzeug_id?: string | null
           fotos?: string[] | null
           geplantes_datum?: string
           id?: string
@@ -86,6 +88,7 @@ export type Database = {
           auftragswert_chf?: number | null
           chassis_nr?: string | null
           created_at?: string
+          fahrzeug_id?: string | null
           fotos?: string[] | null
           geplantes_datum?: string
           id?: string
@@ -111,7 +114,136 @@ export type Database = {
           status?: Database["public"]["Enums"]["rapport_status"]
           updated_at?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: "arbeitsrapporte_fahrzeug_id_fkey"
+            columns: ["fahrzeug_id"]
+            isOneToOne: false
+            referencedRelation: "fahrzeuge"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fahrzeuge: {
+        Row: {
+          chassis_nr: string | null
+          created_at: string
+          id: string
+          kennzeichen: string | null
+          kunde_id: string | null
+          marke: string | null
+          modell: string | null
+          updated_at: string
+        }
+        Insert: {
+          chassis_nr?: string | null
+          created_at?: string
+          id?: string
+          kennzeichen?: string | null
+          kunde_id?: string | null
+          marke?: string | null
+          modell?: string | null
+          updated_at?: string
+        }
+        Update: {
+          chassis_nr?: string | null
+          created_at?: string
+          id?: string
+          kennzeichen?: string | null
+          kunde_id?: string | null
+          marke?: string | null
+          modell?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fahrzeuge_kunde_id_fkey"
+            columns: ["kunde_id"]
+            isOneToOne: false
+            referencedRelation: "kunden"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kunden: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          kundennummer: string | null
+          name: string | null
+          ort: string | null
+          plz: string | null
+          strasse: string | null
+          telefon: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          kundennummer?: string | null
+          name?: string | null
+          ort?: string | null
+          plz?: string | null
+          strasse?: string | null
+          telefon?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          kundennummer?: string | null
+          name?: string | null
+          ort?: string | null
+          plz?: string | null
+          strasse?: string | null
+          telefon?: string | null
+          updated_at?: string
+        }
         Relationships: []
+      }
+      rapport_positionen: {
+        Row: {
+          beschreibung: string | null
+          created_at: string
+          einheit: string | null
+          id: string
+          menge: number | null
+          rapport_id: string
+          sort_order: number
+          typ: string
+        }
+        Insert: {
+          beschreibung?: string | null
+          created_at?: string
+          einheit?: string | null
+          id?: string
+          menge?: number | null
+          rapport_id: string
+          sort_order?: number
+          typ: string
+        }
+        Update: {
+          beschreibung?: string | null
+          created_at?: string
+          einheit?: string | null
+          id?: string
+          menge?: number | null
+          rapport_id?: string
+          sort_order?: number
+          typ?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rapport_positionen_rapport_id_fkey"
+            columns: ["rapport_id"]
+            isOneToOne: false
+            referencedRelation: "arbeitsrapporte"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
