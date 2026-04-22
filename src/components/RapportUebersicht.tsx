@@ -71,6 +71,21 @@ export function RapportUebersicht({ rapport }: Props) {
   }, [rapport.id]);
 
   useEffect(() => {
+    const handlePositionenChanged = (event: Event) => {
+      const customEvent = event as CustomEvent<{ rapportId: string; positionen: Position[] }>;
+      if (customEvent.detail?.rapportId === rapport.id) {
+        setPositionen(customEvent.detail.positionen);
+      }
+    };
+
+    window.addEventListener(POSITIONEN_EVENT, handlePositionenChanged as EventListener);
+
+    return () => {
+      window.removeEventListener(POSITIONEN_EVENT, handlePositionenChanged as EventListener);
+    };
+  }, [rapport.id]);
+
+  useEffect(() => {
     void loadPositionen();
 
     const channel = supabase
@@ -91,8 +106,6 @@ export function RapportUebersicht({ rapport }: Props) {
       supabase.removeChannel(channel);
     };
   }, [rapport.id, loadPositionen]);
-
-  const arbeit = positionen.filter((p) => p.typ === "arbeit");
   const material = positionen.filter((p) => p.typ === "material");
 
   const fmtMenge = (p: Position) =>

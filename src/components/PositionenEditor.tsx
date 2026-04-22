@@ -80,11 +80,22 @@ export function PositionenEditor({ rapportId }: Props) {
       toast.error("Position konnte nicht angelegt werden");
       return;
     }
-    setPositionen((prev) => [...prev, data as Position]);
+    setPositionen((prev) => {
+      const next = [...prev, data as Position];
+      window.dispatchEvent(new CustomEvent(POSITIONEN_EVENT, {
+        detail: { rapportId, positionen: next },
+      }));
+      return next;
+    });
   };
 
   const updatePos = async (id: string, patch: Partial<Position>) => {
-    setPositionen((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
+    const nextPositionen = positionen.map((p) => (p.id === id ? { ...p, ...patch } : p));
+    setPositionen(nextPositionen);
+    window.dispatchEvent(new CustomEvent(POSITIONEN_EVENT, {
+      detail: { rapportId, positionen: nextPositionen },
+    }));
+
     const { error } = await (supabase as any)
       .from("rapport_positionen")
       .update(patch)
@@ -97,7 +108,12 @@ export function PositionenEditor({ rapportId }: Props) {
 
   const removePos = async (id: string) => {
     const prev = positionen;
-    setPositionen((p) => p.filter((x) => x.id !== id));
+    const next = positionen.filter((x) => x.id !== id);
+    setPositionen(next);
+    window.dispatchEvent(new CustomEvent(POSITIONEN_EVENT, {
+      detail: { rapportId, positionen: next },
+    }));
+
     const { error } = await (supabase as any)
       .from("rapport_positionen")
       .delete()
@@ -105,6 +121,9 @@ export function PositionenEditor({ rapportId }: Props) {
     if (error) {
       toast.error("Löschen fehlgeschlagen");
       setPositionen(prev);
+      window.dispatchEvent(new CustomEvent(POSITIONEN_EVENT, {
+        detail: { rapportId, positionen: prev },
+      }));
     }
   };
 
