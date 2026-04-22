@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ExternalLink, FileText, Loader2, TriangleAlert } from "lucide-react";
+import { Download, ExternalLink, FileText, Loader2, TriangleAlert } from "lucide-react";
 import { Document, Page, pdfjs } from "react-pdf";
 // Lokaler Worker via Vite — kein CDN, keine Network-Blockaden in Sandbox/Prod.
 // `?url` gibt die gebundelte Asset-URL zurück, die mit der pdfjs-Version übereinstimmt.
@@ -43,6 +43,8 @@ export function BelegPreview({ pdfUrl }: BelegPreviewProps) {
   const previewRef = useRef<HTMLDivElement | null>(null);
   const [pdfData, setPdfData] = useState<Uint8Array | null>(null);
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
+  const [dataUrl, setDataUrl] = useState<string | null>(null);
+  const [fileName, setFileName] = useState<string>("beleg.pdf");
   const [pageCount, setPageCount] = useState(0);
   const [previewWidth, setPreviewWidth] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -77,6 +79,7 @@ export function BelegPreview({ pdfUrl }: BelegPreviewProps) {
       if (!pdfUrl) {
         setPdfData(null);
         setBlobUrl(null);
+        setDataUrl(null);
         setError(null);
         setPageCount(0);
         return;
@@ -88,6 +91,7 @@ export function BelegPreview({ pdfUrl }: BelegPreviewProps) {
 
       try {
         let pdfBlob: Blob | null = null;
+        let derivedName = "beleg.pdf";
         if (storageTarget) {
           const { data, error: downloadError } = await supabase.storage
             .from(storageTarget.bucket)
@@ -96,6 +100,8 @@ export function BelegPreview({ pdfUrl }: BelegPreviewProps) {
             throw downloadError ?? new Error("Beleg konnte nicht geladen werden");
           }
           pdfBlob = data;
+          const segs = storageTarget.path.split("/");
+          derivedName = segs[segs.length - 1] || derivedName;
         } else {
           const response = await fetch(pdfUrl);
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -115,12 +121,30 @@ export function BelegPreview({ pdfUrl }: BelegPreviewProps) {
         if (!active) return;
 
         nextBlobUrl = URL.createObjectURL(normalizedBlob);
-        setPdfData(new Uint8Array(arrayBuffer));
+
+        // data: URL als Fallback — Edge/Chrome blockieren teils blob: in iframes
+        // wenn der Tab in einem fremden Origin (Sandbox/Lovable Preview) läuft.
+        const bytes = new Uint8Array(arrayBuffer);
+        let binary = "";
+        const CHUNK = 0x8000;
+        for (let i = 0; i < bytes.length; i += CHUNK) {
+          binary += String.fromCharCode.apply(
+            null,
+            Array.from(bytes.subarray(i, i + CHUNK)) as unknown as number[]
+          );
+        }
+        const base64 = btoa(binary);
+        const nextDataUrl = `data:application/pdf;base64,${base64}`;
+
+        setPdfData(bytes);
         setBlobUrl(nextBlobUrl);
+        setDataUrl(nextDataUrl);
+        setFileName(derivedName);
       } catch (err) {
         if (!active) return;
         setPdfData(null);
         setBlobUrl(null);
+        setDataUrl(null);
         setError(
           err instanceof Error
             ? err.message
@@ -138,7 +162,8 @@ export function BelegPreview({ pdfUrl }: BelegPreviewProps) {
     };
   }, [pdfUrl, storageTarget]);
 
-  const openHref = blobUrl ?? undefined;
+  const openHref = blobUrl ?? dataUrl ?? undefined;
+  const iframeSrc = dataUrl ?? blobUrl ?? undefined;
 
   if (!pdfUrl) {
     return (
@@ -166,6 +191,15 @@ export function BelegPreview({ pdfUrl }: BelegPreviewProps) {
               Browser-Viewer
             </button>
           )}
+          {dataUrl && (
+            <a
+              href={dataUrl}
+              download={fileName}
+              className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+            >
+              <Download className="h-3 w-3" /> Download
+            </a>
+          )}
           {openHref && (
             <a
               href={openHref}
@@ -191,7 +225,7 @@ export function BelegPreview({ pdfUrl }: BelegPreviewProps) {
         </div>
       ) : mode === "iframe" ? (
         <iframe
-          src={blobUrl}
+          src={iframeSrc}
           title="Original-Beleg"
           className="flex-1 min-h-[70vh] w-full rounded-md border border-border bg-background"
         />
