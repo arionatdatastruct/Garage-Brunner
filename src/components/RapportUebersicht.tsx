@@ -162,14 +162,21 @@ export function RapportUebersicht({ rapport }: Props) {
               <Wrench className="h-3 w-3" /> Ausgeführte Arbeiten
             </div>
             <ul className="space-y-1 text-sm">
-              {arbeit.map((p) => (
-                <li key={p.id} className="flex items-baseline justify-between gap-2">
-                  <span>{p.beschreibung || "—"}</span>
-                  <span className="font-mono text-xs text-muted-foreground tabular-nums shrink-0">
-                    {fmtMenge(p)}
-                  </span>
-                </li>
-              ))}
+              {arbeit.map((p) => {
+                const done = (p.menge ?? 0) > 0;
+                return (
+                  <li key={p.id} className="flex items-center gap-2">
+                    {done ? (
+                      <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                    ) : (
+                      <Circle className="h-4 w-4 text-muted-foreground shrink-0" />
+                    )}
+                    <span className={done ? "" : "text-muted-foreground"}>
+                      {p.beschreibung || "—"}
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}
