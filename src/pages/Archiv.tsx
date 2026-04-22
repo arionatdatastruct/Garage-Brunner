@@ -31,7 +31,6 @@ interface Position {
 interface Rapport {
   id: string;
   rapport_nummer: string | null;
-  auftragsnummer: string | null;
   status: "geplant" | "in_arbeit" | "erledigt" | "archiviert";
   geplantes_datum: string;
   pdf_url: string | null;
@@ -39,12 +38,16 @@ interface Rapport {
   arbeitszeit_stunden: number | null;
   auftragswert_chf: number | null;
   kategorie: string | null;
-  kennzeichen: string | null;
-  marke: string | null;
-  modell: string | null;
-  kundennummer: string | null;
-  kunde_name: string | null;
-  kunde_ort: string | null;
+  fahrzeug?: {
+    kennzeichen: string | null;
+    marke: string | null;
+    modell: string | null;
+    kunde?: {
+      name: string | null;
+      kundennummer: string | null;
+      ort: string | null;
+    } | null;
+  } | null;
   positionen?: Position[] | null;
 }
 
@@ -60,13 +63,13 @@ const SORT_LABELS: Record<SortKey, string> = {
   kennzeichen: "Kennzeichen",
 };
 
-const sortFieldOf = (k: SortKey): keyof Rapport => ({
-  datum: "geplantes_datum",
-  umsatz: "auftragswert_chf",
-  stunden: "arbeitszeit_stunden",
-  kunde: "kunde_name",
-  kennzeichen: "kennzeichen",
-} as const)[k];
+// Hilfs-Accessoren auf die JOIN-Felder
+const kennz = (r: Rapport) => r.fahrzeug?.kennzeichen ?? null;
+const marke = (r: Rapport) => r.fahrzeug?.marke ?? null;
+const modell = (r: Rapport) => r.fahrzeug?.modell ?? null;
+const kdName = (r: Rapport) => r.fahrzeug?.kunde?.name ?? null;
+const kdNr = (r: Rapport) => r.fahrzeug?.kunde?.kundennummer ?? null;
+const kdOrt = (r: Rapport) => r.fahrzeug?.kunde?.ort ?? null;
 
 interface ChipProps {
   label: string;
