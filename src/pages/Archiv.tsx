@@ -20,6 +20,14 @@ import { downloadStorageFile, toSignedUrl } from "@/lib/storage";
 import { KATEGORIEN, parseKategorien } from "@/lib/kategorien";
 import { cn } from "@/lib/utils";
 
+interface Position {
+  beschreibung: string | null;
+  typ: "arbeit" | "material";
+  menge: number | null;
+  einheit: string | null;
+  sort_order: number;
+}
+
 interface Rapport {
   id: string;
   rapport_nummer: string | null;
@@ -37,6 +45,7 @@ interface Rapport {
   kundennummer: string | null;
   kunde_name: string | null;
   kunde_ort: string | null;
+  positionen?: Position[] | null;
 }
 
 type StatusFilter = "alle" | "erledigt" | "archiviert";
@@ -115,7 +124,7 @@ export default function Archiv() {
     setLoading(true);
     const { data, error } = await (supabase as any)
       .from("arbeitsrapporte")
-      .select("id, rapport_nummer, auftragsnummer, status, geplantes_datum, pdf_url, mechaniker_zuweisung, arbeitszeit_stunden, auftragswert_chf, kategorie, kennzeichen, marke, modell, kundennummer, kunde_name, kunde_ort")
+      .select("id, rapport_nummer, auftragsnummer, status, geplantes_datum, pdf_url, mechaniker_zuweisung, arbeitszeit_stunden, auftragswert_chf, kategorie, kennzeichen, marke, modell, kundennummer, kunde_name, kunde_ort, positionen:rapport_positionen(beschreibung, typ, menge, einheit, sort_order)")
       .in("status", ["erledigt", "archiviert"])
       .order("geplantes_datum", { ascending: false })
       .limit(500);
@@ -146,9 +155,13 @@ export default function Archiv() {
       if (hatPdf === "ja" && !r.pdf_url) return false;
       if (hatPdf === "nein" && r.pdf_url) return false;
       if (!term) return true;
+      const positionenText = (r.positionen ?? [])
+        .map((p) => p.beschreibung ?? "")
+        .join(" ");
       const hay = [
         r.kennzeichen, r.marke, r.modell, r.kunde_name,
         r.kundennummer, r.kunde_ort, r.rapport_nummer, r.auftragsnummer,
+        positionenText,
       ].filter(Boolean).join(" ").toLowerCase();
       return hay.includes(term);
     });
@@ -296,7 +309,7 @@ export default function Archiv() {
           <Input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Kennzeichen, Kunde, Auftragsnummer…"
+            placeholder="Kennzeichen, Kunde, Auftragsnr. oder Material/Arbeit (z.B. 'Öl')…"
             className="pl-9 pr-9 h-11"
           />
           {q && (
