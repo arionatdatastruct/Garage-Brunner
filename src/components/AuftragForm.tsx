@@ -8,9 +8,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Check, ChevronDown, Loader2, ShieldCheck, Wrench, AlertTriangle } from "lucide-react";
+import { Check, ChevronDown, Loader2, ShieldCheck, Wrench, AlertTriangle, Minus, Plus, ListChecks } from "lucide-react";
 import { KATEGORIEN, parseKategorien, formatKategorien } from "@/lib/kategorien";
 import { cn } from "@/lib/utils";
+import { PositionenEditor } from "@/components/PositionenEditor";
 
 interface Rapport {
   id: string;
@@ -38,24 +39,12 @@ const SAFETY_CHECKS = [
   { key: "unterboden", label: "Unterboden / Auspuff" },
 ] as const;
 
-type SafetyStatus = "" | "gruen" | "gelb" | "rot";
-
-const SAFETY_DOT: Record<SafetyStatus, string> = {
-  "": "bg-muted-foreground/30",
-  gruen: "bg-emerald-500",
-  gelb: "bg-amber-500",
-  rot: "bg-red-500",
-};
-
-const SAFETY_BTN: Record<Exclude<SafetyStatus, "">, string> = {
-  gruen: "bg-emerald-500 text-white border-emerald-500 shadow-sm",
-  gelb: "bg-amber-500 text-white border-amber-500 shadow-sm",
-  rot: "bg-red-500 text-white border-red-500 shadow-sm",
-};
+// Vereinfacht auf zwei Stati. "gelb" aus Altdaten wird im UI als "ok" interpretiert.
+type SafetyStatus = "" | "ok" | "mangel";
 
 type SaveState = "idle" | "saving" | "saved";
 
-/* ---------- Kompakte Field-Primitives ---------- */
+/* ---------- Field-Primitives ---------- */
 
 function Field({
   label,
@@ -85,9 +74,7 @@ function Field({
 }
 
 const inputCls =
-  "h-9 bg-transparent border-0 border-b border-border/60 rounded-none px-0 focus-visible:ring-0 focus-visible:border-primary transition-colors";
-
-const inputErrorCls = "border-destructive/70 focus-visible:border-destructive";
+  "h-10 bg-transparent border-0 border-b border-border/60 rounded-none px-0 focus-visible:ring-0 focus-visible:border-primary transition-colors";
 
 function Section({
   icon: Icon,
@@ -109,53 +96,111 @@ function Section({
   );
 }
 
+/* ---------- Arbeitszeit-Stepper ---------- */
+function StundenStepper({
+  value,
+  onChange,
+}: {
+  value: number | null;
+  onChange: (v: number | null) => void;
+}) {
+  const v = value ?? 0;
+  const dec = () => onChange(Math.max(0, +(v - 0.25).toFixed(2)));
+  const inc = () => onChange(+(v + 0.25).toFixed(2));
+  return (
+    <div className="flex items-stretch gap-2">
+      <Button
+        type="button"
+        variant="outline"
+        onClick={dec}
+        className="h-12 w-12 shrink-0 text-lg"
+        aria-label="0.25h weniger"
+      >
+        <Minus className="h-5 w-5" />
+      </Button>
+      <Input
+        type="number"
+        step="0.25"
+        min="0"
+        value={value ?? ""}
+        onChange={(e) => onChange(e.target.value === "" ? null : Number(e.target.value))}
+        className="h-12 flex-1 text-center font-mono tabular-nums text-lg font-semibold bg-background/60"
+        placeholder="0.00"
+        inputMode="decimal"
+      />
+      <Button
+        type="button"
+        variant="outline"
+        onClick={inc}
+        className="h-12 w-12 shrink-0 text-lg"
+        aria-label="0.25h mehr"
+      >
+        <Plus className="h-5 w-5" />
+      </Button>
+    </div>
+  );
+}
+
 /* ---------- Hauptkomponente ---------- */
 
 export function AuftragForm({ rapport, onSaved }: Props) {
   const [r, setR] = useState(rapport);
   const [state, setState] = useState<SaveState>("idle");
 
-  // Sicherheitscheck-State (mit dem Auftrags-State vereint im UI)
-  const initSafety = (): Record<string, SafetyStatus> => {
-    const s: Record<string, SafetyStatus> = {};
+  // Sicherheitscheck-State: Status + Bemerkung pro Key.
+  const initSafety = (): { status: Record<string, SafetyStatus>; bem: Record<string, string> } => {
+    const status: Record<string, SafetyStatus> = {};
+    const bem: Record<string, string> = {};
+    const sc = (rapport.sicherheitscheck ?? {}) as Record<string, unknown>;
     SAFETY_CHECKS.forEach((c) => {
-      s[c.key] = (rapport.sicherheitscheck?.[c.key] as SafetyStatus) ?? "";
+      const raw = sc[c.key];
+      // Legacy: "gruen"/"gelb" → ok, "rot" → mangel
+      if (raw === "rot" || raw === "mangel") status[c.key] = "mangel";
+      else if (raw === "ok" || raw === "gruen" || raw === "gelb") status[c.key] = "ok";
+      else status[c.key] = "";
+      bem[c.key] = (sc[`${c.key}_bemerkung`] as string) ?? "";
     });
-    return s;
+    return { status, bem };
   };
-  const [safety, setSafety] = useState<Record<string, SafetyStatus>>(initSafety);
+  const initial = initSafety();
+  const [safety, setSafety] = useState<Record<string, SafetyStatus>>(initial.status);
+  const [bemerkungen, setBemerkungen] = useState<Record<string, string>>(initial.bem);
   const safetyDirty = useRef(false);
   const safetyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [safetySave, setSafetySave] = useState<SaveState>("idle");
 
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dirty = useRef(false);
-  // Letzte bekannte Server-Version: für optimistic concurrency.
   const lastUpdatedAt = useRef<string | undefined>(rapport.updated_at);
 
   useEffect(() => {
     setR(rapport);
     lastUpdatedAt.current = rapport.updated_at;
     dirty.current = false;
-    // Sicherheits-Daten neu syncen
-    const s: Record<string, SafetyStatus> = {};
-    SAFETY_CHECKS.forEach((c) => {
-      s[c.key] = (rapport.sicherheitscheck?.[c.key] as SafetyStatus) ?? "";
-    });
-    setSafety(s);
+    const init = initSafety();
+    setSafety(init.status);
+    setBemerkungen(init.bem);
     safetyDirty.current = false;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rapport]);
 
-  // Auto-Save Sicherheitscheck
+  // Auto-Save Sicherheitscheck (Status + Bemerkungen zusammen)
   useEffect(() => {
     if (!safetyDirty.current) return;
     if (safetyTimer.current) clearTimeout(safetyTimer.current);
     setSafetySave("saving");
     safetyTimer.current = setTimeout(async () => {
       try {
+        const payload: Record<string, unknown> = {};
+        SAFETY_CHECKS.forEach((c) => {
+          payload[c.key] = safety[c.key] || "";
+          if (safety[c.key] === "mangel") {
+            payload[`${c.key}_bemerkung`] = bemerkungen[c.key] ?? "";
+          }
+        });
         const { error } = await (supabase as any)
           .from("arbeitsrapporte")
-          .update({ sicherheitscheck: safety })
+          .update({ sicherheitscheck: payload })
           .eq("id", rapport.id);
         if (error) throw error;
         safetyDirty.current = false;
@@ -171,43 +216,39 @@ export function AuftragForm({ rapport, onSaved }: Props) {
       if (safetyTimer.current) clearTimeout(safetyTimer.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [safety]);
+  }, [safety, bemerkungen]);
 
   const setSafetyValue = (key: string, status: SafetyStatus) => {
     safetyDirty.current = true;
     setSafety((prev) => ({ ...prev, [key]: prev[key] === status ? "" : status }));
   };
+  const setBemerkung = (key: string, text: string) => {
+    safetyDirty.current = true;
+    setBemerkungen((prev) => ({ ...prev, [key]: text }));
+  };
 
   const safetyCounts = Object.values(safety).reduce(
     (a, v) => {
-      if (v === "rot") a.rot++;
-      else if (v === "gelb") a.gelb++;
-      else if (v === "gruen") a.gruen++;
+      if (v === "mangel") a.mangel++;
+      else if (v === "ok") a.ok++;
       return a;
     },
-    { gruen: 0, gelb: 0, rot: 0 }
+    { ok: 0, mangel: 0 }
   );
-  const safetyHasRot = safetyCounts.rot > 0;
+  const safetyHasMangel = safetyCounts.mangel > 0;
 
   const hasErrors = false;
 
   useEffect(() => {
     if (!dirty.current) return;
     if (timer.current) clearTimeout(timer.current);
-    if (hasErrors) {
-      setState("idle");
-      return;
-    }
     setState("saving");
     timer.current = setTimeout(async () => {
       try {
-        // Optimistic concurrency: nur updaten, wenn updated_at noch unsere
-        // bekannte Version ist. Sonst hat jemand anderes zwischenzeitlich gespeichert.
         let query = (supabase as any)
           .from("arbeitsrapporte")
           .update({
             kategorie: r.kategorie,
-            arbeit_beschreibung: r.arbeit_beschreibung,
             arbeitszeit_stunden: r.arbeitszeit_stunden,
             mechaniker_zuweisung: r.mechaniker_zuweisung,
             auftragswert_chf: r.auftragswert_chf,
@@ -220,15 +261,11 @@ export function AuftragForm({ rapport, onSaved }: Props) {
         const { data, error } = await query.select("updated_at");
         if (error) throw error;
         if (!data || data.length === 0) {
-          // Niemand wurde aktualisiert => Versionskonflikt.
           setState("idle");
           dirty.current = false;
           toast.error("Auftrag wurde von jemand anderem geändert", {
             description: "Bitte neu laden, um die aktuelle Version zu sehen.",
-            action: {
-              label: "Neu laden",
-              onClick: () => onSaved(),
-            },
+            action: { label: "Neu laden", onClick: () => onSaved() },
             duration: 10000,
           });
           return;
@@ -268,36 +305,21 @@ export function AuftragForm({ rapport, onSaved }: Props) {
     <div className="rounded-xl border border-border bg-card/60 backdrop-blur-sm">
       {/* Sticky Save-Indikator */}
       <div className="sticky top-0 z-10 flex items-center justify-between gap-2 px-4 py-2.5 border-b border-border bg-card/80 backdrop-blur rounded-t-xl">
-        <span className="text-xs font-medium text-muted-foreground">
-          {hasErrors ? "Bitte Eingaben prüfen" : "Auto-Speichern aktiv"}
-        </span>
+        <span className="text-xs font-medium text-muted-foreground">Auto-Speichern aktiv</span>
         <span
           className={cn(
             "inline-flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 rounded-full transition-all",
-            hasErrors && "bg-destructive/15 text-destructive",
-            !hasErrors && state === "saving" && "bg-amber-500/15 text-amber-500",
-            !hasErrors && state === "saved" && "bg-emerald-500/15 text-emerald-500",
-            !hasErrors && state === "idle" && "text-muted-foreground/60"
+            state === "saving" && "bg-amber-500/15 text-amber-500",
+            state === "saved" && "bg-emerald-500/15 text-emerald-500",
+            state === "idle" && "text-muted-foreground/70"
           )}
         >
-          {hasErrors ? (
-            <>
-              <span className="h-1.5 w-1.5 rounded-full bg-destructive" />
-              Validierung
-            </>
-          ) : state === "saving" ? (
-            <>
-              <Loader2 className="h-3 w-3 animate-spin" /> Speichert
-            </>
+          {state === "saving" ? (
+            <><Loader2 className="h-3 w-3 animate-spin" /> Speichert</>
           ) : state === "saved" ? (
-            <>
-              <Check className="h-3 w-3" /> Gespeichert
-            </>
+            <><Check className="h-3 w-3" /> Gespeichert</>
           ) : (
-            <>
-              <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40" />
-              Bereit
-            </>
+            <><span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50" /> Bereit</>
           )}
         </span>
       </div>
@@ -311,7 +333,7 @@ export function AuftragForm({ rapport, onSaved }: Props) {
                 <Button
                   type="button"
                   variant="outline"
-                  className="w-full justify-between font-normal min-h-9 h-auto py-1.5 bg-background/50"
+                  className="w-full justify-between font-normal min-h-11 h-auto py-1.5 bg-background/50"
                 >
                   <span className="flex flex-wrap gap-1 items-center">
                     {selectedIds.length === 0 ? (
@@ -339,7 +361,7 @@ export function AuftragForm({ rapport, onSaved }: Props) {
                       type="button"
                       key={k.id}
                       onClick={() => toggleKat(k.id)}
-                      className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent text-left"
+                      className="flex w-full items-center gap-2 rounded-sm px-2 py-2 text-sm hover:bg-accent text-left"
                     >
                       <Checkbox checked={checked} className="pointer-events-none" />
                       <span className="font-mono text-xs text-muted-foreground w-6">{k.id}</span>
@@ -351,40 +373,35 @@ export function AuftragForm({ rapport, onSaved }: Props) {
             </Popover>
           </Field>
 
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Mechaniker">
-              <Select
-                value={r.mechaniker_zuweisung ?? ""}
-                onValueChange={(v) => upd({ mechaniker_zuweisung: v as "Roman" | "Pascal" })}
-              >
-                <SelectTrigger className="h-9 bg-background/50">
-                  <SelectValue placeholder="Wählen" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Roman">
-                    <span className="inline-flex items-center gap-2">
-                      <span className="h-2 w-2 rounded-full bg-sky-500" /> Roman
-                    </span>
-                  </SelectItem>
-                  <SelectItem value="Pascal">
-                    <span className="inline-flex items-center gap-2">
-                      <span className="h-2 w-2 rounded-full bg-violet-500" /> Pascal
-                    </span>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </Field>
-            <Field label="Arbeitszeit (h)">
-              <Input
-                type="number"
-                step="0.25"
-                value={r.arbeitszeit_stunden ?? ""}
-                onChange={(e) => upd({ arbeitszeit_stunden: num(e.target.value) })}
-                className={cn(inputCls, "font-mono tabular-nums")}
-                placeholder="0.00"
-              />
-            </Field>
-          </div>
+          <Field label="Mechaniker">
+            <Select
+              value={r.mechaniker_zuweisung ?? ""}
+              onValueChange={(v) => upd({ mechaniker_zuweisung: v as "Roman" | "Pascal" })}
+            >
+              <SelectTrigger className="h-11 bg-background/50">
+                <SelectValue placeholder="Wählen" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Roman">
+                  <span className="inline-flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-sky-500" /> Roman
+                  </span>
+                </SelectItem>
+                <SelectItem value="Pascal">
+                  <span className="inline-flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-violet-500" /> Pascal
+                  </span>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </Field>
+
+          <Field label="Arbeitszeit (Stunden)">
+            <StundenStepper
+              value={r.arbeitszeit_stunden}
+              onChange={(v) => upd({ arbeitszeit_stunden: v })}
+            />
+          </Field>
 
           <Field label="Auftragswert (CHF)">
             <div className="relative">
@@ -402,15 +419,6 @@ export function AuftragForm({ rapport, onSaved }: Props) {
             </div>
           </Field>
 
-          <Field label="Arbeit / Beschreibung">
-            <Textarea
-              rows={3}
-              value={r.arbeit_beschreibung ?? ""}
-              onChange={(e) => upd({ arbeit_beschreibung: e.target.value })}
-              className="resize-none bg-background/50 border-border/60 focus-visible:ring-1 focus-visible:ring-primary"
-            />
-          </Field>
-
           <Field label="Notizen">
             <Textarea
               rows={2}
@@ -422,67 +430,81 @@ export function AuftragForm({ rapport, onSaved }: Props) {
           </Field>
         </Section>
 
-        {/* Sicherheitscheck – im selben Tab */}
+        {/* Positionen (Arbeit + Material) */}
+        <Section icon={ListChecks} title="Positionen">
+          <PositionenEditor rapportId={rapport.id} />
+        </Section>
+
+        {/* Sicherheitscheck */}
         <Section icon={ShieldCheck} title="Sicherheitscheck">
-          {safetyHasRot && (
+          {safetyHasMangel && (
             <div className="flex items-center gap-2 px-3 py-2 -mt-2 rounded-md bg-destructive/10 text-destructive text-xs font-medium border border-destructive/20">
               <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-              {safetyCounts.rot} {safetyCounts.rot === 1 ? "Mangel" : "Mängel"} festgestellt
+              {safetyCounts.mangel} {safetyCounts.mangel === 1 ? "Mangel" : "Mängel"} festgestellt
             </div>
           )}
-          <div className="space-y-1">
+          <div className="space-y-3">
             {SAFETY_CHECKS.map((c) => {
               const current = safety[c.key] ?? "";
               return (
                 <div
                   key={c.key}
-                  className="flex items-center justify-between gap-3 py-2 border-b border-border/50 last:border-b-0"
+                  className="rounded-lg border border-border bg-background/40 p-3 space-y-2"
                 >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <span className={cn("h-2.5 w-2.5 rounded-full shrink-0 transition-colors", SAFETY_DOT[current])} />
-                    <span className="text-sm truncate">{c.label}</span>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-sm font-medium">{c.label}</span>
+                    <div className="flex gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setSafetyValue(c.key, "ok")}
+                        aria-pressed={current === "ok"}
+                        className={cn(
+                          "h-12 px-4 rounded-lg border text-sm font-semibold transition flex items-center gap-1.5",
+                          current === "ok"
+                            ? "bg-emerald-500 text-white border-emerald-500 shadow-sm"
+                            : "bg-background border-border text-muted-foreground hover:bg-muted"
+                        )}
+                      >
+                        <Check className="h-4 w-4" strokeWidth={3} /> OK
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSafetyValue(c.key, "mangel")}
+                        aria-pressed={current === "mangel"}
+                        className={cn(
+                          "h-12 px-4 rounded-lg border text-sm font-semibold transition flex items-center gap-1.5",
+                          current === "mangel"
+                            ? "bg-red-500 text-white border-red-500 shadow-sm"
+                            : "bg-background border-border text-muted-foreground hover:bg-muted"
+                        )}
+                      >
+                        <AlertTriangle className="h-4 w-4" /> Mangel
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex gap-1 shrink-0">
-                    {(["gruen", "gelb", "rot"] as const).map((s) => {
-                      const isActive = current === s;
-                      return (
-                        <button
-                          key={s}
-                          type="button"
-                          onClick={() => setSafetyValue(c.key, s)}
-                          aria-pressed={isActive}
-                          className={cn(
-                            "h-8 w-8 rounded-md border border-border bg-background hover:bg-muted transition flex items-center justify-center",
-                            isActive && SAFETY_BTN[s]
-                          )}
-                          title={s === "gruen" ? "OK" : s === "gelb" ? "Beobachten" : "Mangel"}
-                        >
-                          {isActive ? (
-                            <Check className="h-3.5 w-3.5" strokeWidth={3} />
-                          ) : (
-                            <span className={cn("h-2 w-2 rounded-full", SAFETY_DOT[s])} />
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
+                  {current === "mangel" && (
+                    <Textarea
+                      rows={2}
+                      value={bemerkungen[c.key] ?? ""}
+                      onChange={(e) => setBemerkung(c.key, e.target.value)}
+                      placeholder="Bemerkung zum Mangel*"
+                      className="resize-none bg-background/60 border-destructive/30 focus-visible:ring-1 focus-visible:ring-destructive"
+                    />
+                  )}
                 </div>
               );
             })}
           </div>
           <div className="flex items-center justify-between gap-3 pt-2 text-xs text-muted-foreground">
             <span>
-              {SAFETY_CHECKS.length - safetyCounts.gruen - safetyCounts.gelb - safetyCounts.rot} offen
+              {SAFETY_CHECKS.length - safetyCounts.ok - safetyCounts.mangel} offen
             </span>
             <div className="flex items-center gap-3 font-mono tabular-nums">
               <span className="inline-flex items-center gap-1">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> {safetyCounts.gruen}
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> {safetyCounts.ok}
               </span>
               <span className="inline-flex items-center gap-1">
-                <span className="h-1.5 w-1.5 rounded-full bg-amber-500" /> {safetyCounts.gelb}
-              </span>
-              <span className="inline-flex items-center gap-1">
-                <span className="h-1.5 w-1.5 rounded-full bg-red-500" /> {safetyCounts.rot}
+                <span className="h-1.5 w-1.5 rounded-full bg-red-500" /> {safetyCounts.mangel}
               </span>
               {safetySave === "saving" && <Loader2 className="h-3 w-3 animate-spin text-amber-500" />}
               {safetySave === "saved" && <Check className="h-3 w-3 text-emerald-500" />}

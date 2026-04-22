@@ -8,24 +8,24 @@
      Hintergrund = sehr dunkles Anthrazit (passt zum schwarzen Logo-Hintergrund). */
   :root {
     --background: 220 15% 9%;
-    --foreground: 0 0% 96%;
+    --foreground: 0 0% 100%;
     --card: 220 15% 12%;
-    --card-foreground: 0 0% 96%;
+    --card-foreground: 0 0% 100%;
     --popover: 220 15% 11%;
-    --popover-foreground: 0 0% 96%;
+    --popover-foreground: 0 0% 100%;
 
     --primary: 49 100% 50%;            /* Brunner-Gelb #FFD100 */
     --primary-foreground: 220 20% 10%; /* dunkler Text auf Gelb */
 
     --secondary: 220 12% 18%;
-    --secondary-foreground: 0 0% 96%;
+    --secondary-foreground: 0 0% 100%;
     --muted: 220 12% 16%;
-    --muted-foreground: 220 8% 65%;
+    --muted-foreground: 220 8% 78%;
     --accent: 49 100% 50%;
     --accent-foreground: 220 20% 10%;
     --destructive: 0 75% 55%;
     --destructive-foreground: 0 0% 100%;
-    --border: 220 12% 20%;
+    --border: 220 12% 28%;
     --input: 220 12% 18%;
     --ring: 49 100% 50%;
     --radius: 0.75rem;
@@ -47,22 +47,22 @@
 
   .dark {
     --background: 220 15% 9%;
-    --foreground: 0 0% 96%;
+    --foreground: 0 0% 100%;
     --card: 220 15% 12%;
-    --card-foreground: 0 0% 96%;
+    --card-foreground: 0 0% 100%;
     --popover: 220 15% 11%;
-    --popover-foreground: 0 0% 96%;
+    --popover-foreground: 0 0% 100%;
     --primary: 49 100% 50%;
     --primary-foreground: 220 20% 10%;
     --secondary: 220 12% 18%;
-    --secondary-foreground: 0 0% 96%;
+    --secondary-foreground: 0 0% 100%;
     --muted: 220 12% 16%;
-    --muted-foreground: 220 8% 65%;
+    --muted-foreground: 220 8% 78%;
     --accent: 49 100% 50%;
     --accent-foreground: 220 20% 10%;
     --destructive: 0 75% 55%;
     --destructive-foreground: 0 0% 100%;
-    --border: 220 12% 20%;
+    --border: 220 12% 28%;
     --input: 220 12% 18%;
     --ring: 49 100% 50%;
   }
