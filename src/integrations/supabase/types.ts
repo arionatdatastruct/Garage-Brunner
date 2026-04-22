@@ -16,31 +16,17 @@ export type Database = {
     Tables: {
       arbeitsrapporte: {
         Row: {
-          arbeit_beschreibung: string | null
           arbeitszeit_stunden: number | null
-          auftragsnummer: string | null
           auftragswert_chf: number | null
-          chassis_nr: string | null
           created_at: string
           fahrzeug_id: string | null
           fotos: string[] | null
           geplantes_datum: string
           id: string
           kategorie: string | null
-          kennzeichen: string | null
-          kunde_email: string | null
-          kunde_name: string | null
-          kunde_ort: string | null
-          kunde_plz: string | null
-          kunde_strasse: string | null
-          kunde_telefon: string | null
-          kundennummer: string | null
-          marke: string | null
-          material_liste: Json | null
           mechaniker_zuweisung:
             | Database["public"]["Enums"]["mechaniker_name"]
             | null
-          modell: string | null
           notizen: string | null
           pdf_url: string | null
           rapport_nummer: string | null
@@ -49,31 +35,17 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          arbeit_beschreibung?: string | null
           arbeitszeit_stunden?: number | null
-          auftragsnummer?: string | null
           auftragswert_chf?: number | null
-          chassis_nr?: string | null
           created_at?: string
           fahrzeug_id?: string | null
           fotos?: string[] | null
           geplantes_datum?: string
           id?: string
           kategorie?: string | null
-          kennzeichen?: string | null
-          kunde_email?: string | null
-          kunde_name?: string | null
-          kunde_ort?: string | null
-          kunde_plz?: string | null
-          kunde_strasse?: string | null
-          kunde_telefon?: string | null
-          kundennummer?: string | null
-          marke?: string | null
-          material_liste?: Json | null
           mechaniker_zuweisung?:
             | Database["public"]["Enums"]["mechaniker_name"]
             | null
-          modell?: string | null
           notizen?: string | null
           pdf_url?: string | null
           rapport_nummer?: string | null
@@ -82,31 +54,17 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          arbeit_beschreibung?: string | null
           arbeitszeit_stunden?: number | null
-          auftragsnummer?: string | null
           auftragswert_chf?: number | null
-          chassis_nr?: string | null
           created_at?: string
           fahrzeug_id?: string | null
           fotos?: string[] | null
           geplantes_datum?: string
           id?: string
           kategorie?: string | null
-          kennzeichen?: string | null
-          kunde_email?: string | null
-          kunde_name?: string | null
-          kunde_ort?: string | null
-          kunde_plz?: string | null
-          kunde_strasse?: string | null
-          kunde_telefon?: string | null
-          kundennummer?: string | null
-          marke?: string | null
-          material_liste?: Json | null
           mechaniker_zuweisung?:
             | Database["public"]["Enums"]["mechaniker_name"]
             | null
-          modell?: string | null
           notizen?: string | null
           pdf_url?: string | null
           rapport_nummer?: string | null
