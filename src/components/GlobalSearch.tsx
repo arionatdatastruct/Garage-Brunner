@@ -26,10 +26,15 @@ export function GlobalSearch({ className }: { className?: string }) {
     return () => document.removeEventListener("mousedown", onClick);
   }, []);
 
-  const onPick = (rapportId: string) => {
+  const onPick = (f: typeof results[number]) => {
     setOpen(false);
     setQuery("");
-    navigate(`/auftrag/${rapportId}`);
+    // Wenn ein Rapport vorhanden ist → dorthin, sonst zur Fahrzeug-Detail-Seite
+    if (f.letzter_rapport_id) {
+      navigate(`/auftrag/${f.letzter_rapport_id}`);
+    } else if (f.kennzeichen) {
+      navigate(`/fahrzeug/${encodeURIComponent(f.kennzeichen)}`);
+    }
   };
 
   return (
@@ -69,7 +74,7 @@ export function GlobalSearch({ className }: { className?: string }) {
             <button
               key={r.id}
               type="button"
-              onClick={() => onPick(r.id)}
+              onClick={() => onPick(r)}
               className="w-full text-left px-3 py-2 hover:bg-muted transition flex items-center justify-between gap-3 border-b border-border last:border-b-0"
             >
               <div className="min-w-0">
