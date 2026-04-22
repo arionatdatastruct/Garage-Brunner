@@ -105,6 +105,8 @@ export function RapportUebersicht({ rapport }: Props) {
     return () => {
       supabase.removeChannel(channel);
     };
+  }, [rapport.id, loadPositionen]);
+
   const arbeit = positionen.filter((p) => p.typ === "arbeit");
   const material = positionen.filter((p) => p.typ === "material");
 
