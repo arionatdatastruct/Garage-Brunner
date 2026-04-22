@@ -28,6 +28,7 @@ interface Props {
 }
 
 const EINHEITEN_MATERIAL = ["Stk", "Liter", "m", "Set", "kg", "Pauschal"];
+const POSITIONEN_EVENT = "rapport-positionen-changed";
 const DEFAULT_EINHEIT = "Stk";
 
 export function PositionenEditor({ rapportId }: Props) {
@@ -43,7 +44,11 @@ export function PositionenEditor({ rapportId }: Props) {
       .order("typ")
       .order("sort_order");
     if (error) toast.error("Positionen konnten nicht geladen werden");
-    setPositionen((data ?? []) as Position[]);
+    const next = (data ?? []) as Position[];
+    setPositionen(next);
+    window.dispatchEvent(new CustomEvent(POSITIONEN_EVENT, {
+      detail: { rapportId, positionen: next },
+    }));
     setLoading(false);
   };
 
@@ -60,7 +65,15 @@ export function PositionenEditor({ rapportId }: Props) {
       Math.max(0, ...positionen.filter((p) => p.typ === typ).map((p) => p.sort_order)) + 1;
     const payload =
       typ === "arbeit"
-        ? { rapport_id: rapportId, typ, beschreibung: "", erledigt: false, sort_order }
+        ? {
+            rapport_id: rapportId,
+            typ,
+            beschreibung: "",
+            erledigt: false,
+            menge: 0,
+            einheit: "Check",
+            sort_order,
+          }
         : { rapport_id: rapportId, typ, beschreibung: "", menge: 1, einheit: DEFAULT_EINHEIT, sort_order };
     const { data, error } = await (supabase as any)
       .from("rapport_positionen")
@@ -71,11 +84,22 @@ export function PositionenEditor({ rapportId }: Props) {
       toast.error("Position konnte nicht angelegt werden");
       return;
     }
-    setPositionen((prev) => [...prev, data as Position]);
+    setPositionen((prev) => {
+      const next = [...prev, data as Position];
+      window.dispatchEvent(new CustomEvent(POSITIONEN_EVENT, {
+        detail: { rapportId, positionen: next },
+      }));
+      return next;
+    });
   };
 
   const updatePos = async (id: string, patch: Partial<Position>) => {
-    setPositionen((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
+    const nextPositionen = positionen.map((p) => (p.id === id ? { ...p, ...patch } : p));
+    setPositionen(nextPositionen);
+    window.dispatchEvent(new CustomEvent(POSITIONEN_EVENT, {
+      detail: { rapportId, positionen: nextPositionen },
+    }));
+
     const { error } = await (supabase as any)
       .from("rapport_positionen")
       .update(patch)
@@ -88,7 +112,12 @@ export function PositionenEditor({ rapportId }: Props) {
 
   const removePos = async (id: string) => {
     const prev = positionen;
-    setPositionen((p) => p.filter((x) => x.id !== id));
+    const next = positionen.filter((x) => x.id !== id);
+    setPositionen(next);
+    window.dispatchEvent(new CustomEvent(POSITIONEN_EVENT, {
+      detail: { rapportId, positionen: next },
+    }));
+
     const { error } = await (supabase as any)
       .from("rapport_positionen")
       .delete()
@@ -96,6 +125,9 @@ export function PositionenEditor({ rapportId }: Props) {
     if (error) {
       toast.error("Löschen fehlgeschlagen");
       setPositionen(prev);
+      window.dispatchEvent(new CustomEvent(POSITIONEN_EVENT, {
+        detail: { rapportId, positionen: prev },
+      }));
     }
   };
 
@@ -148,8 +180,7 @@ function ArbeitSektion({
           <p className="text-xs text-muted-foreground italic px-1">Noch keine Aufgabe.</p>
         )}
         {positionen.map((p) => {
-          // Backwards-compat: legacy rows used menge>0 instead of erledigt
-          const checked = !!p.erledigt || (p.menge ?? 0) > 0;
+          const checked = !!p.erledigt;
           return (
             <div
               key={p.id}
@@ -162,7 +193,9 @@ function ArbeitSektion({
             >
               <Checkbox
                 checked={checked}
-                onCheckedChange={(v) => onUpdate(p.id, { erledigt: !!v })}
+                onCheckedChange={(v) =>
+                  onUpdate(p.id, { erledigt: !!v, menge: v ? 1 : 0, einheit: "Check" })
+                }
                 aria-label="Aufgabe erledigt"
                 className={cn(
                   "h-6 w-6 shrink-0",

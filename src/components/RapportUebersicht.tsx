@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Printer, CheckCircle2, AlertTriangle, Circle, Wrench, Package } from "lucide-react";
@@ -45,6 +45,8 @@ const CHECK_LABELS: Record<string, string> = {
   unterboden: "Unterboden / Auspuff",
 };
 
+const POSITIONEN_EVENT = "rapport-positionen-changed";
+
 function statusIcon(v: string) {
   if (v === "ok" || v === "gruen" || v === "gelb")
     return <CheckCircle2 className="h-4 w-4 text-emerald-500" />;
@@ -57,21 +59,53 @@ export function RapportUebersicht({ rapport }: Props) {
   const checks = (rapport.sicherheitscheck as Record<string, string>) || {};
   const [positionen, setPositionen] = useState<Position[]>([]);
 
+  const loadPositionen = useCallback(async () => {
+    const { data } = await (supabase as any)
+      .from("rapport_positionen")
+      .select("id, typ, beschreibung, menge, einheit, erledigt, sort_order")
+      .eq("rapport_id", rapport.id)
+      .order("typ")
+      .order("sort_order");
+
+    setPositionen((data ?? []) as Position[]);
+  }, [rapport.id]);
+
   useEffect(() => {
-    let active = true;
-    (async () => {
-      const { data } = await (supabase as any)
-        .from("rapport_positionen")
-        .select("id, typ, beschreibung, menge, einheit, erledigt, sort_order")
-        .eq("rapport_id", rapport.id)
-        .order("typ")
-        .order("sort_order");
-      if (active) setPositionen((data ?? []) as Position[]);
-    })();
+    const handlePositionenChanged = (event: Event) => {
+      const customEvent = event as CustomEvent<{ rapportId: string; positionen: Position[] }>;
+      if (customEvent.detail?.rapportId === rapport.id) {
+        setPositionen(customEvent.detail.positionen);
+      }
+    };
+
+    window.addEventListener(POSITIONEN_EVENT, handlePositionenChanged as EventListener);
+
     return () => {
-      active = false;
+      window.removeEventListener(POSITIONEN_EVENT, handlePositionenChanged as EventListener);
     };
   }, [rapport.id]);
+
+  useEffect(() => {
+    void loadPositionen();
+
+    const channel = supabase
+      .channel(`rapport-positionen-${rapport.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "rapport_positionen",
+          filter: `rapport_id=eq.${rapport.id}`,
+        },
+        () => void loadPositionen(),
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [rapport.id, loadPositionen]);
 
   const arbeit = positionen.filter((p) => p.typ === "arbeit");
   const material = positionen.filter((p) => p.typ === "material");
@@ -164,8 +198,7 @@ export function RapportUebersicht({ rapport }: Props) {
             </div>
             <ul className="space-y-1 text-sm">
               {arbeit.map((p) => {
-                // Backwards-compat: legacy rows used menge>0 instead of erledigt
-                const done = !!p.erledigt || (p.menge ?? 0) > 0;
+                const done = !!p.erledigt;
                 return (
                   <li key={p.id} className="flex items-center gap-2">
                     {done ? (
