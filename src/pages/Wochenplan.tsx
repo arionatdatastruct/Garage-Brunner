@@ -795,7 +795,7 @@ export default function Wochenplan() {
           days={days}
           rapports={visibleRapports}
           onAdd={(d) => openDialog(d)}
-          onAction={(r) => setActionRapport(r)}
+          onAction={(r) => setActionRapport(r as Rapport)}
           highlightId={highlightId}
         />
       </div>
@@ -846,7 +846,7 @@ export default function Wochenplan() {
         rapport={actionRapport}
         onOpenChange={(o) => !o && setActionRapport(null)}
         onChanged={() => { load(); setActionRapport(null); }}
-        onDelete={(r) => { setToDelete(r); setActionRapport(null); }}
+        onDelete={(r) => { setToDelete(r as Rapport); setActionRapport(null); }}
       />
 
       {/* Neuer-Auftrag — Sheet auf Mobile, Dialog auf Desktop */}
