@@ -18,32 +18,21 @@ import { format, parseISO } from "date-fns";
 import { de } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 
-interface Fahrzeug {
-  id: string;
-  kennzeichen: string | null;
-  marke: string | null;
-  modell: string | null;
-  chassis_nr: string | null;
-  kunde?: {
-    id: string;
-    name: string | null;
-    kundennummer: string | null;
-    telefon: string | null;
-  } | null;
-}
+import type { FahrzeugRel, RapportListItem } from "@/lib/rapport-relations";
 
-interface Rapport {
-  id: string;
-  rapport_nummer: string | null;
-  status: string;
-  geplantes_datum: string;
-  pdf_url: string | null;
-  mechaniker_zuweisung: string | null;
-  arbeitszeit_stunden: number | null;
-  auftragswert_chf: number | null;
-  kategorie: string | null;
-  notizen: string | null;
-}
+type Fahrzeug = FahrzeugRel;
+type Rapport = Pick<
+  RapportListItem,
+  | "id"
+  | "rapport_nummer"
+  | "status"
+  | "geplantes_datum"
+  | "pdf_url"
+  | "mechaniker_zuweisung"
+  | "arbeitszeit_stunden"
+  | "auftragswert_chf"
+  | "kategorie"
+> & { notizen: string | null };
 
 const chf = (n: number) =>
   "CHF " + n.toLocaleString("de-CH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });

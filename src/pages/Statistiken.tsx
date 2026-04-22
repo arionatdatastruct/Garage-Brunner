@@ -9,22 +9,21 @@ import { KATEGORIEN, parseKategorien } from "@/lib/kategorien";
 import { kapazitaetFuer } from "@/lib/arbeitszeiten";
 import { cn } from "@/lib/utils";
 
-interface Row {
-  id: string;
-  auftragswert_chf: number | null;
-  arbeitszeit_stunden: number | null;
-  mechaniker_zuweisung: string | null;
-  kategorie: string | null;
-  status: string;
-  geplantes_datum: string;
-  fahrzeug?: {
-    kunde?: {
-      name: string | null;
-      kundennummer: string | null;
-      ort: string | null;
-    } | null;
-  } | null;
-}
+import type { RapportListItem } from "@/lib/rapport-relations";
+
+// Page-lokale Row-Variante: nur die für die Aggregation benötigten Felder,
+// aber strukturell kompatibel mit dem shared `RapportListItem`.
+type Row = Pick<
+  RapportListItem,
+  | "id"
+  | "auftragswert_chf"
+  | "arbeitszeit_stunden"
+  | "mechaniker_zuweisung"
+  | "kategorie"
+  | "status"
+  | "geplantes_datum"
+  | "fahrzeug"
+>;
 
 interface KundenAgg {
   key: string;

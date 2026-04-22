@@ -1,20 +1,18 @@
 /**
- * Hilfen, um nach der 3NF-Migration auf Daten aus den verknüpften Tabellen
- * (`fahrzeuge`, `kunden`) zuzugreifen, wenn die Snapshot-Spalten in
- * `arbeitsrapporte` nicht mehr existieren.
+ * Zentrale Typen + Query-Helper für Rapport-Daten nach der 3NF-Migration.
  *
- * Verwende den Standard-SELECT in `arbeitsrapporte`-Queries:
- *   *, fahrzeug:fahrzeuge ( *, kunde:kunden ( * ) )
+ * Snapshot-Spalten (kunde_*, kennzeichen, marke, modell, material_liste,
+ * arbeit_beschreibung, auftragsnummer) existieren NICHT mehr in
+ * `arbeitsrapporte`. Alle Konsumenten müssen über die JOIN-Felder
+ * `fahrzeug:fahrzeuge(*, kunde:kunden(*))` lesen.
+ *
+ * Diese Datei stellt typsichere Interfaces + einen Query-Builder bereit,
+ * damit Snapshot-Felder beim Build sofort als TS-Fehler auffallen.
  */
 
-export interface FahrzeugRel {
-  id: string;
-  kennzeichen: string | null;
-  marke: string | null;
-  modell: string | null;
-  chassis_nr: string | null;
-  kunde?: KundeRel | null;
-}
+import { supabase } from "@/integrations/supabase/client";
+
+// ---------- Basis-Entitäten (1:1 zu DB-Spalten) ----------
 
 export interface KundeRel {
   id: string;
@@ -27,12 +25,51 @@ export interface KundeRel {
   email: string | null;
 }
 
-export interface RapportRel {
-  fahrzeug?: FahrzeugRel | null;
-  // Fallback: legacy-snapshot-felder werden von TS zugelassen, sind aber
-  // nach der Migration immer undefined.
-  [k: string]: any;
+export interface FahrzeugRel {
+  id: string;
+  kennzeichen: string | null;
+  marke: string | null;
+  modell: string | null;
+  chassis_nr: string | null;
+  kunde?: KundeRel | null;
 }
+
+// ---------- Rapport-Status / Mechaniker (Enums aus DB) ----------
+
+export type RapportStatus = "geplant" | "in_arbeit" | "erledigt" | "archiviert";
+export type Mechaniker = "Roman" | "Pascal";
+
+// ---------- Rapport-Varianten ----------
+
+/** Minimaler Rapport mit eingebettetem Fahrzeug + Kunde. */
+export interface RapportRel {
+  id: string;
+  fahrzeug_id?: string | null;
+  fahrzeug?: FahrzeugRel | null;
+}
+
+/** Listen-Variante (für Wochenplan, Archiv, Statistiken-Aggregation). */
+export interface RapportListItem extends RapportRel {
+  rapport_nummer: string | null;
+  status: RapportStatus;
+  geplantes_datum: string;
+  pdf_url: string | null;
+  mechaniker_zuweisung: Mechaniker | null;
+  arbeitszeit_stunden: number | null;
+  auftragswert_chf: number | null;
+  kategorie: string | null;
+  created_at?: string;
+}
+
+/** Vollständiger Rapport (Detail-Ansicht). */
+export interface RapportFull extends RapportListItem {
+  notizen: string | null;
+  fotos: string[] | null;
+  sicherheitscheck: Record<string, unknown> | null;
+  updated_at: string;
+}
+
+// ---------- Accessor-Helfer (defensiv, null-safe) ----------
 
 export const fzKennzeichen = (r: RapportRel | null | undefined) =>
   r?.fahrzeug?.kennzeichen ?? null;
@@ -58,16 +95,18 @@ export const kdStrasse = (r: RapportRel | null | undefined) =>
 export const kdPlz = (r: RapportRel | null | undefined) =>
   r?.fahrzeug?.kunde?.plz ?? null;
 
-/** Standard-Select-String für Rapport-Listen mit eingebettetem Fahrzeug+Kunde. */
+// ---------- SELECT-Konstanten ----------
+
+/** Vollständiger SELECT für Detail-Ansichten. */
 export const RAPPORT_SELECT_FULL = `
   *,
   fahrzeug:fahrzeuge (
     id, kennzeichen, marke, modell, chassis_nr,
     kunde:kunden ( id, kundennummer, name, ort, strasse, plz, telefon, email )
   )
-`;
+` as const;
 
-/** Schlanker Select für Listen-Ansichten (ohne *). */
+/** Schlanker SELECT für Listen-Ansichten. */
 export const RAPPORT_SELECT_LIST = `
   id, rapport_nummer, status, geplantes_datum, pdf_url,
   mechaniker_zuweisung, arbeitszeit_stunden, auftragswert_chf,
@@ -76,4 +115,33 @@ export const RAPPORT_SELECT_LIST = `
     id, kennzeichen, marke, modell, chassis_nr,
     kunde:kunden ( id, kundennummer, name, ort, telefon )
   )
-`;
+` as const;
+
+// ---------- Reusable Query-Builder ----------
+
+/**
+ * Liefert einen vorkonfigurierten Supabase-Query-Builder für
+ * `arbeitsrapporte` inkl. JOIN auf `fahrzeuge` + `kunden`.
+ *
+ * Anschliessend können `.eq`, `.in`, `.order`, `.limit`, `.single` etc.
+ * verkettet werden — exakt wie auf dem Original-Builder.
+ *
+ * Beispiel:
+ *   const { data } = await selectRapporte("list")
+ *     .eq("status", "geplant")
+ *     .order("geplantes_datum");
+ *   const rows = (data ?? []) as RapportListItem[];
+ */
+export function selectRapporte(variant: "list" | "full" = "list") {
+  const sel = variant === "full" ? RAPPORT_SELECT_FULL : RAPPORT_SELECT_LIST;
+  // Dynamischer JOIN-String wird von den generierten DB-Typen nicht eng
+  // erfasst — Konsumenten casten `data` auf `RapportListItem[]` /
+  // `RapportFull` über die Helper-Typen.
+  return (supabase as unknown as {
+    from: (t: string) => {
+      select: (s: string) => ReturnType<ReturnType<typeof supabase.from>["select"]>;
+    };
+  })
+    .from("arbeitsrapporte")
+    .select(sel);
+}

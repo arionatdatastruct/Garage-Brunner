@@ -6,33 +6,22 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2, FileText, ExternalLink, Banknote, Wrench, Car } from "lucide-react";
 import { kategorienLabels } from "@/lib/kategorien";
 
-interface Kunde {
-  id: string;
-  kundennummer: string | null;
-  name: string | null;
-  ort: string | null;
-  strasse: string | null;
-  plz: string | null;
-  telefon: string | null;
-  email: string | null;
-}
+import type { KundeRel, RapportListItem } from "@/lib/rapport-relations";
 
-interface Rapport {
-  id: string;
-  rapport_nummer: string | null;
-  status: string;
-  geplantes_datum: string;
-  pdf_url: string | null;
-  mechaniker_zuweisung: string | null;
-  arbeitszeit_stunden: number | null;
-  auftragswert_chf: number | null;
-  kategorie: string | null;
-  fahrzeug?: {
-    kennzeichen: string | null;
-    marke: string | null;
-    modell: string | null;
-  } | null;
-}
+type Kunde = KundeRel;
+type Rapport = Pick<
+  RapportListItem,
+  | "id"
+  | "rapport_nummer"
+  | "status"
+  | "geplantes_datum"
+  | "pdf_url"
+  | "mechaniker_zuweisung"
+  | "arbeitszeit_stunden"
+  | "auftragswert_chf"
+  | "kategorie"
+  | "fahrzeug"
+>;
 
 const chf = (n: number) =>
   "CHF " + n.toLocaleString("de-CH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });

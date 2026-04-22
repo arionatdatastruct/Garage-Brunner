@@ -46,22 +46,12 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { AlertTriangle } from "lucide-react";
 
-interface Rapport {
-  id: string;
-  rapport_nummer: string | null;
-  geplantes_datum: string;
-  status: string;
-  mechaniker_zuweisung: string | null;
-  arbeitszeit_stunden: number | null;
-  kategorie: string | null;
-  fahrzeug_id?: string | null;
-  fahrzeug?: {
-    kennzeichen: string | null;
-    marke: string | null;
-    modell: string | null;
-    kunde?: { name: string | null; kundennummer: string | null } | null;
-  } | null;
-}
+import type { RapportListItem } from "@/lib/rapport-relations";
+
+// Page-spezifischer Alias auf den shared type — verhindert Snapshot-Felder
+// per Compile-Time, weil `RapportListItem` nur die normalisierten JOIN-
+// Felder kennt.
+type Rapport = RapportListItem;
 
 const MECH_DOT: Record<string, string> = {
   Roman: "bg-blue-500",
@@ -805,7 +795,7 @@ export default function Wochenplan() {
           days={days}
           rapports={visibleRapports}
           onAdd={(d) => openDialog(d)}
-          onAction={(r) => setActionRapport(r)}
+          onAction={(r) => setActionRapport(r as Rapport)}
           highlightId={highlightId}
         />
       </div>
@@ -856,7 +846,7 @@ export default function Wochenplan() {
         rapport={actionRapport}
         onOpenChange={(o) => !o && setActionRapport(null)}
         onChanged={() => { load(); setActionRapport(null); }}
-        onDelete={(r) => { setToDelete(r); setActionRapport(null); }}
+        onDelete={(r) => { setToDelete(r as Rapport); setActionRapport(null); }}
       />
 
       {/* Neuer-Auftrag — Sheet auf Mobile, Dialog auf Desktop */}
