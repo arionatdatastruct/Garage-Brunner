@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ExternalLink, FileText, Loader2, TriangleAlert } from "lucide-react";
+import { Download, ExternalLink, FileText, Loader2, TriangleAlert } from "lucide-react";
 import { Document, Page, pdfjs } from "react-pdf";
 // Lokaler Worker via Vite — kein CDN, keine Network-Blockaden in Sandbox/Prod.
 // `?url` gibt die gebundelte Asset-URL zurück, die mit der pdfjs-Version übereinstimmt.
