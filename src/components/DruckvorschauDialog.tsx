@@ -49,7 +49,7 @@ export function DruckvorschauDialog({ open, onOpenChange, rapport }: Props) {
   const allOn = Object.values(visibility).every(Boolean);
   const setAll = (val: boolean) =>
     setVisibility(
-      Object.fromEntries(FIELD_OPTIONS.map((o) => [o.key, val])) as RapportFieldVisibility
+      Object.fromEntries(FIELD_OPTIONS.map((o) => [o.key, val])) as unknown as RapportFieldVisibility
     );
 
   return (
