@@ -218,15 +218,11 @@ export function AuftragDetailMobile({ rapport, onChanged, onDelete, deleting }: 
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-        <div className="mt-2 pl-12 flex items-center gap-2 flex-wrap">
-          {kundeName ? (
-            <span className="text-base font-semibold truncate">{kundeName}</span>
-          ) : rapport.fahrzeug?.id ? (
-            <KundeLinkPicker fahrzeugId={rapport.fahrzeug.id} onLinked={onChanged} />
-          ) : (
-            <span className="text-xs text-muted-foreground italic">Kein Kunde verknüpft</span>
-          )}
-        </div>
+        {kundeName && (
+          <div className="text-base font-semibold mt-2 truncate pl-12">
+            {kundeName}
+          </div>
+        )}
       </header>
 
       <div
