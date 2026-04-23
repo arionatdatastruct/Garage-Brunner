@@ -219,7 +219,15 @@ export function AuftragForm({ rapport, onSaved }: Props) {
 
   const setSafetyValue = (key: string, status: SafetyStatus) => {
     safetyDirty.current = true;
-    setSafety((prev) => ({ ...prev, [key]: prev[key] === status ? "" : status }));
+    setSafety((prev) => {
+      const next = prev[key] === status ? "" : status;
+      // Bemerkung verwerfen, sobald wir "mangel" verlassen — sonst taucht der
+      // alte Text beim nächsten Mangel-Klick wieder auf.
+      if (prev[key] === "mangel" && next !== "mangel") {
+        setBemerkungen((b) => ({ ...b, [key]: "" }));
+      }
+      return { ...prev, [key]: next };
+    });
   };
   const setBemerkung = (key: string, text: string) => {
     safetyDirty.current = true;

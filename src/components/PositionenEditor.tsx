@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -177,15 +178,16 @@ function ArbeitSektion({
                     "border-emerald-500 bg-emerald-500 text-white data-[state=checked]:bg-emerald-500 data-[state=checked]:text-white",
                 )}
               />
-              <Input
+              <Textarea
                 defaultValue={p.beschreibung ?? ""}
                 onBlur={(e) => {
                   const v = e.target.value;
                   if (v !== (p.beschreibung ?? "")) onUpdate(p.id, { beschreibung: v });
                 }}
                 placeholder="Aufgabe"
+                rows={1}
                 className={cn(
-                  "h-10 bg-transparent flex-1 border-0 focus-visible:ring-0 px-2",
+                  "min-h-10 py-2 bg-transparent flex-1 border-0 focus-visible:ring-0 px-2 resize-none leading-snug break-words",
                   checked && "line-through text-muted-foreground",
                 )}
               />
