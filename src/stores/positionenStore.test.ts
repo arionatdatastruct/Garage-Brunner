@@ -9,10 +9,11 @@ type Handler = (payload: {
   old?: Partial<Position>;
 }) => void;
 
-const handlers: Handler[] = [];
-const removeChannel = vi.fn();
-
 vi.mock("@/integrations/supabase/client", () => {
+  // Hoisted-safe: state lives on globalThis
+  const g = globalThis as unknown as { __rtHandlers?: Handler[]; __rtRemove?: ReturnType<typeof vi.fn> };
+  g.__rtHandlers = [];
+  g.__rtRemove = vi.fn();
   const queryBuilder = {
     select: () => queryBuilder,
     eq: () => queryBuilder,
