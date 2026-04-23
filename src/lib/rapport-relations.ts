@@ -45,7 +45,9 @@ export type Mechaniker = "Roman" | "Pascal";
 export interface RapportRel {
   id: string;
   fahrzeug_id?: string | null;
+  kunde_id?: string | null;
   fahrzeug?: FahrzeugRel | null;
+  kunde?: KundeRel | null;
 }
 
 /** Listen-Variante (für Wochenplan, Archiv, Statistiken-Aggregation). */
@@ -70,6 +72,10 @@ export interface RapportFull extends RapportListItem {
 }
 
 // ---------- Accessor-Helfer (defensiv, null-safe) ----------
+// Direkter Rapport-Kunde hat Vorrang, Fahrzeug-Kunde als Fallback.
+
+const kunde = (r: RapportRel | null | undefined): KundeRel | null =>
+  r?.kunde ?? r?.fahrzeug?.kunde ?? null;
 
 export const fzKennzeichen = (r: RapportRel | null | undefined) =>
   r?.fahrzeug?.kennzeichen ?? null;
@@ -80,26 +86,22 @@ export const fzModell = (r: RapportRel | null | undefined) =>
 export const fzChassis = (r: RapportRel | null | undefined) =>
   r?.fahrzeug?.chassis_nr ?? null;
 
-export const kdName = (r: RapportRel | null | undefined) =>
-  r?.fahrzeug?.kunde?.name ?? null;
-export const kdNummer = (r: RapportRel | null | undefined) =>
-  r?.fahrzeug?.kunde?.kundennummer ?? null;
-export const kdOrt = (r: RapportRel | null | undefined) =>
-  r?.fahrzeug?.kunde?.ort ?? null;
-export const kdTelefon = (r: RapportRel | null | undefined) =>
-  r?.fahrzeug?.kunde?.telefon ?? null;
-export const kdEmail = (r: RapportRel | null | undefined) =>
-  r?.fahrzeug?.kunde?.email ?? null;
-export const kdStrasse = (r: RapportRel | null | undefined) =>
-  r?.fahrzeug?.kunde?.strasse ?? null;
-export const kdPlz = (r: RapportRel | null | undefined) =>
-  r?.fahrzeug?.kunde?.plz ?? null;
+export const kdName = (r: RapportRel | null | undefined) => kunde(r)?.name ?? null;
+export const kdNummer = (r: RapportRel | null | undefined) => kunde(r)?.kundennummer ?? null;
+export const kdOrt = (r: RapportRel | null | undefined) => kunde(r)?.ort ?? null;
+export const kdTelefon = (r: RapportRel | null | undefined) => kunde(r)?.telefon ?? null;
+export const kdEmail = (r: RapportRel | null | undefined) => kunde(r)?.email ?? null;
+export const kdStrasse = (r: RapportRel | null | undefined) => kunde(r)?.strasse ?? null;
+export const kdPlz = (r: RapportRel | null | undefined) => kunde(r)?.plz ?? null;
 
 // ---------- SELECT-Konstanten ----------
 
 /** Vollständiger SELECT für Detail-Ansichten. */
 export const RAPPORT_SELECT_FULL = `
   *,
+  kunde:kunden!arbeitsrapporte_kunde_id_fkey (
+    id, kundennummer, name, ort, strasse, plz, telefon, email
+  ),
   fahrzeug:fahrzeuge!arbeitsrapporte_fahrzeug_id_fkey (
     id, kennzeichen, marke, modell, chassis_nr,
     kunde:kunden!fahrzeuge_kunde_id_fkey (
@@ -112,7 +114,10 @@ export const RAPPORT_SELECT_FULL = `
 export const RAPPORT_SELECT_LIST = `
   id, rapport_nummer, status, geplantes_datum, pdf_url,
   mechaniker_zuweisung, arbeitszeit_stunden, auftragswert_chf,
-  kategorie, fahrzeug_id, created_at,
+  kategorie, fahrzeug_id, kunde_id, created_at,
+  kunde:kunden!arbeitsrapporte_kunde_id_fkey (
+    id, kundennummer, name, ort, telefon
+  ),
   fahrzeug:fahrzeuge!arbeitsrapporte_fahrzeug_id_fkey (
     id, kennzeichen, marke, modell, chassis_nr,
     kunde:kunden!fahrzeuge_kunde_id_fkey ( id, kundennummer, name, ort, telefon )
