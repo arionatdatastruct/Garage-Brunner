@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -9,53 +9,30 @@ import {
 } from "@/components/ui/select";
 import { Loader2, Plus, Trash2, Wrench, Package } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  usePositionenStore,
+  persistUpdate,
+  type Position,
+  type PositionTyp,
+} from "@/stores/positionenStore";
 
-export type PositionTyp = "arbeit" | "material";
-
-export interface Position {
-  id: string;
-  rapport_id: string;
-  typ: PositionTyp;
-  beschreibung: string | null;
-  menge: number | null;
-  einheit: string | null;
-  erledigt: boolean;
-  sort_order: number;
-}
+export type { Position, PositionTyp };
 
 interface Props {
   rapportId: string;
 }
 
 const EINHEITEN_MATERIAL = ["Stk", "Liter", "m", "Set", "kg", "Pauschal"];
-const POSITIONEN_EVENT = "rapport-positionen-changed";
 const DEFAULT_EINHEIT = "Stk";
 
 export function PositionenEditor({ rapportId }: Props) {
-  const [positionen, setPositionen] = useState<Position[]>([]);
-  const [loading, setLoading] = useState(true);
+  const subscribe = usePositionenStore((s) => s.subscribe);
+  const positionen = usePositionenStore((s) => s.byRapport[rapportId]?.positionen ?? []);
+  const loading = usePositionenStore((s) => s.byRapport[rapportId]?.loading ?? true);
+  const upsertLocal = usePositionenStore((s) => s.upsertLocal);
+  const removeLocal = usePositionenStore((s) => s.removeLocal);
 
-  const load = async () => {
-    setLoading(true);
-    const { data, error } = await (supabase as any)
-      .from("rapport_positionen")
-      .select("*")
-      .eq("rapport_id", rapportId)
-      .order("typ")
-      .order("sort_order");
-    if (error) toast.error("Positionen konnten nicht geladen werden");
-    const next = (data ?? []) as Position[];
-    setPositionen(next);
-    window.dispatchEvent(new CustomEvent(POSITIONEN_EVENT, {
-      detail: { rapportId, positionen: next },
-    }));
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    void load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rapportId]);
+  useEffect(() => subscribe(rapportId), [rapportId, subscribe]);
 
   const arbeit = positionen.filter((p) => p.typ === "arbeit");
   const material = positionen.filter((p) => p.typ === "material");
@@ -74,60 +51,56 @@ export function PositionenEditor({ rapportId }: Props) {
             einheit: "Check",
             sort_order,
           }
-        : { rapport_id: rapportId, typ, beschreibung: "", menge: 1, einheit: DEFAULT_EINHEIT, sort_order };
-    const { data, error } = await (supabase as any)
+        : {
+            rapport_id: rapportId,
+            typ,
+            beschreibung: "",
+            menge: 1,
+            einheit: DEFAULT_EINHEIT,
+            sort_order,
+          };
+    const { data, error } = await (supabase as unknown as {
+      from: (t: string) => {
+        insert: (p: object) => {
+          select: () => { single: () => Promise<{ data: Position | null; error: unknown }> };
+        };
+      };
+    })
       .from("rapport_positionen")
       .insert(payload)
       .select()
       .single();
-    if (error) {
+    if (error || !data) {
       toast.error("Position konnte nicht angelegt werden");
       return;
     }
-    setPositionen((prev) => {
-      const next = [...prev, data as Position];
-      window.dispatchEvent(new CustomEvent(POSITIONEN_EVENT, {
-        detail: { rapportId, positionen: next },
-      }));
-      return next;
-    });
+    // Optimistic — realtime will reconcile
+    upsertLocal(rapportId, data);
   };
 
   const updatePos = async (id: string, patch: Partial<Position>) => {
-    const nextPositionen = positionen.map((p) => (p.id === id ? { ...p, ...patch } : p));
-    setPositionen(nextPositionen);
-    window.dispatchEvent(new CustomEvent(POSITIONEN_EVENT, {
-      detail: { rapportId, positionen: nextPositionen },
-    }));
+    const current = positionen.find((p) => p.id === id);
+    if (current) upsertLocal(rapportId, { ...current, ...patch });
 
-    const { error } = await (supabase as any)
-      .from("rapport_positionen")
-      .update(patch)
-      .eq("id", id);
+    // erledigt is the sole source of truth — never derive from menge
+    const error = await persistUpdate(id, patch);
     if (error) {
       toast.error("Speichern fehlgeschlagen");
-      void load();
     }
   };
 
   const removePos = async (id: string) => {
-    const prev = positionen;
-    const next = positionen.filter((x) => x.id !== id);
-    setPositionen(next);
-    window.dispatchEvent(new CustomEvent(POSITIONEN_EVENT, {
-      detail: { rapportId, positionen: next },
-    }));
-
-    const { error } = await (supabase as any)
+    removeLocal(rapportId, id);
+    const { error } = await (supabase as unknown as {
+      from: (t: string) => {
+        delete: () => { eq: (c: string, v: string) => Promise<{ error: unknown }> };
+      };
+    })
       .from("rapport_positionen")
       .delete()
       .eq("id", id);
     if (error) {
       toast.error("Löschen fehlgeschlagen");
-      setPositionen(prev);
-      window.dispatchEvent(new CustomEvent(POSITIONEN_EVENT, {
-        detail: { rapportId, positionen: prev },
-      }));
     }
   };
 
@@ -194,6 +167,7 @@ function ArbeitSektion({
               <Checkbox
                 checked={checked}
                 onCheckedChange={(v) =>
+                  // erledigt is the source of truth; mirror to menge for legacy exports
                   onUpdate(p.id, { erledigt: !!v, menge: v ? 1 : 0, einheit: "Check" })
                 }
                 aria-label="Aufgabe erledigt"
@@ -265,7 +239,6 @@ function MaterialSektion({
           <p className="text-xs text-muted-foreground italic px-1">Noch keine Position.</p>
         )}
         {positionen.map((p) => {
-          // Fallback to default unit so the Select always has a valid value
           const einheit = p.einheit && EINHEITEN_MATERIAL.includes(p.einheit)
             ? p.einheit
             : DEFAULT_EINHEIT;
