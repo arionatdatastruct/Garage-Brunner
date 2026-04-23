@@ -54,16 +54,15 @@ export function DruckvorschauDialog({ open, onOpenChange, rapport }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl w-[95vw] h-[92vh] p-0 flex flex-col gap-0 overflow-hidden">
+      <DialogContent className="druckvorschau-dialog max-w-5xl w-[95vw] h-[92vh] p-0 flex flex-col gap-0 overflow-hidden">
         <DialogHeader className="px-4 py-3 border-b border-border flex-row items-center justify-between space-y-0 print:hidden">
           <DialogTitle className="flex items-center gap-2">
             <Printer className="h-4 w-4" /> Druckvorschau
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex-1 grid md:grid-cols-[260px_1fr] overflow-hidden">
-          {/* Field selector — hidden on print */}
-          <aside className="border-b md:border-b-0 md:border-r border-border bg-muted/30 p-4 overflow-y-auto print:hidden">
+        <div className="druckvorschau-body flex-1 grid md:grid-cols-[260px_1fr] overflow-hidden">
+          <aside className="druckvorschau-sidebar border-b md:border-b-0 md:border-r border-border bg-muted/30 p-4 overflow-y-auto print:hidden">
             <div className="text-xs uppercase tracking-wide text-muted-foreground mb-3">
               Felder auswählen
             </div>
@@ -82,28 +81,19 @@ export function DruckvorschauDialog({ open, onOpenChange, rapport }: Props) {
               ))}
             </div>
             <div className="mt-4 pt-4 border-t border-border flex flex-col gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setAll(!allOn)}
-              >
+              <Button variant="outline" size="sm" onClick={() => setAll(!allOn)}>
                 {allOn ? "Alle abwählen" : "Alle auswählen"}
               </Button>
               <Button size="sm" onClick={() => window.print()}>
                 <Printer className="h-4 w-4 mr-1" /> Drucken / PDF
               </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onOpenChange(false)}
-              >
+              <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
                 <X className="h-4 w-4 mr-1" /> Schließen
               </Button>
             </div>
           </aside>
 
-          {/* Preview */}
-          <div className="overflow-y-auto bg-muted/10 p-4">
+          <div className="druckvorschau-preview overflow-y-auto bg-muted/10 p-4">
             <div className="mx-auto max-w-3xl">
               <RapportUebersicht
                 rapport={rapport}
