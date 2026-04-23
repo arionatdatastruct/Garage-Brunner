@@ -67,7 +67,7 @@ function statusIcon(v: string) {
   return <Circle className="h-4 w-4 text-muted-foreground" />;
 }
 
-export function RapportUebersicht({ rapport }: Props) {
+export function RapportUebersicht({ rapport, visibility = ALL_FIELDS_VISIBLE, hidePrintButton = false }: Props) {
   const checks = (rapport.sicherheitscheck as Record<string, string>) || {};
   const subscribe = usePositionenStore((s) => s.subscribe);
   const positionen = usePositionenStore((s) => s.byRapport[rapport.id]?.positionen ?? []);
@@ -111,59 +111,69 @@ export function RapportUebersicht({ rapport }: Props) {
               })}
             </p>
           </div>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => window.print()}
-            className="print:hidden"
-          >
-            <Printer className="h-4 w-4 mr-1" /> Drucken
-          </Button>
+          {!hidePrintButton && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => window.print()}
+              className="print:hidden"
+            >
+              <Printer className="h-4 w-4 mr-1" /> Drucken
+            </Button>
+          )}
         </div>
 
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <div className="text-xs text-muted-foreground mb-1">Kunde</div>
-            <div className="font-medium">{kundeName ?? "—"}</div>
-            {kundeNummer && (
-              <div className="text-muted-foreground text-xs">Nr. {kundeNummer}</div>
-            )}
-            {kundeStrasse && <div className="text-muted-foreground">{kundeStrasse}</div>}
-            {(kundePlz || kundeOrt) && (
-              <div className="text-muted-foreground">{[kundePlz, kundeOrt].filter(Boolean).join(" ")}</div>
-            )}
-            {kundeTel && <div className="text-muted-foreground">{kundeTel}</div>}
-          </div>
-          <div>
-            <div className="text-xs text-muted-foreground mb-1">Fahrzeug</div>
-            <div className="font-medium">{kennzeichen ?? "—"}</div>
-            {(marke || modell) && (
-              <div className="text-muted-foreground">
-                {[marke, modell].filter(Boolean).join(" ")}
+        {(visibility.kunde || visibility.fahrzeug) && (
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            {visibility.kunde ? (
+              <div>
+                <div className="text-xs text-muted-foreground mb-1">Kunde</div>
+                <div className="font-medium">{kundeName ?? "—"}</div>
+                {kundeNummer && (
+                  <div className="text-muted-foreground text-xs">Nr. {kundeNummer}</div>
+                )}
+                {kundeStrasse && <div className="text-muted-foreground">{kundeStrasse}</div>}
+                {(kundePlz || kundeOrt) && (
+                  <div className="text-muted-foreground">{[kundePlz, kundeOrt].filter(Boolean).join(" ")}</div>
+                )}
+                {kundeTel && <div className="text-muted-foreground">{kundeTel}</div>}
               </div>
-            )}
-            {chassis && (
-              <div className="text-muted-foreground text-xs">FIN: {chassis}</div>
-            )}
+            ) : <div />}
+            {visibility.fahrzeug ? (
+              <div>
+                <div className="text-xs text-muted-foreground mb-1">Fahrzeug</div>
+                <div className="font-medium">{kennzeichen ?? "—"}</div>
+                {(marke || modell) && (
+                  <div className="text-muted-foreground">
+                    {[marke, modell].filter(Boolean).join(" ")}
+                  </div>
+                )}
+                {chassis && (
+                  <div className="text-muted-foreground text-xs">FIN: {chassis}</div>
+                )}
+              </div>
+            ) : <div />}
           </div>
-        </div>
+        )}
 
-        <div className="border-t border-border pt-3 grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <div className="text-xs text-muted-foreground">Kategorie</div>
-            <div>{kategorienLabels(rapport.kategorie) || "—"}</div>
+        {visibility.meta && (
+          <div className="border-t border-border pt-3 grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <div className="text-xs text-muted-foreground">Kategorie</div>
+              <div>{kategorienLabels(rapport.kategorie) || "—"}</div>
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground">Mechaniker</div>
+              <div>{rapport.mechaniker_zuweisung ?? "—"}</div>
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground">Arbeitszeit</div>
+              <div>{rapport.arbeitszeit_stunden ? `${rapport.arbeitszeit_stunden} h` : "—"}</div>
+            </div>
           </div>
-          <div>
-            <div className="text-xs text-muted-foreground">Mechaniker</div>
-            <div>{rapport.mechaniker_zuweisung ?? "—"}</div>
-          </div>
-          <div>
-            <div className="text-xs text-muted-foreground">Arbeitszeit</div>
-            <div>{rapport.arbeitszeit_stunden ? `${rapport.arbeitszeit_stunden} h` : "—"}</div>
-          </div>
-        </div>
+        )}
 
-        {arbeit.length > 0 && (
+        {visibility.arbeiten && arbeit.length > 0 && (
           <div className="border-t border-border pt-3">
             <div className="text-xs text-muted-foreground mb-2 flex items-center gap-1.5">
               <Wrench className="h-3 w-3" /> Ausgeführte Arbeiten
@@ -188,7 +198,7 @@ export function RapportUebersicht({ rapport }: Props) {
           </div>
         )}
 
-        {material.length > 0 && (
+        {visibility.material && material.length > 0 && (
           <div className="border-t border-border pt-3">
             <div className="text-xs text-muted-foreground mb-2 flex items-center gap-1.5">
               <Package className="h-3 w-3" /> Material
@@ -206,7 +216,7 @@ export function RapportUebersicht({ rapport }: Props) {
           </div>
         )}
 
-        {Object.keys(checks).length > 0 && (
+        {visibility.sicherheitscheck && Object.keys(checks).length > 0 && (
           <div className="border-t border-border pt-3">
             <div className="text-xs text-muted-foreground mb-2">Sicherheitscheck</div>
             <div className="space-y-1.5 text-sm">
@@ -229,14 +239,14 @@ export function RapportUebersicht({ rapport }: Props) {
           </div>
         )}
 
-        {rapport.notizen && (
+        {visibility.notizen && rapport.notizen && (
           <div className="border-t border-border pt-3">
             <div className="text-xs text-muted-foreground mb-1">Notizen</div>
             <p className="text-sm whitespace-pre-wrap">{rapport.notizen}</p>
           </div>
         )}
 
-        {rapport.auftragswert_chf != null && (
+        {visibility.auftragswert && rapport.auftragswert_chf != null && (
           <div className="border-t border-border pt-3 flex items-center justify-between">
             <span className="text-sm text-muted-foreground">Auftragswert</span>
             <span className="text-lg font-semibold">
