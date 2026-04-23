@@ -142,24 +142,32 @@ function ArbeitSektion({
   onUpdate: (id: string, patch: Partial<Position>) => void;
   onRemove: (id: string) => void;
 }) {
+  const COLLAPSE_LIMIT = 5;
+  const [expanded, setExpanded] = useState(false);
+  const offen = positionen.filter((p) => !p.erledigt).length;
+  const needsCollapse = positionen.length > COLLAPSE_LIMIT;
+  const visible = needsCollapse && !expanded ? positionen.slice(0, COLLAPSE_LIMIT) : positionen;
+
   return (
     <div className="space-y-2">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
         <Wrench className="h-4 w-4 text-primary" />
         <h4 className="text-sm font-semibold uppercase tracking-wider">Arbeit</h4>
-        <span className="text-xs text-muted-foreground">({positionen.length})</span>
+        <span className="text-xs text-muted-foreground">
+          ({positionen.length}){offen > 0 && <> · {offen} offen</>}
+        </span>
       </div>
-      <div className="space-y-2">
+      <div className="space-y-2.5">
         {positionen.length === 0 && (
           <p className="text-xs text-muted-foreground italic px-1">Noch keine Aufgabe.</p>
         )}
-        {positionen.map((p) => {
+        {visible.map((p) => {
           const checked = !!p.erledigt;
           return (
             <div
               key={p.id}
               className={cn(
-                "rounded-lg border p-2.5 flex items-center gap-2 transition-colors",
+                "rounded-lg border p-3 flex items-start gap-3 transition-colors",
                 checked
                   ? "border-emerald-500/40 bg-emerald-500/10"
                   : "border-border bg-background/50",
@@ -173,7 +181,7 @@ function ArbeitSektion({
                 }
                 aria-label="Aufgabe erledigt"
                 className={cn(
-                  "h-6 w-6 shrink-0",
+                  "h-6 w-6 shrink-0 mt-1.5",
                   checked &&
                     "border-emerald-500 bg-emerald-500 text-white data-[state=checked]:bg-emerald-500 data-[state=checked]:text-white",
                 )}
@@ -187,7 +195,7 @@ function ArbeitSektion({
                 placeholder="Aufgabe"
                 rows={1}
                 className={cn(
-                  "min-h-10 py-2 bg-transparent flex-1 border-0 focus-visible:ring-0 px-2 resize-none leading-snug break-words",
+                  "min-h-10 py-2 bg-transparent flex-1 min-w-0 border-0 focus-visible:ring-0 px-1 resize-none leading-snug break-words whitespace-pre-wrap",
                   checked && "line-through text-muted-foreground",
                 )}
               />
@@ -204,6 +212,20 @@ function ArbeitSektion({
             </div>
           );
         })}
+        {needsCollapse && (
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => setExpanded((x) => !x)}
+            className="w-full h-10 text-xs text-muted-foreground"
+          >
+            {expanded ? (
+              <><ChevronUp className="h-3.5 w-3.5 mr-1" /> Weniger anzeigen</>
+            ) : (
+              <><ChevronDown className="h-3.5 w-3.5 mr-1" /> Alle {positionen.length} Aufgaben anzeigen</>
+            )}
+          </Button>
+        )}
       </div>
       <Button
         type="button"
