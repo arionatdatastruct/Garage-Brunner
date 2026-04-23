@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
@@ -45,6 +45,7 @@ import {
 import { cn } from "@/lib/utils";
 import { ErledigenDialog } from "@/components/ErledigenDialog";
 import { useWakeLock } from "@/hooks/useWakeLock";
+import { toSignedUrl } from "@/lib/storage";
 import {
   fzKennzeichen, fzMarke, fzModell,
   kdName, kdTelefon,
@@ -106,11 +107,23 @@ export function AuftragDetailMobile({ rapport, onChanged, onDelete, deleting }: 
   const [erledigenRapport, setErledigenRapport] = useState<any>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [fotoUrls, setFotoUrls] = useState<string[]>([]);
 
   const isErledigt = rapport.status === "erledigt" || rapport.status === "archiviert";
   const sCfg = STATUS_CFG[rapport.status];
 
   useWakeLock(!isErledigt);
+
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      const signed = await Promise.all((rapport.fotos ?? []).map(async (value) => (await toSignedUrl(value)) ?? value));
+      if (active) setFotoUrls(signed.filter(Boolean));
+    })();
+    return () => {
+      active = false;
+    };
+  }, [rapport.fotos]);
 
   const kennzeichen = fzKennzeichen(rapport);
   const marke = fzMarke(rapport);
@@ -239,9 +252,9 @@ export function AuftragDetailMobile({ rapport, onChanged, onDelete, deleting }: 
           onUploaded={onChanged}
         />
 
-        {rapport.fotos && rapport.fotos.length > 0 && (
+        {fotoUrls.length > 0 && (
           <div className="flex gap-2 overflow-x-auto pb-1 -mx-3 px-3 snap-x snap-mandatory">
-            {rapport.fotos.map((url, i) => (
+            {fotoUrls.map((url, i) => (
               <a
                 key={i}
                 href={url}

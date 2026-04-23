@@ -100,9 +100,11 @@ export const kdPlz = (r: RapportRel | null | undefined) =>
 /** Vollständiger SELECT für Detail-Ansichten. */
 export const RAPPORT_SELECT_FULL = `
   *,
-  fahrzeug:fahrzeuge (
+  fahrzeug:fahrzeuge!arbeitsrapporte_fahrzeug_id_fkey (
     id, kennzeichen, marke, modell, chassis_nr,
-    kunde:kunden ( id, kundennummer, name, ort, strasse, plz, telefon, email )
+    kunde:kunden!fahrzeuge_kunde_id_fkey (
+      id, kundennummer, name, ort, strasse, plz, telefon, email
+    )
   )
 ` as const;
 
@@ -111,9 +113,9 @@ export const RAPPORT_SELECT_LIST = `
   id, rapport_nummer, status, geplantes_datum, pdf_url,
   mechaniker_zuweisung, arbeitszeit_stunden, auftragswert_chf,
   kategorie, fahrzeug_id, created_at,
-  fahrzeug:fahrzeuge (
+  fahrzeug:fahrzeuge!arbeitsrapporte_fahrzeug_id_fkey (
     id, kennzeichen, marke, modell, chassis_nr,
-    kunde:kunden ( id, kundennummer, name, ort, telefon )
+    kunde:kunden!fahrzeuge_kunde_id_fkey ( id, kundennummer, name, ort, telefon )
   )
 ` as const;
 
