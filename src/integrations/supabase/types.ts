@@ -89,6 +89,7 @@ export type Database = {
           id: string
           kennzeichen: string | null
           kunde_id: string | null
+          kundennummer_hint: string | null
           marke: string | null
           modell: string | null
           updated_at: string
@@ -99,6 +100,7 @@ export type Database = {
           id?: string
           kennzeichen?: string | null
           kunde_id?: string | null
+          kundennummer_hint?: string | null
           marke?: string | null
           modell?: string | null
           updated_at?: string
@@ -109,6 +111,7 @@ export type Database = {
           id?: string
           kennzeichen?: string | null
           kunde_id?: string | null
+          kundennummer_hint?: string | null
           marke?: string | null
           modell?: string | null
           updated_at?: string

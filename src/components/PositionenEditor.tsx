@@ -157,9 +157,9 @@ function ArbeitSektion({
           ({positionen.length}){offen > 0 && <> · {offen} offen</>}
         </span>
       </div>
-      <div className="space-y-2.5">
+      <div className="rounded-xl border border-border bg-background/30 divide-y divide-border overflow-hidden">
         {positionen.length === 0 && (
-          <p className="text-xs text-muted-foreground italic px-1">Noch keine Aufgabe.</p>
+          <p className="text-xs text-muted-foreground italic px-3 py-4">Noch keine Aufgabe.</p>
         )}
         {visible.map((p) => {
           const checked = !!p.erledigt;
@@ -167,25 +167,32 @@ function ArbeitSektion({
             <div
               key={p.id}
               className={cn(
-                "rounded-lg border p-3 flex items-start gap-3 transition-colors",
+                "flex items-start gap-3 p-3 transition-colors min-h-[64px]",
                 checked
-                  ? "border-emerald-500/40 bg-emerald-500/10"
-                  : "border-border bg-background/50",
+                  ? "bg-emerald-500/10"
+                  : "bg-transparent",
               )}
             >
-              <Checkbox
-                checked={checked}
-                onCheckedChange={(v) =>
-                  // erledigt is the source of truth; mirror to menge for legacy exports
-                  onUpdate(p.id, { erledigt: !!v, menge: v ? 1 : 0, einheit: "Check" })
+              <button
+                type="button"
+                onClick={() =>
+                  onUpdate(p.id, { erledigt: !checked, menge: !checked ? 1 : 0, einheit: "Check" })
                 }
                 aria-label="Aufgabe erledigt"
+                aria-pressed={checked}
                 className={cn(
-                  "h-6 w-6 shrink-0 mt-1.5",
-                  checked &&
-                    "border-emerald-500 bg-emerald-500 text-white data-[state=checked]:bg-emerald-500 data-[state=checked]:text-white",
+                  "h-11 w-11 shrink-0 rounded-lg border-2 flex items-center justify-center transition active:scale-95",
+                  checked
+                    ? "bg-emerald-500 border-emerald-500 text-white"
+                    : "bg-background border-border hover:border-primary/50",
                 )}
-              />
+              >
+                <Checkbox
+                  checked={checked}
+                  className="h-5 w-5 pointer-events-none border-0 bg-transparent data-[state=checked]:bg-transparent data-[state=checked]:text-white"
+                  tabIndex={-1}
+                />
+              </button>
               <Textarea
                 defaultValue={p.beschreibung ?? ""}
                 onBlur={(e) => {
@@ -195,7 +202,7 @@ function ArbeitSektion({
                 placeholder="Aufgabe"
                 rows={1}
                 className={cn(
-                  "min-h-10 py-2 bg-transparent flex-1 min-w-0 border-0 focus-visible:ring-0 px-1 resize-none leading-snug break-words whitespace-pre-wrap",
+                  "min-h-11 max-h-48 overflow-y-auto py-2.5 bg-transparent flex-1 min-w-0 border-0 focus-visible:ring-0 px-2 resize-y leading-snug break-words whitespace-pre-wrap text-base",
                   checked && "line-through text-muted-foreground",
                 )}
               />
@@ -203,37 +210,37 @@ function ArbeitSektion({
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="h-9 w-9 text-muted-foreground hover:text-destructive shrink-0"
+                className="h-11 w-11 text-muted-foreground hover:text-destructive shrink-0"
                 onClick={() => onRemove(p.id)}
                 aria-label="Aufgabe löschen"
               >
-                <Trash2 className="h-4 w-4" />
+                <Trash2 className="h-5 w-5" />
               </Button>
             </div>
           );
         })}
-        {needsCollapse && (
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => setExpanded((x) => !x)}
-            className="w-full h-10 text-xs text-muted-foreground"
-          >
-            {expanded ? (
-              <><ChevronUp className="h-3.5 w-3.5 mr-1" /> Weniger anzeigen</>
-            ) : (
-              <><ChevronDown className="h-3.5 w-3.5 mr-1" /> Alle {positionen.length} Aufgaben anzeigen</>
-            )}
-          </Button>
-        )}
       </div>
+      {needsCollapse && (
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={() => setExpanded((x) => !x)}
+          className="w-full h-11 text-sm text-muted-foreground"
+        >
+          {expanded ? (
+            <><ChevronUp className="h-4 w-4 mr-1.5" /> Weniger anzeigen</>
+          ) : (
+            <><ChevronDown className="h-4 w-4 mr-1.5" /> Alle {positionen.length} Aufgaben anzeigen ({positionen.length - COLLAPSE_LIMIT} mehr)</>
+          )}
+        </Button>
+      )}
       <Button
         type="button"
         variant="outline"
         onClick={onAdd}
-        className={cn("w-full h-11 border-dashed")}
+        className={cn("w-full h-12 border-dashed text-base")}
       >
-        <Plus className="h-4 w-4 mr-1.5" />
+        <Plus className="h-5 w-5 mr-1.5" />
         Aufgabe hinzufügen
       </Button>
     </div>
