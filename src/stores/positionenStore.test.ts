@@ -7,25 +7,29 @@ type Handler = (payload: {
   old?: Record<string, unknown>;
 }) => void;
 
-// Hoisted-safe globals (vi.mock factory cannot reference module locals)
 declare global {
   // eslint-disable-next-line no-var
   var __rtHandlers: Handler[];
   // eslint-disable-next-line no-var
   var __rtRemove: ReturnType<typeof vi.fn>;
 }
-globalThis.__rtHandlers = [];
-globalThis.__rtRemove = vi.fn();
 
 vi.mock("@/integrations/supabase/client", () => {
+  globalThis.__rtHandlers = [];
+  globalThis.__rtRemove = vi.fn();
+
+  const orderable = {
+    order: () => orderable,
+    then: (resolve: (v: { data: unknown[]; error: null }) => void) =>
+      resolve({ data: [], error: null }),
+  };
   const queryBuilder: Record<string, unknown> = {};
   Object.assign(queryBuilder, {
     select: () => queryBuilder,
-    eq: () => queryBuilder,
-    order: () => Promise.resolve({ data: [], error: null }),
+    eq: () => orderable,
     insert: () => queryBuilder,
-    update: () => queryBuilder,
-    delete: () => queryBuilder,
+    update: () => ({ eq: () => Promise.resolve({ error: null }) }),
+    delete: () => ({ eq: () => Promise.resolve({ error: null }) }),
     single: () => Promise.resolve({ data: null, error: null }),
   });
 
@@ -38,12 +42,11 @@ vi.mock("@/integrations/supabase/client", () => {
           return { subscribe: () => ({}) };
         },
       }),
-      removeChannel: globalThis.__rtRemove,
+      removeChannel: (...args: unknown[]) => globalThis.__rtRemove(...args),
     },
   };
 });
 
-// Import AFTER vi.mock
 import { usePositionenStore, type Position } from "@/stores/positionenStore";
 
 const RID = "test-rapport-id";
