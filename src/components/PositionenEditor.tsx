@@ -202,7 +202,8 @@ function ArbeitSektion({
                 placeholder="Aufgabe"
                 rows={1}
                 className={cn(
-                  "min-h-11 max-h-48 overflow-y-auto py-2.5 bg-transparent flex-1 min-w-0 border-0 focus-visible:ring-0 px-2 resize-y leading-snug break-words whitespace-pre-wrap text-base",
+                  "min-h-11 py-2.5 bg-transparent flex-1 min-w-0 border-0 focus-visible:ring-0 px-2 resize-none leading-snug break-words whitespace-pre-wrap text-base overflow-hidden",
+                  "field-sizing-content",
                   checked && "line-through text-muted-foreground",
                 )}
               />
