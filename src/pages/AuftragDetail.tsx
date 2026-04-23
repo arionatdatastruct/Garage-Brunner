@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { ArrowLeft, Loader2, Trash2 } from "lucide-react";
+import { KundeLinkPicker } from "@/components/KundeLinkPicker";
 import {
   RAPPORT_SELECT_FULL,
   fzKennzeichen, fzMarke, fzModell,
