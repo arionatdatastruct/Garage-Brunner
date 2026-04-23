@@ -376,6 +376,8 @@ export function AuftragDetailMobile({ rapport, onChanged, onDelete, deleting }: 
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <DruckvorschauDialog open={druckOpen} onOpenChange={setDruckOpen} rapport={rapport} />
     </div>
   );
 }
