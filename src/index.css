@@ -123,7 +123,18 @@
   }
 }
 
-/* Print styles */
+/* Druck-Portal: auf dem Bildschirm versteckt, im Druck einzige Quelle */
+@media screen {
+  .print-portal {
+    position: fixed;
+    left: -10000px;
+    top: 0;
+    width: 210mm;
+    pointer-events: none;
+    opacity: 0;
+  }
+}
+
 @media print {
   @page {
     margin: 0;
@@ -139,55 +150,29 @@
     height: auto !important;
     overflow: visible !important;
   }
-  body * {
-    visibility: hidden !important;
-  }
 
-  [data-radix-dialog-overlay] {
+  /* Alles ausblenden, ausser dem Druck-Portal */
+  body > *:not(.print-portal) {
     display: none !important;
   }
 
-  .druckvorschau-dialog {
+  .print-portal {
+    display: block !important;
     position: static !important;
-    transform: none !important;
-    inset: auto !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    height: auto !important;
-    max-height: none !important;
-    overflow: visible !important;
-    border: 0 !important;
-    box-shadow: none !important;
+    left: auto !important;
+    top: auto !important;
+    opacity: 1 !important;
     background: white !important;
-    padding: 0 !important;
     margin: 0 !important;
-    display: block !important;
-  }
-  .druckvorschau-body {
-    display: block !important;
-    overflow: visible !important;
-    height: auto !important;
-  }
-  .druckvorschau-sidebar {
-    display: none !important;
-  }
-  .druckvorschau-preview {
-    overflow: visible !important;
-    height: auto !important;
-    background: white !important;
     padding: 0 !important;
-    margin: 0 !important;
+    width: auto !important;
   }
-
-  /* Nur das pdf-sheet sichtbar machen — exakt 1 A4-Seite */
-  .pdf-sheet,
-  .pdf-sheet * {
+  .print-portal,
+  .print-portal * {
     visibility: visible !important;
   }
-  .pdf-sheet {
-    position: absolute !important;
-    left: 0 !important;
-    top: 0 !important;
+
+  .print-portal .pdf-sheet {
     width: 210mm !important;
     min-height: 297mm !important;
     max-height: 297mm !important;
@@ -198,46 +183,10 @@
     page-break-inside: avoid !important;
     overflow: hidden !important;
   }
-  /* Logo invertieren (weiß → schwarz für Druck) */
-  .pdf-sheet img {
+  .print-portal .pdf-sheet img {
     filter: invert(1) !important;
   }
 
-  /* Alte preview-overlay Variante (z. B. inline RapportUebersicht-Drucken) */
-  .preview-overlay,
-  .preview-overlay * {
-    visibility: visible !important;
-  }
-  .preview-overlay {
-    position: absolute !important;
-    left: 0 !important;
-    top: 0 !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    background: white !important;
-    color: black !important;
-    width: 100% !important;
-    height: auto !important;
-    overflow: visible !important;
-    display: block !important;
-  }
-  .preview-overlay * {
-    color: black !important;
-  }
-  .a4-paper {
-    position: relative !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    box-shadow: none !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    min-height: auto !important;
-    background: white !important;
-    border: 0 !important;
-  }
-  .preview-section {
-    page-break-inside: avoid !important;
-  }
   .print\:hidden {
     display: none !important;
   }
