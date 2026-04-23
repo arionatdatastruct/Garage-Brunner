@@ -458,34 +458,34 @@ export function AuftragForm({ rapport, onSaved }: Props) {
                   key={c.key}
                   className="rounded-lg border border-border bg-background/40 p-3 space-y-2"
                 >
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-sm font-medium">{c.label}</span>
-                    <div className="flex gap-2 shrink-0">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <span className="text-sm font-medium break-words">{c.label}</span>
+                    <div className="grid grid-cols-2 gap-2 sm:flex sm:shrink-0">
                       <button
                         type="button"
                         onClick={() => setSafetyValue(c.key, "ok")}
                         aria-pressed={current === "ok"}
                         className={cn(
-                          "h-12 px-4 rounded-lg border text-sm font-semibold transition flex items-center gap-1.5",
+                          "h-12 px-3 rounded-lg border text-sm font-semibold transition flex items-center justify-center gap-1.5 min-w-0",
                           current === "ok"
                             ? "bg-emerald-500 text-white border-emerald-500 shadow-sm"
                             : "bg-background border-border text-muted-foreground hover:bg-muted"
                         )}
                       >
-                        <Check className="h-4 w-4" strokeWidth={3} /> OK
+                        <Check className="h-4 w-4 shrink-0" strokeWidth={3} /> OK
                       </button>
                       <button
                         type="button"
                         onClick={() => setSafetyValue(c.key, "mangel")}
                         aria-pressed={current === "mangel"}
                         className={cn(
-                          "h-12 px-4 rounded-lg border text-sm font-semibold transition flex items-center gap-1.5",
+                          "h-12 px-3 rounded-lg border text-sm font-semibold transition flex items-center justify-center gap-1.5 min-w-0",
                           current === "mangel"
                             ? "bg-red-500 text-white border-red-500 shadow-sm"
                             : "bg-background border-border text-muted-foreground hover:bg-muted"
                         )}
                       >
-                        <AlertTriangle className="h-4 w-4" /> Mangel
+                        <AlertTriangle className="h-4 w-4 shrink-0" /> Mangel
                       </button>
                     </div>
                   </div>
