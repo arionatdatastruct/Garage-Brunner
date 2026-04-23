@@ -23,8 +23,32 @@ interface Rapport {
   fahrzeug?: FahrzeugRel | null;
 }
 
+export interface RapportFieldVisibility {
+  kunde: boolean;
+  fahrzeug: boolean;
+  meta: boolean;
+  arbeiten: boolean;
+  material: boolean;
+  sicherheitscheck: boolean;
+  notizen: boolean;
+  auftragswert: boolean;
+}
+
+export const ALL_FIELDS_VISIBLE: RapportFieldVisibility = {
+  kunde: true,
+  fahrzeug: true,
+  meta: true,
+  arbeiten: true,
+  material: true,
+  sicherheitscheck: true,
+  notizen: true,
+  auftragswert: true,
+};
+
 interface Props {
   rapport: Rapport;
+  visibility?: RapportFieldVisibility;
+  hidePrintButton?: boolean;
 }
 
 const CHECK_LABELS: Record<string, string> = {
