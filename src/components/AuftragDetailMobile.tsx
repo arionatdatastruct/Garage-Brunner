@@ -46,6 +46,7 @@ import { cn } from "@/lib/utils";
 import { ErledigenDialog } from "@/components/ErledigenDialog";
 import { useWakeLock } from "@/hooks/useWakeLock";
 import { toSignedUrl } from "@/lib/storage";
+import { KundeLinkPicker } from "@/components/KundeLinkPicker";
 import {
   fzKennzeichen, fzMarke, fzModell,
   kdName, kdTelefon,
