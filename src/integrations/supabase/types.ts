@@ -24,6 +24,7 @@ export type Database = {
           geplantes_datum: string
           id: string
           kategorie: string | null
+          kunde_id: string | null
           mechaniker_zuweisung:
             | Database["public"]["Enums"]["mechaniker_name"]
             | null
@@ -43,6 +44,7 @@ export type Database = {
           geplantes_datum?: string
           id?: string
           kategorie?: string | null
+          kunde_id?: string | null
           mechaniker_zuweisung?:
             | Database["public"]["Enums"]["mechaniker_name"]
             | null
@@ -62,6 +64,7 @@ export type Database = {
           geplantes_datum?: string
           id?: string
           kategorie?: string | null
+          kunde_id?: string | null
           mechaniker_zuweisung?:
             | Database["public"]["Enums"]["mechaniker_name"]
             | null
@@ -78,6 +81,13 @@ export type Database = {
             columns: ["fahrzeug_id"]
             isOneToOne: false
             referencedRelation: "fahrzeuge"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "arbeitsrapporte_kunde_id_fkey"
+            columns: ["kunde_id"]
+            isOneToOne: false
+            referencedRelation: "kunden"
             referencedColumns: ["id"]
           },
         ]
