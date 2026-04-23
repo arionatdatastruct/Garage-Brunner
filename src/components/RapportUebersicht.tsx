@@ -1,14 +1,14 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Printer, CheckCircle2, AlertTriangle, Circle, Wrench, Package } from "lucide-react";
 import { kategorienLabels } from "@/lib/kategorien";
-import { supabase } from "@/integrations/supabase/client";
 import {
   fzKennzeichen, fzMarke, fzModell, fzChassis,
   kdName, kdNummer, kdOrt, kdTelefon,
   type FahrzeugRel,
 } from "@/lib/rapport-relations";
+import { usePositionenStore, type Position } from "@/stores/positionenStore";
 
 interface Rapport {
   id: string;
@@ -23,16 +23,6 @@ interface Rapport {
   fahrzeug?: FahrzeugRel | null;
 }
 
-interface Position {
-  id: string;
-  typ: "arbeit" | "material";
-  beschreibung: string | null;
-  menge: number | null;
-  einheit: string | null;
-  erledigt: boolean;
-  sort_order: number;
-}
-
 interface Props {
   rapport: Rapport;
 }
@@ -45,8 +35,6 @@ const CHECK_LABELS: Record<string, string> = {
   unterboden: "Unterboden / Auspuff",
 };
 
-const POSITIONEN_EVENT = "rapport-positionen-changed";
-
 function statusIcon(v: string) {
   if (v === "ok" || v === "gruen" || v === "gelb")
     return <CheckCircle2 className="h-4 w-4 text-emerald-500" />;
@@ -57,55 +45,10 @@ function statusIcon(v: string) {
 
 export function RapportUebersicht({ rapport }: Props) {
   const checks = (rapport.sicherheitscheck as Record<string, string>) || {};
-  const [positionen, setPositionen] = useState<Position[]>([]);
+  const subscribe = usePositionenStore((s) => s.subscribe);
+  const positionen = usePositionenStore((s) => s.byRapport[rapport.id]?.positionen ?? []);
 
-  const loadPositionen = useCallback(async () => {
-    const { data } = await (supabase as any)
-      .from("rapport_positionen")
-      .select("id, typ, beschreibung, menge, einheit, erledigt, sort_order")
-      .eq("rapport_id", rapport.id)
-      .order("typ")
-      .order("sort_order");
-
-    setPositionen((data ?? []) as Position[]);
-  }, [rapport.id]);
-
-  useEffect(() => {
-    const handlePositionenChanged = (event: Event) => {
-      const customEvent = event as CustomEvent<{ rapportId: string; positionen: Position[] }>;
-      if (customEvent.detail?.rapportId === rapport.id) {
-        setPositionen(customEvent.detail.positionen);
-      }
-    };
-
-    window.addEventListener(POSITIONEN_EVENT, handlePositionenChanged as EventListener);
-
-    return () => {
-      window.removeEventListener(POSITIONEN_EVENT, handlePositionenChanged as EventListener);
-    };
-  }, [rapport.id]);
-
-  useEffect(() => {
-    void loadPositionen();
-
-    const channel = supabase
-      .channel(`rapport-positionen-${rapport.id}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "rapport_positionen",
-          filter: `rapport_id=eq.${rapport.id}`,
-        },
-        () => void loadPositionen(),
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [rapport.id, loadPositionen]);
+  useEffect(() => subscribe(rapport.id), [rapport.id, subscribe]);
 
   const arbeit = positionen.filter((p) => p.typ === "arbeit");
   const material = positionen.filter((p) => p.typ === "material");
