@@ -44,6 +44,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ErledigenDialog } from "@/components/ErledigenDialog";
+import { DruckvorschauDialog } from "@/components/DruckvorschauDialog";
 import { useWakeLock } from "@/hooks/useWakeLock";
 import { toSignedUrl } from "@/lib/storage";
 import {
@@ -108,6 +109,7 @@ export function AuftragDetailMobile({ rapport, onChanged, onDelete, deleting }: 
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [busy, setBusy] = useState(false);
   const [fotoUrls, setFotoUrls] = useState<string[]>([]);
+  const [druckOpen, setDruckOpen] = useState(false);
 
   const isErledigt = rapport.status === "erledigt" || rapport.status === "archiviert";
   const sCfg = STATUS_CFG[rapport.status];
@@ -327,8 +329,8 @@ export function AuftragDetailMobile({ rapport, onChanged, onDelete, deleting }: 
                 </a>
               </DropdownMenuItem>
             )}
-            <DropdownMenuItem onClick={() => window.print()}>
-              <Printer className="h-4 w-4 mr-2" /> Drucken
+            <DropdownMenuItem onClick={() => setDruckOpen(true)}>
+              <Printer className="h-4 w-4 mr-2" /> Druckvorschau
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
@@ -374,6 +376,8 @@ export function AuftragDetailMobile({ rapport, onChanged, onDelete, deleting }: 
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <DruckvorschauDialog open={druckOpen} onOpenChange={setDruckOpen} rapport={rapport} />
     </div>
   );
 }

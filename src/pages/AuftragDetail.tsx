@@ -19,7 +19,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { ArrowLeft, Loader2, Trash2 } from "lucide-react";
+import { ArrowLeft, Loader2, Printer, Trash2 } from "lucide-react";
+import { DruckvorschauDialog } from "@/components/DruckvorschauDialog";
 import {
   RAPPORT_SELECT_FULL,
   fzKennzeichen, fzMarke, fzModell,
@@ -51,6 +52,7 @@ export default function AuftragDetail() {
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
   const isMobile = useIsMobile();
+  const [druckOpen, setDruckOpen] = useState(false);
 
   const handleDelete = async () => {
     if (!id) return;
@@ -189,6 +191,14 @@ export default function AuftragDetail() {
         </div>
         <div className="flex items-center gap-2">
           <AuftragStatusBar rapportId={rapport.id} status={rapport.status} onChanged={load} />
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setDruckOpen(true)}
+            title="Druckvorschau"
+          >
+            <Printer className="h-4 w-4" />
+          </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="outline" size="icon" className="text-destructive hover:text-destructive" disabled={deleting}>
@@ -221,6 +231,8 @@ export default function AuftragDetail() {
           <AuftragForm rapport={rapport} onSaved={load} />
         </div>
       </div>
+
+      <DruckvorschauDialog open={druckOpen} onOpenChange={setDruckOpen} rapport={rapport} />
     </div>
   );
 }
