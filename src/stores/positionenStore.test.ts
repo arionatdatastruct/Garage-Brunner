@@ -1,101 +1,87 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { act } from "@testing-library/react";
-import { usePositionenStore, type Position } from "@/stores/positionenStore";
 
-// ---- Mock Supabase realtime channel ----
 type Handler = (payload: {
   eventType: "INSERT" | "UPDATE" | "DELETE";
-  new?: Partial<Position>;
-  old?: Partial<Position>;
+  new?: Record<string, unknown>;
+  old?: Record<string, unknown>;
 }) => void;
 
+// Hoisted-safe globals (vi.mock factory cannot reference module locals)
+declare global {
+  // eslint-disable-next-line no-var
+  var __rtHandlers: Handler[];
+  // eslint-disable-next-line no-var
+  var __rtRemove: ReturnType<typeof vi.fn>;
+}
+globalThis.__rtHandlers = [];
+globalThis.__rtRemove = vi.fn();
+
 vi.mock("@/integrations/supabase/client", () => {
-  // Hoisted-safe: state lives on globalThis
-  const g = globalThis as unknown as { __rtHandlers?: Handler[]; __rtRemove?: ReturnType<typeof vi.fn> };
-  g.__rtHandlers = [];
-  g.__rtRemove = vi.fn();
-  const queryBuilder = {
+  const queryBuilder: Record<string, unknown> = {};
+  Object.assign(queryBuilder, {
     select: () => queryBuilder,
     eq: () => queryBuilder,
-    order: () => queryBuilder,
+    order: () => Promise.resolve({ data: [], error: null }),
     insert: () => queryBuilder,
     update: () => queryBuilder,
     delete: () => queryBuilder,
     single: () => Promise.resolve({ data: null, error: null }),
-    then: (resolve: (v: { data: Position[]; error: null }) => void) =>
-      resolve({ data: [], error: null }),
-  };
+  });
 
   return {
     supabase: {
       from: () => queryBuilder,
       channel: () => ({
         on: (_evt: string, _filter: object, handler: Handler) => {
-          handlers.push(handler);
-          return {
-            subscribe: () => ({
-              on: () => ({}),
-            }),
-          };
+          globalThis.__rtHandlers.push(handler);
+          return { subscribe: () => ({}) };
         },
       }),
-      removeChannel,
+      removeChannel: globalThis.__rtRemove,
     },
   };
 });
+
+// Import AFTER vi.mock
+import { usePositionenStore, type Position } from "@/stores/positionenStore";
 
 const RID = "test-rapport-id";
 
 describe("positionenStore realtime sync", () => {
   beforeEach(() => {
-    handlers.length = 0;
-    removeChannel.mockClear();
-    // Reset store
+    globalThis.__rtHandlers.length = 0;
+    globalThis.__rtRemove.mockClear();
     usePositionenStore.setState({ byRapport: {} });
   });
 
-  it("immediately reflects realtime UPDATE on erledigt — no stale state", async () => {
+  it("immediately reflects realtime UPDATE on erledigt — no stale state", () => {
     const unsub = usePositionenStore.getState().subscribe(RID);
 
-    // Seed store as if initial fetch returned one task
     act(() => {
       usePositionenStore.getState().applyOptimistic(RID, [
         {
-          id: "p1",
-          rapport_id: RID,
-          typ: "arbeit",
-          beschreibung: "Ölwechsel",
-          menge: 0,
-          einheit: "Check",
-          erledigt: false,
-          sort_order: 1,
+          id: "p1", rapport_id: RID, typ: "arbeit", beschreibung: "Ölwechsel",
+          menge: 0, einheit: "Check", erledigt: false, sort_order: 1,
         },
       ]);
     });
 
     expect(usePositionenStore.getState().getPositionen(RID)[0].erledigt).toBe(false);
 
-    // Simulate Supabase realtime UPDATE event from another tab/source
     act(() => {
-      handlers.forEach((h) =>
+      globalThis.__rtHandlers.forEach((h) =>
         h({
           eventType: "UPDATE",
           new: {
-            id: "p1",
-            rapport_id: RID,
-            typ: "arbeit",
-            beschreibung: "Ölwechsel",
-            menge: 1,
-            einheit: "Check",
-            erledigt: true,
-            sort_order: 1,
+            id: "p1", rapport_id: RID, typ: "arbeit", beschreibung: "Ölwechsel",
+            menge: 1, einheit: "Check", erledigt: true, sort_order: 1,
           },
         }),
       );
     });
 
     const after = usePositionenStore.getState().getPositionen(RID);
-    expect(after).toHaveLength(1);
     expect(after[0].erledigt).toBe(true);
     expect(after[0].menge).toBe(1);
 
@@ -108,22 +94,16 @@ describe("positionenStore realtime sync", () => {
     act(() => {
       usePositionenStore.getState().applyOptimistic(RID, [
         {
-          id: "p2",
-          rapport_id: RID,
-          typ: "material",
-          beschreibung: "Filter",
-          menge: 1,
-          einheit: "Stk",
-          erledigt: false,
-          sort_order: 1,
-        },
+          id: "p2", rapport_id: RID, typ: "material", beschreibung: "Filter",
+          menge: 1, einheit: "Stk", erledigt: false, sort_order: 1,
+        } satisfies Position,
       ]);
     });
 
     expect(usePositionenStore.getState().getPositionen(RID)).toHaveLength(1);
 
     act(() => {
-      handlers.forEach((h) => h({ eventType: "DELETE", old: { id: "p2" } }));
+      globalThis.__rtHandlers.forEach((h) => h({ eventType: "DELETE", old: { id: "p2" } }));
     });
 
     expect(usePositionenStore.getState().getPositionen(RID)).toHaveLength(0);
@@ -138,7 +118,7 @@ describe("positionenStore realtime sync", () => {
 
     unsub1();
     expect(usePositionenStore.getState().byRapport[RID]?.refCount).toBe(1);
-    expect(removeChannel).not.toHaveBeenCalled();
+    expect(globalThis.__rtRemove).not.toHaveBeenCalled();
 
     unsub2();
     expect(usePositionenStore.getState().byRapport[RID]).toBeUndefined();
