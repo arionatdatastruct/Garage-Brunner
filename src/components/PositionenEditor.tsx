@@ -195,6 +195,17 @@ function ArbeitSektion({
               </button>
               <Textarea
                 defaultValue={p.beschreibung ?? ""}
+                ref={(el) => {
+                  if (el) {
+                    el.style.height = "auto";
+                    el.style.height = el.scrollHeight + "px";
+                  }
+                }}
+                onInput={(e) => {
+                  const el = e.currentTarget;
+                  el.style.height = "auto";
+                  el.style.height = el.scrollHeight + "px";
+                }}
                 onBlur={(e) => {
                   const v = e.target.value;
                   if (v !== (p.beschreibung ?? "")) onUpdate(p.id, { beschreibung: v });
@@ -203,7 +214,6 @@ function ArbeitSektion({
                 rows={1}
                 className={cn(
                   "min-h-11 py-2.5 bg-transparent flex-1 min-w-0 border-0 focus-visible:ring-0 px-2 resize-none leading-snug break-words whitespace-pre-wrap text-base overflow-hidden",
-                  "field-sizing-content",
                   checked && "line-through text-muted-foreground",
                 )}
               />
