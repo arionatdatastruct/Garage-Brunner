@@ -20,7 +20,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { ArrowLeft, Loader2, Trash2 } from "lucide-react";
-import { KundeLinkPicker } from "@/components/KundeLinkPicker";
 import {
   RAPPORT_SELECT_FULL,
   fzKennzeichen, fzMarke, fzModell,
@@ -180,9 +179,7 @@ export default function AuftragDetail() {
                 Historie →
               </Link>
             )}
-            {kundeName ? <span>· {kundeName}</span> : rapport.fahrzeug?.id && (
-              <KundeLinkPicker fahrzeugId={rapport.fahrzeug.id} onLinked={load} />
-            )}
+            {kundeName && <span>· {kundeName}</span>}
             {kundeNummer && (
               <span className="font-mono text-xs px-1.5 py-0.5 rounded bg-muted">
                 #{kundeNummer}
