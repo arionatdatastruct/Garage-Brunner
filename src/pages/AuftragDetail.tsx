@@ -231,6 +231,8 @@ export default function AuftragDetail() {
           <AuftragForm rapport={rapport} onSaved={load} />
         </div>
       </div>
+
+      <DruckvorschauDialog open={druckOpen} onOpenChange={setDruckOpen} rapport={rapport} />
     </div>
   );
 }
