@@ -5,7 +5,7 @@ import { Printer, CheckCircle2, AlertTriangle, Circle, Wrench, Package } from "l
 import { kategorienLabels } from "@/lib/kategorien";
 import {
   fzKennzeichen, fzMarke, fzModell, fzChassis,
-  kdName, kdNummer, kdOrt, kdTelefon,
+  kdName, kdNummer, kdOrt, kdTelefon, kdStrasse, kdPlz,
   type FahrzeugRel,
 } from "@/lib/rapport-relations";
 import { usePositionenStore, type Position } from "@/stores/positionenStore";
@@ -64,6 +64,8 @@ export function RapportUebersicht({ rapport }: Props) {
   const kundeNummer = kdNummer(rapport);
   const kundeOrt = kdOrt(rapport);
   const kundeTel = kdTelefon(rapport);
+  const kundeStrasse = kdStrasse(rapport);
+  const kundePlz = kdPlz(rapport);
 
   return (
     <div className="preview-overlay">
@@ -102,7 +104,10 @@ export function RapportUebersicht({ rapport }: Props) {
             {kundeNummer && (
               <div className="text-muted-foreground text-xs">Nr. {kundeNummer}</div>
             )}
-            {kundeOrt && <div className="text-muted-foreground">{kundeOrt}</div>}
+            {kundeStrasse && <div className="text-muted-foreground">{kundeStrasse}</div>}
+            {(kundePlz || kundeOrt) && (
+              <div className="text-muted-foreground">{[kundePlz, kundeOrt].filter(Boolean).join(" ")}</div>
+            )}
             {kundeTel && <div className="text-muted-foreground">{kundeTel}</div>}
           </div>
           <div>

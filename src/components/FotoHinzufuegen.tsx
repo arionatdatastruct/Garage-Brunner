@@ -33,12 +33,12 @@ export function FotoHinzufuegen({ rapportId, currentFotos, onUploaded }: Props) 
         const compressed = await compressImage(file);
         const blob = dataUrlToBlob(compressed.dataUrl);
         const path = `${rapportId}/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.jpg`;
+        const storagePath = `fotos/${path}`;
         const { error: upErr } = await supabase.storage
           .from("fotos")
           .upload(path, blob, { contentType: "image/jpeg", upsert: false });
         if (upErr) throw upErr;
-        const { data: pub } = supabase.storage.from("fotos").getPublicUrl(path);
-        fotos.push(pub.publicUrl);
+        fotos.push(storagePath);
       }
       const { error: updErr } = await (supabase as any)
         .from("arbeitsrapporte")
