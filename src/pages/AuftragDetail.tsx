@@ -180,7 +180,9 @@ export default function AuftragDetail() {
                 Historie →
               </Link>
             )}
-            {kundeName && <span>· {kundeName}</span>}
+            {kundeName ? <span>· {kundeName}</span> : rapport.fahrzeug?.id && (
+              <KundeLinkPicker fahrzeugId={rapport.fahrzeug.id} onLinked={load} />
+            )}
             {kundeNummer && (
               <span className="font-mono text-xs px-1.5 py-0.5 rounded bg-muted">
                 #{kundeNummer}
