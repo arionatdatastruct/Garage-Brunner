@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Plus, Trash2, Wrench, Package } from "lucide-react";
+import { ChevronDown, ChevronUp, Loader2, Plus, Trash2, Wrench, Package } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   usePositionenStore,
