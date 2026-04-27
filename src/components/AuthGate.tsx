@@ -16,12 +16,22 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
     const ensureSession = async () => {
       try {
-        const { data } = await supabase.auth.getSession();
-        if (!data.session) {
+        let { data } = await supabase.auth.getSession();
+        if (!data.session?.access_token) {
           const { error } = await supabase.auth.signInAnonymously();
           if (error) throw error;
+          // Re-verify session is fully established with a valid access token
+          // before letting child components query (avoids RLS race).
+          for (let i = 0; i < 20; i++) {
+            const res = await supabase.auth.getSession();
+            if (res.data.session?.access_token) {
+              data = res.data;
+              break;
+            }
+            await new Promise((r) => setTimeout(r, 50));
+          }
         }
-        if (mounted) setReady(true);
+        if (mounted && data.session?.access_token) setReady(true);
       } catch (e: any) {
         if (mounted) setError(e?.message ?? "Auth-Fehler");
       }
@@ -30,7 +40,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     ensureSession();
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session && mounted) setReady(true);
+      if (session?.access_token && mounted) setReady(true);
     });
 
     return () => {
