@@ -1,78 +1,52 @@
+## Diagnose: "Fehler beim Laden" in der published Version
 
+### Was ich gefunden habe
 
-# Datenbank-Normalisierung abschliessen + Code anpassen
+In den Postgres-Logs erscheinen wiederholt echte DB-Fehler:
 
-Sorry für die Verzögerung — ich war im Plan-Modus und habe auf dein OK gewartet, statt loszulegen. Hier der finale Plan, kurz und konkret.
-
-## 1. Datenbank-Migration
-
-**Daten löschen** (sauberer Start):
-- `TRUNCATE arbeitsrapporte, rapport_positionen, fahrzeuge, kunden CASCADE`
-- Zugehörige Storage-Files (`belege/`, `fotos/`) bleiben — kannst du manuell im Dashboard leeren falls nötig.
-
-**Snapshot-Spalten aus `arbeitsrapporte` entfernen:**
-- Kunde: `kunde_name`, `kunde_ort`, `kunde_strasse`, `kunde_plz`, `kunde_telefon`, `kunde_email`, `kundennummer`
-- Fahrzeug: `kennzeichen`, `marke`, `modell`, `chassis_nr`
-- Inhalt: `material_liste`, `arbeit_beschreibung`
-- Auch `auftragsnummer` (ungenutzt, `rapport_nummer` bleibt)
-
-**Constraints + FKs:**
-- `kunden.kundennummer` → UNIQUE NOT NULL
-- `fahrzeuge.chassis_nr` → UNIQUE (nullable, aber wenn gesetzt eindeutig)
-- `fahrzeuge.kennzeichen` → Index (nicht unique, kann wechseln)
-- `fahrzeuge.kunde_id` → FK → `kunden(id)` ON DELETE RESTRICT
-- `arbeitsrapporte.fahrzeug_id` → FK → `fahrzeuge(id)` ON DELETE RESTRICT, **NOT NULL**
-- `rapport_positionen.rapport_id` → FK → `arbeitsrapporte(id)` ON DELETE CASCADE
-
-**Trigger:**
-- `update_updated_at_column` auf `kunden`, `fahrzeuge`, `arbeitsrapporte`
-- `generate_rapport_nummer` BEFORE INSERT auf `arbeitsrapporte`
-
-## 2. n8n-Mapping (für dich zur Info)
-
-n8n muss ab sofort in dieser Reihenfolge schreiben:
-
-```text
-1. UPSERT kunden  (key: kundennummer)        → erhält kunden.id
-2. UPSERT fahrzeuge (key: chassis_nr,
-   sonst kennzeichen) mit kunde_id           → erhält fahrzeuge.id
-3. INSERT arbeitsrapporte mit fahrzeug_id
-4. INSERT rapport_positionen[] mit rapport_id
-   (typ='material' oder 'arbeit')
+```
+column arbeitsrapporte.kennzeichen does not exist
+column arbeitsrapporte.auftragsnummer does not exist
 ```
 
-## 3. Code-Anpassungen (alle Lese-Stellen auf JOIN umstellen)
+Im **aktuellen Code** gibt es diese Spaltenreferenzen nicht mehr — sie wurden bei der Schema-Refaktorierung entfernt (`kennzeichen` lebt nur noch auf `fahrzeuge`, `auftragsnummer` heisst jetzt `rapport_nummer`).
 
-Überall wo heute `rapport.kunde_name`, `rapport.kennzeichen`, `rapport.marke`, `rapport.material_liste`, `rapport.arbeit_beschreibung` etc. gelesen wird → über `fahrzeug:fahrzeuge(*, kunde:kunden(*))` joinen.
+**Schlussfolgerung:** Die **published Version (`*.lovable.app`)** läuft auf einem **älteren Build**, der noch die alten Spaltennamen abfragt. Das ist genau die Ursache für „Fehler beim Laden". In der Preview funktioniert es, weil dort der aktuelle Code läuft.
 
-**Betroffene Dateien:**
+### Wo wir letztes Mal stehen geblieben sind
 
-| Datei | Änderung |
-|---|---|
-| `src/pages/AuftragDetail.tsx` | Select erweitern: `*, fahrzeug:fahrzeuge(*, kunde:kunden(*))`; Header liest aus `rapport.fahrzeug.kennzeichen` etc. |
-| `src/components/AuftragDetailMobile.tsx` | Props-Typ erweitern, alle Snapshot-Lesungen → `rapport.fahrzeug?.…` / `rapport.fahrzeug?.kunde?.…` |
-| `src/components/RapportUebersicht.tsx` | JOIN-Daten verwenden; `material_liste`/`arbeit_beschreibung` entfallen (kommt eh schon aus `rapport_positionen`) |
-| `src/pages/Archiv.tsx` | Select um `fahrzeug:fahrzeuge(kennzeichen, marke, modell, kunde:kunden(name, ort, kundennummer))` erweitern; Filter/Sort/Suche/CSV anpassen |
-| `src/pages/Wochenplan.tsx` + `MobileWochenplan.tsx` + `RapportCard` | Karten zeigen `fahrzeug.kennzeichen` + `fahrzeug.kunde.name` via JOIN |
-| `src/pages/Statistiken.tsx` | Top-Kunden-Aggregation über `fahrzeug.kunde.kundennummer`/`name` |
-| `src/pages/KundeDetail.tsx` | Query: `kunden` lesen + `arbeitsrapporte` über `fahrzeug.kunde_id` joinen |
-| `src/pages/FahrzeugDetail.tsx` | Query: `fahrzeuge` per `kennzeichen` lesen, dann Rapporte über `fahrzeug_id` |
-| `src/components/GlobalSearch.tsx` | Suche über `fahrzeuge` (kennzeichen, marke, modell) + `kunden` (name, kundennummer), dann zugehörige Rapporte |
-| `src/hooks/useFahrzeugSuche.ts` | Komplett auf `fahrzeuge`-Tabelle + `kunden`-JOIN umstellen statt `arbeitsrapporte`-Snapshots |
-| `src/components/NeuerAuftragDialog.tsx` + `NeuerAuftragSheet.tsx` | Beim Anlegen kein Snapshot mehr — `fahrzeug_id` ist beim manuellen Anlegen offen (Dialog erstellt Rapport ohne Fahrzeug; n8n setzt `fahrzeug_id` beim PDF-Verarbeiten) |
-| `src/components/ErledigenDialog.tsx` | Typ anpassen, kein Snapshot-Read |
-| `src/components/RapportActionSheet.tsx` | JOIN-Daten verwenden |
-| `src/components/BelegMitRapport.tsx` | Falls Snapshot-Reads → JOIN |
+Die letzte abgeschlossene Änderung war die DB-Migration: `arbeitsrapporte.kunde_id` als FK zu `kunden`, plus zwei Auto-Link-Trigger (`rapport_auto_link_kunde`, `fahrzeug_backfill_rapporte_kunde`) und Backfill der bestehenden Reports. Frontend (`rapport-relations.ts`) wurde entsprechend angepasst, sodass der Kunde direkt am Rapport gelesen wird, mit Fallback aufs Fahrzeug. Das ist alles im Code, aber **noch nicht published**.
 
-## 4. Hinweise / Risiken
+Offen aus früheren Loops blieb noch:
+- Aufgaben-Ansicht ist „nicht übersichtlich" (kosmetische Überarbeitung)
+- Foto-Upload-Flow durchprüfen, ob alles in DB/Storage korrekt landet
 
-- **Manuell angelegte Aufträge** (über „Neuer Auftrag"-Dialog mit PDF) haben anfangs `fahrzeug_id = NULL`. Da die Spalte NOT NULL werden soll → entweder (a) `fahrzeug_id` doch nullable lassen, bis n8n verarbeitet hat, oder (b) UI zwingt vorher zur Fahrzeug-/Kundenauswahl. **Empfehlung: nullable lassen** — n8n füllt nach PDF-Parse nach.
-- Nach der Migration sind **alle Daten weg** — du hast das so bestätigt.
-- Bis n8n umgestellt ist, werden neue Rapporte ohne `fahrzeug_id` angelegt und zeigen leere Kennzeichen/Kunden — das ist erwartet.
+Diese zwei Punkte sind im aktuellen Bug nicht der Auslöser.
 
-## Bestätigung
+## Lösung
 
-Wenn du zustimmst, führe ich aus:
-1. Migration (TRUNCATE + DROP columns + FKs + Trigger), `fahrzeug_id` bleibt **nullable**
-2. Refactor aller oben gelisteten Code-Dateien auf JOIN-Reads
+### 1. Frontend neu publishen (User-Aktion)
+Die Hauptursache wird durch ein Re-Publish behoben. Über den **Publish → Update**-Button im Editor oben rechts. Frontend-Änderungen gehen erst nach diesem Klick live; die Preview-URL spiegelt sie sofort, die `*.lovable.app`-URL nicht.
 
+### 2. Auth-Race-Condition härten (kleiner Code-Fix)
+
+`AuthGate` setzt `ready=true`, sobald `signInAnonymously()` zurückkommt — aber Komponenten beginnen sofort zu queryen, bevor das JWT garantiert vom Supabase-Client als Header gesendet wird. Bei langsamen Netzen/Cold-Starts kann das einen Query ohne gültigen Token absetzen → RLS blockt → „Fehler beim Laden".
+
+Fix in `src/components/AuthGate.tsx`:
+- `getSession()` nach `signInAnonymously()` erneut prüfen, erst dann `ready=true`
+- `ready` nur setzen, wenn die Session wirklich `access_token` enthält
+
+### 3. Bessere Fehlermeldungen (Optional, klein)
+
+In `src/pages/Wochenplan.tsx` Zeile 365: statt `toast.error("Fehler beim Laden")` den `error.message` mitgeben. So sehen wir beim nächsten Mal die echte Ursache (z.B. „column does not exist") direkt im Toast statt nur im Backend-Log. Gleiches Muster in `Archiv.tsx` Zeile 119.
+
+## Technische Details
+
+**Geänderte Dateien:**
+- `src/components/AuthGate.tsx` — Session-Verify nach Anon-Login
+- `src/pages/Wochenplan.tsx` — Fehlermeldung mit `error.message`
+- `src/pages/Archiv.tsx` — Fehlermeldung mit `error.message`
+
+**Keine DB-Migration nötig.** Schema und RLS sind korrekt.
+
+**User-Aktion nach Implementierung:** Im Editor oben rechts auf **Publish → Update** klicken, damit die `lovable.app`-Domain den aktuellen Build bekommt.
