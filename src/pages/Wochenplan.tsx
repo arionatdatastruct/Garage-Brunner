@@ -362,7 +362,8 @@ export default function Wochenplan() {
       .lte("geplantes_datum", to)
       .order("created_at", { ascending: true });
     if (error) {
-      toast.error("Fehler beim Laden");
+      console.error("[Wochenplan] load error:", error);
+      toast.error(`Fehler beim Laden: ${error.message ?? "unbekannt"}`);
       return;
     }
     setRapports((data ?? []) as Rapport[]);

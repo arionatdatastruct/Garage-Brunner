@@ -116,7 +116,10 @@ export default function Archiv() {
       .in("status", ["erledigt", "archiviert"])
       .order("geplantes_datum", { ascending: false })
       .limit(500);
-    if (error) toast.error("Laden fehlgeschlagen");
+    if (error) {
+      console.error("[Archiv] load error:", error);
+      toast.error(`Laden fehlgeschlagen: ${error.message ?? "unbekannt"}`);
+    }
     setRows((data ?? []) as Rapport[]);
     setLoading(false);
   };
