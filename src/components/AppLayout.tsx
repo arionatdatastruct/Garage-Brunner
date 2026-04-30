@@ -20,6 +20,9 @@ const mobileNavItems = [
 export function AppLayout() {
   const location = useLocation();
   const [pageTitle, setPageTitle] = useState("Werkstatt");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const onAuftragDetail = location.pathname.startsWith("/auftrag");
 
   useEffect(() => {
     const match = navItems.find((item) =>
@@ -27,14 +30,14 @@ export function AppLayout() {
     );
     if (match) {
       setPageTitle(match.label);
-    } else if (location.pathname.startsWith("/auftrag")) {
+    } else if (onAuftragDetail) {
       setPageTitle("Auftrag");
     } else {
       setPageTitle("Werkstatt");
     }
-  }, [location.pathname]);
-
-  const onAuftragDetail = location.pathname.startsWith("/auftrag");
+    // Sidebar bei Routenwechsel schliessen
+    setSidebarOpen(false);
+  }, [location.pathname, onAuftragDetail]);
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-background text-foreground">
