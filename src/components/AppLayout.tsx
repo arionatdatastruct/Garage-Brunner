@@ -40,7 +40,7 @@ export function AppLayout() {
   }, [location.pathname, onAuftragDetail]);
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-background text-foreground">
+    <div className="min-h-screen flex flex-col bg-background text-foreground">
       {/* Sidebar Desktop — auf Auftrags-Detail als Off-Canvas, sonst fest */}
       {!onAuftragDetail && (
         <aside className="hidden lg:flex flex-col w-56 border-r border-border bg-card">
