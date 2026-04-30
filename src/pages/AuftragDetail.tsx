@@ -223,13 +223,8 @@ export default function AuftragDetail() {
         </div>
       </div>
 
-      <div className="hidden md:flex md:flex-col md:gap-4 lg:grid lg:grid-cols-5 lg:h-[calc(100vh-8rem)]">
-        <div className="lg:col-span-3 lg:overflow-hidden">
-          <PdfPane />
-        </div>
-        <div className="lg:col-span-2 lg:overflow-y-auto pr-1 space-y-4">
-          <AuftragForm rapport={rapport} onSaved={load} />
-        </div>
+      <div className="hidden md:block max-w-3xl mx-auto w-full space-y-4">
+        <AuftragForm rapport={rapport} onSaved={load} />
       </div>
 
       <DruckvorschauDialog open={druckOpen} onOpenChange={setDruckOpen} rapport={rapport} />
