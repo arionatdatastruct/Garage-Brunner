@@ -40,43 +40,7 @@ export function AppLayout() {
   }, [location.pathname, onAuftragDetail]);
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-background text-foreground">
-      {/* Sidebar Desktop — auf Auftrags-Detail als Off-Canvas, sonst fest */}
-      {!onAuftragDetail && (
-        <aside className="hidden lg:flex flex-col w-56 border-r border-border bg-card">
-          <div className="px-5 py-5 border-b border-border space-y-3">
-            <div className="flex items-center justify-center">
-              <img
-                src={logo}
-                alt="Garage Brunner Wynigen"
-                className="h-12 w-auto select-none"
-                draggable={false}
-              />
-            </div>
-            <GlobalSearch />
-          </div>
-          <nav className="flex-1 p-3 space-y-1">
-            {navItems.map(({ to, label, icon: Icon }) => (
-              <NavLink
-                key={to}
-                to={to}
-                end={to === "/"}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
-                    isActive
-                      ? "bg-primary text-primary-foreground"
-                      : "text-foreground hover:bg-muted"
-                  }`
-                }
-              >
-                <Icon className="h-4 w-4" />
-                {label}
-              </NavLink>
-            ))}
-          </nav>
-        </aside>
-      )}
-
+    <div className="min-h-screen flex flex-col bg-background text-foreground">
       {/* Off-Canvas Sidebar (Mobile, Tablet, und Desktop auf Auftrags-Detail) */}
       {sidebarOpen && (
         <>
@@ -128,7 +92,7 @@ export function AppLayout() {
         </>
       )}
 
-      {/* Top Bar — auf Mobile immer, auf Tablet/Desktop nur wenn Sidebar nicht fest */}
+      {/* Top Bar — auf Auftrags-Detail immer, sonst nur unter lg */}
       <header
         className={`${onAuftragDetail ? "" : "lg:hidden"} sticky top-0 z-30 bg-card/95 backdrop-blur border-b border-border px-3 py-2`}
       >
@@ -154,10 +118,48 @@ export function AppLayout() {
         </div>
       </header>
 
-      {/* Main */}
-      <main className="flex-1 pb-20 md:pb-0 overflow-x-hidden">
-        <Outlet />
-      </main>
+      {/* Body: feste Sidebar (nur lg+ und nicht auf Auftrags-Detail) + Main */}
+      <div className="flex-1 flex flex-row min-h-0">
+        {!onAuftragDetail && (
+          <aside className="hidden lg:flex flex-col w-56 border-r border-border bg-card">
+            <div className="px-5 py-5 border-b border-border space-y-3">
+              <div className="flex items-center justify-center">
+                <img
+                  src={logo}
+                  alt="Garage Brunner Wynigen"
+                  className="h-12 w-auto select-none"
+                  draggable={false}
+                />
+              </div>
+              <GlobalSearch />
+            </div>
+            <nav className="flex-1 p-3 space-y-1">
+              {navItems.map(({ to, label, icon: Icon }) => (
+                <NavLink
+                  key={to}
+                  to={to}
+                  end={to === "/"}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
+                      isActive
+                        ? "bg-primary text-primary-foreground"
+                        : "text-foreground hover:bg-muted"
+                    }`
+                  }
+                >
+                  <Icon className="h-4 w-4" />
+                  {label}
+                </NavLink>
+              ))}
+            </nav>
+          </aside>
+        )}
+
+        {/* Main */}
+        <main className="flex-1 pb-20 md:pb-0 overflow-x-hidden">
+          <Outlet />
+        </main>
+      </div>
 
       {/* Bottom Nav Mobile */}
       <nav
