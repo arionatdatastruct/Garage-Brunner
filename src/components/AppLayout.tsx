@@ -1,7 +1,8 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { Calendar, Archive, BarChart3 } from "lucide-react";
+import { Calendar, Archive, BarChart3, Menu, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { GlobalSearch } from "./GlobalSearch";
+import { Button } from "@/components/ui/button";
 import logo from "@/assets/garage-brunner-logo.svg";
 
 const navItems = [
