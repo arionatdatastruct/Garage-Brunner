@@ -223,11 +223,11 @@ export default function AuftragDetail() {
         </div>
       </div>
 
-      <div className="hidden md:grid md:grid-cols-5 md:gap-4 md:h-[calc(100vh-8rem)]">
-        <div className="md:col-span-3 overflow-hidden">
+      <div className="hidden md:flex md:flex-col md:gap-4 lg:grid lg:grid-cols-5 lg:h-[calc(100vh-8rem)]">
+        <div className="lg:col-span-3 lg:overflow-hidden">
           <PdfPane />
         </div>
-        <div className="md:col-span-2 overflow-y-auto pr-1 space-y-4">
+        <div className="lg:col-span-2 lg:overflow-y-auto pr-1 space-y-4">
           <AuftragForm rapport={rapport} onSaved={load} />
         </div>
       </div>
