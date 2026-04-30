@@ -234,12 +234,12 @@ function ArbeitSektion({
           type="button"
           variant="ghost"
           onClick={() => setExpanded((x) => !x)}
-          className="w-full h-11 text-sm text-muted-foreground"
+          className="w-full h-9 text-xs text-muted-foreground"
         >
           {expanded ? (
-            <><ChevronUp className="h-4 w-4 mr-1.5" /> Weniger anzeigen</>
+            <><ChevronUp className="h-3.5 w-3.5 mr-1" /> Weniger anzeigen</>
           ) : (
-            <><ChevronDown className="h-4 w-4 mr-1.5" /> Alle {positionen.length} Aufgaben anzeigen ({positionen.length - COLLAPSE_LIMIT} mehr)</>
+            <><ChevronDown className="h-3.5 w-3.5 mr-1" /> Alle {positionen.length} anzeigen ({positionen.length - COLLAPSE_LIMIT} mehr)</>
           )}
         </Button>
       )}
@@ -247,9 +247,9 @@ function ArbeitSektion({
         type="button"
         variant="outline"
         onClick={onAdd}
-        className={cn("w-full h-12 border-dashed text-base")}
+        className={cn("w-full h-10 border-dashed text-sm")}
       >
-        <Plus className="h-5 w-5 mr-1.5" />
+        <Plus className="h-4 w-4 mr-1.5" />
         Aufgabe hinzufügen
       </Button>
     </div>
