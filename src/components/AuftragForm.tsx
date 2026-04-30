@@ -456,38 +456,47 @@ export function AuftragForm({ rapport, onSaved }: Props) {
               return (
                 <div
                   key={c.key}
-                  className="rounded-lg border border-border bg-background/40 px-2.5 py-2 space-y-1.5"
+                  className={cn(
+                    "rounded-lg border px-2.5 py-2 space-y-1.5 transition-colors",
+                    current === "ok" && "border-emerald-500/30 bg-emerald-500/5",
+                    current === "mangel" && "border-red-500/40 bg-red-500/5",
+                    !current && "border-border bg-background/40",
+                  )}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm font-medium truncate flex-1 min-w-0">{c.label}</span>
-                    <div className="flex shrink-0 gap-1.5">
+                    <span className="text-sm font-medium truncate flex-1 min-w-0" title={c.label}>
+                      {c.label}
+                    </span>
+                    <div className="flex shrink-0 gap-1">
                       <button
                         type="button"
                         onClick={() => setSafetyValue(c.key, "ok")}
                         aria-pressed={current === "ok"}
                         aria-label="OK"
+                        title="OK"
                         className={cn(
-                          "h-8 w-12 rounded-md border text-xs font-semibold transition flex items-center justify-center gap-1",
+                          "h-8 w-9 rounded-md border text-xs font-semibold transition flex items-center justify-center",
                           current === "ok"
                             ? "bg-emerald-500 text-white border-emerald-500 shadow-sm"
                             : "bg-background border-border text-muted-foreground hover:bg-muted"
                         )}
                       >
-                        <Check className="h-3.5 w-3.5 shrink-0" strokeWidth={3} /> OK
+                        <Check className="h-4 w-4" strokeWidth={3} />
                       </button>
                       <button
                         type="button"
                         onClick={() => setSafetyValue(c.key, "mangel")}
                         aria-pressed={current === "mangel"}
                         aria-label="Mangel"
+                        title="Mangel"
                         className={cn(
-                          "h-8 w-8 rounded-md border text-xs font-semibold transition flex items-center justify-center",
+                          "h-8 w-9 rounded-md border text-xs font-semibold transition flex items-center justify-center",
                           current === "mangel"
                             ? "bg-red-500 text-white border-red-500 shadow-sm"
                             : "bg-background border-border text-muted-foreground hover:bg-muted"
                         )}
                       >
-                        <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                        <AlertTriangle className="h-4 w-4" />
                       </button>
                     </div>
                   </div>
