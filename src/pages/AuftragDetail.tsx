@@ -223,7 +223,13 @@ export default function AuftragDetail() {
         </div>
       </div>
 
-      <div className="hidden md:block max-w-3xl mx-auto w-full space-y-4">
+      {/* Tablet (md–lg): kompaktes Formular volle Breite */}
+      <div className="hidden md:block lg:hidden w-full space-y-4">
+        <AuftragForm rapport={rapport} onSaved={load} />
+      </div>
+
+      {/* Desktop (lg+): zentriertes, breiteres Formular; PDF via Drucker-Button */}
+      <div className="hidden lg:block max-w-4xl mx-auto w-full space-y-4">
         <AuftragForm rapport={rapport} onSaved={load} />
       </div>
 
