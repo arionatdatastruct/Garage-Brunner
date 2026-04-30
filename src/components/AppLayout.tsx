@@ -1,7 +1,8 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { Calendar, Archive, BarChart3 } from "lucide-react";
+import { Calendar, Archive, BarChart3, Menu, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { GlobalSearch } from "./GlobalSearch";
+import { Button } from "@/components/ui/button";
 import logo from "@/assets/garage-brunner-logo.svg";
 
 const navItems = [
@@ -19,6 +20,9 @@ const mobileNavItems = [
 export function AppLayout() {
   const location = useLocation();
   const [pageTitle, setPageTitle] = useState("Werkstatt");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const onAuftragDetail = location.pathname.startsWith("/auftrag");
 
   useEffect(() => {
     const match = navItems.find((item) =>
@@ -26,60 +30,126 @@ export function AppLayout() {
     );
     if (match) {
       setPageTitle(match.label);
-    } else if (location.pathname.startsWith("/auftrag")) {
+    } else if (onAuftragDetail) {
       setPageTitle("Auftrag");
     } else {
       setPageTitle("Werkstatt");
     }
-  }, [location.pathname]);
-
-  const onAuftragDetail = location.pathname.startsWith("/auftrag");
+    // Sidebar bei Routenwechsel schliessen
+    setSidebarOpen(false);
+  }, [location.pathname, onAuftragDetail]);
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-background text-foreground">
-      {/* Sidebar Desktop */}
-      <aside className="hidden md:flex flex-col w-56 border-r border-border bg-card">
-        <div className="px-5 py-5 border-b border-border space-y-3">
-          <div className="flex items-center justify-center">
+      {/* Sidebar Desktop — auf Auftrags-Detail als Off-Canvas, sonst fest */}
+      {!onAuftragDetail && (
+        <aside className="hidden lg:flex flex-col w-56 border-r border-border bg-card">
+          <div className="px-5 py-5 border-b border-border space-y-3">
+            <div className="flex items-center justify-center">
+              <img
+                src={logo}
+                alt="Garage Brunner Wynigen"
+                className="h-12 w-auto select-none"
+                draggable={false}
+              />
+            </div>
+            <GlobalSearch />
+          </div>
+          <nav className="flex-1 p-3 space-y-1">
+            {navItems.map(({ to, label, icon: Icon }) => (
+              <NavLink
+                key={to}
+                to={to}
+                end={to === "/"}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
+                    isActive
+                      ? "bg-primary text-primary-foreground"
+                      : "text-foreground hover:bg-muted"
+                  }`
+                }
+              >
+                <Icon className="h-4 w-4" />
+                {label}
+              </NavLink>
+            ))}
+          </nav>
+        </aside>
+      )}
+
+      {/* Off-Canvas Sidebar (Mobile, Tablet, und Desktop auf Auftrags-Detail) */}
+      {sidebarOpen && (
+        <>
+          <div
+            className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+            onClick={() => setSidebarOpen(false)}
+            aria-hidden="true"
+          />
+          <aside className="fixed inset-y-0 left-0 z-50 flex flex-col w-64 border-r border-border bg-card shadow-2xl animate-in slide-in-from-left">
+            <div className="px-5 py-5 border-b border-border space-y-3">
+              <div className="flex items-center justify-between">
+                <img
+                  src={logo}
+                  alt="Garage Brunner Wynigen"
+                  className="h-10 w-auto select-none"
+                  draggable={false}
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setSidebarOpen(false)}
+                  aria-label="Menü schliessen"
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+              <GlobalSearch />
+            </div>
+            <nav className="flex-1 p-3 space-y-1">
+              {navItems.map(({ to, label, icon: Icon }) => (
+                <NavLink
+                  key={to}
+                  to={to}
+                  end={to === "/"}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
+                      isActive
+                        ? "bg-primary text-primary-foreground"
+                        : "text-foreground hover:bg-muted"
+                    }`
+                  }
+                >
+                  <Icon className="h-4 w-4" />
+                  {label}
+                </NavLink>
+              ))}
+            </nav>
+          </aside>
+        </>
+      )}
+
+      {/* Top Bar — auf Mobile immer, auf Tablet/Desktop nur wenn Sidebar nicht fest */}
+      <header
+        className={`${onAuftragDetail ? "" : "lg:hidden"} sticky top-0 z-30 bg-card/95 backdrop-blur border-b border-border px-3 py-2`}
+      >
+        <div className="flex items-center justify-between h-9 gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 shrink-0"
+              onClick={() => setSidebarOpen(true)}
+              aria-label="Menü öffnen"
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
             <img
               src={logo}
               alt="Garage Brunner Wynigen"
-              className="h-12 w-auto select-none"
+              className="h-7 w-auto select-none shrink-0"
               draggable={false}
             />
           </div>
-          <GlobalSearch />
-        </div>
-        <nav className="flex-1 p-3 space-y-1">
-          {navItems.map(({ to, label, icon: Icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={to === "/"}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
-                  isActive
-                    ? "bg-primary text-primary-foreground"
-                    : "text-foreground hover:bg-muted"
-                }`
-              }
-            >
-              <Icon className="h-4 w-4" />
-              {label}
-            </NavLink>
-          ))}
-        </nav>
-      </aside>
-
-      {/* Mobile Top Bar */}
-      <header className="md:hidden sticky top-0 z-30 bg-card/95 backdrop-blur border-b border-border px-3 py-2">
-        <div className="flex items-center justify-between h-9 gap-2">
-          <img
-            src={logo}
-            alt="Garage Brunner Wynigen"
-            className="h-7 w-auto select-none shrink-0"
-            draggable={false}
-          />
           <span className="text-xs text-muted-foreground truncate">{pageTitle}</span>
         </div>
       </header>
