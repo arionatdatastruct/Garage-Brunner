@@ -167,10 +167,8 @@ function ArbeitSektion({
             <div
               key={p.id}
               className={cn(
-                "flex items-start gap-3 p-3 transition-colors min-h-[64px]",
-                checked
-                  ? "bg-emerald-500/10"
-                  : "bg-transparent",
+                "flex items-center gap-2 px-2 py-1.5 transition-colors",
+                checked ? "bg-emerald-500/10" : "bg-transparent",
               )}
             >
               <button
@@ -181,7 +179,7 @@ function ArbeitSektion({
                 aria-label="Aufgabe erledigt"
                 aria-pressed={checked}
                 className={cn(
-                  "h-11 w-11 shrink-0 rounded-lg border-2 flex items-center justify-center transition active:scale-95",
+                  "h-8 w-8 shrink-0 rounded-md border-2 flex items-center justify-center transition active:scale-95",
                   checked
                     ? "bg-emerald-500 border-emerald-500 text-white"
                     : "bg-background border-border hover:border-primary/50",
@@ -189,7 +187,7 @@ function ArbeitSektion({
               >
                 <Checkbox
                   checked={checked}
-                  className="h-5 w-5 pointer-events-none border-0 bg-transparent data-[state=checked]:bg-transparent data-[state=checked]:text-white"
+                  className="h-4 w-4 pointer-events-none border-0 bg-transparent data-[state=checked]:bg-transparent data-[state=checked]:text-white"
                   tabIndex={-1}
                 />
               </button>
@@ -213,7 +211,7 @@ function ArbeitSektion({
                 placeholder="Aufgabe"
                 rows={1}
                 className={cn(
-                  "min-h-11 py-2.5 bg-transparent flex-1 min-w-0 border-0 focus-visible:ring-0 px-2 resize-none leading-snug break-words whitespace-pre-wrap text-base overflow-hidden",
+                  "min-h-8 py-1 bg-transparent flex-1 min-w-0 border-0 focus-visible:ring-0 px-1.5 resize-none leading-snug break-words whitespace-pre-wrap text-sm overflow-hidden",
                   checked && "line-through text-muted-foreground",
                 )}
               />
@@ -221,11 +219,11 @@ function ArbeitSektion({
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="h-11 w-11 text-muted-foreground hover:text-destructive shrink-0"
+                className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0"
                 onClick={() => onRemove(p.id)}
                 aria-label="Aufgabe löschen"
               >
-                <Trash2 className="h-5 w-5" />
+                <Trash2 className="h-4 w-4" />
               </Button>
             </div>
           );
@@ -236,12 +234,12 @@ function ArbeitSektion({
           type="button"
           variant="ghost"
           onClick={() => setExpanded((x) => !x)}
-          className="w-full h-11 text-sm text-muted-foreground"
+          className="w-full h-9 text-xs text-muted-foreground"
         >
           {expanded ? (
-            <><ChevronUp className="h-4 w-4 mr-1.5" /> Weniger anzeigen</>
+            <><ChevronUp className="h-3.5 w-3.5 mr-1" /> Weniger anzeigen</>
           ) : (
-            <><ChevronDown className="h-4 w-4 mr-1.5" /> Alle {positionen.length} Aufgaben anzeigen ({positionen.length - COLLAPSE_LIMIT} mehr)</>
+            <><ChevronDown className="h-3.5 w-3.5 mr-1" /> Alle {positionen.length} anzeigen ({positionen.length - COLLAPSE_LIMIT} mehr)</>
           )}
         </Button>
       )}
@@ -249,9 +247,9 @@ function ArbeitSektion({
         type="button"
         variant="outline"
         onClick={onAdd}
-        className={cn("w-full h-12 border-dashed text-base")}
+        className={cn("w-full h-10 border-dashed text-sm")}
       >
-        <Plus className="h-5 w-5 mr-1.5" />
+        <Plus className="h-4 w-4 mr-1.5" />
         Aufgabe hinzufügen
       </Button>
     </div>
