@@ -225,17 +225,12 @@ export default function AuftragDetail() {
         </div>
       </div>
 
-      {/* Tablet (md–lg): kompaktes Formular volle Breite, keine PDF-Vorschau */}
-      <div className="hidden md:block lg:hidden w-full space-y-4">
-        <AuftragForm rapport={rapport} onSaved={load} />
-      </div>
-
-      {/* Desktop (lg+): 2-Spalten – Formular links, PDF-Vorschau rechts */}
-      <div className="hidden lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-6 items-start">
+      {/* Formular immer sichtbar; PDF-Vorschau nur auf Desktop (lg+) daneben */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         <div className="space-y-4 min-w-0">
           <AuftragForm rapport={rapport} onSaved={load} />
         </div>
-        <div className="sticky top-4 min-w-0">
+        <div className="hidden lg:block sticky top-4 min-w-0">
           <PdfPane />
         </div>
       </div>
