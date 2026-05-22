@@ -158,7 +158,7 @@ export default function AuftragDetail() {
   }
 
   return (
-    <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-4">
+    <div className="p-4 md:p-6 max-w-[1600px] mx-auto space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <Link
@@ -191,11 +191,13 @@ export default function AuftragDetail() {
         </div>
         <div className="flex items-center gap-2">
           <AuftragStatusBar rapportId={rapport.id} status={rapport.status} onChanged={load} />
+          {/* Druckvorschau nur auf Desktop – auf Tablet/Handy zu wenig Platz */}
           <Button
             variant="outline"
             size="icon"
             onClick={() => setDruckOpen(true)}
             title="Druckvorschau"
+            className="hidden lg:inline-flex"
           >
             <Printer className="h-4 w-4" />
           </Button>
@@ -223,14 +225,19 @@ export default function AuftragDetail() {
         </div>
       </div>
 
-      {/* Tablet (md–lg): kompaktes Formular volle Breite */}
+      {/* Tablet (md–lg): kompaktes Formular volle Breite, keine PDF-Vorschau */}
       <div className="hidden md:block lg:hidden w-full space-y-4">
         <AuftragForm rapport={rapport} onSaved={load} />
       </div>
 
-      {/* Desktop (lg+): zentriertes, breiteres Formular; PDF via Drucker-Button */}
-      <div className="hidden lg:block max-w-4xl mx-auto w-full space-y-4">
-        <AuftragForm rapport={rapport} onSaved={load} />
+      {/* Desktop (lg+): 2-Spalten – Formular links, PDF-Vorschau rechts */}
+      <div className="hidden lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-6 items-start">
+        <div className="space-y-4 min-w-0">
+          <AuftragForm rapport={rapport} onSaved={load} />
+        </div>
+        <div className="sticky top-4 min-w-0">
+          <PdfPane />
+        </div>
       </div>
 
       <DruckvorschauDialog open={druckOpen} onOpenChange={setDruckOpen} rapport={rapport} />
