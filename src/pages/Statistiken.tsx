@@ -42,10 +42,10 @@ const chf = (n: number) =>
 const chfShort = (n: number) =>
   n >= 1000 ? `${(n / 1000).toLocaleString("de-CH", { maximumFractionDigits: 1 })}k` : n.toFixed(0);
 
-// Hilfs-Accessoren auf JOIN-Felder
-const kdName = (r: Row) => r.fahrzeug?.kunde?.name ?? null;
-const kdNr = (r: Row) => r.fahrzeug?.kunde?.kundennummer ?? null;
-const kdOrt = (r: Row) => r.fahrzeug?.kunde?.ort ?? null;
+// Hilfs-Accessoren: direkter Rapport-Kunde hat Vorrang, sonst via Fahrzeug
+const kdName = (r: Row) => r.kunde?.name ?? r.fahrzeug?.kunde?.name ?? null;
+const kdNr = (r: Row) => r.kunde?.kundennummer ?? r.fahrzeug?.kunde?.kundennummer ?? null;
+const kdOrt = (r: Row) => r.kunde?.ort ?? r.fahrzeug?.kunde?.ort ?? null;
 
 export default function Statistiken() {
   const [rows, setRows] = useState<Row[]>([]);
@@ -55,7 +55,7 @@ export default function Statistiken() {
     (async () => {
       const { data } = await (supabase as any)
         .from("arbeitsrapporte")
-        .select("id, auftragswert_chf, arbeitszeit_stunden, mechaniker_zuweisung, kategorie, status, geplantes_datum, fahrzeug:fahrzeuge(kunde:kunden(name, kundennummer, ort))")
+        .select("id, auftragswert_chf, arbeitszeit_stunden, mechaniker_zuweisung, kategorie, status, geplantes_datum, kunde:kunden!arbeitsrapporte_kunde_id_fkey(name, kundennummer, ort), fahrzeug:fahrzeuge!arbeitsrapporte_fahrzeug_id_fkey(kunde:kunden!fahrzeuge_kunde_id_fkey(name, kundennummer, ort))")
         .order("geplantes_datum", { ascending: false })
         .limit(1000);
       setRows((data ?? []) as Row[]);
