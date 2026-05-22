@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,10 +7,6 @@ import { Loader2 } from "lucide-react";
 import logo from "@/assets/garage-brunner-logo.svg";
 
 export default function Login() {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const from = (location.state as { from?: string } | null)?.from ?? "/";
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -30,7 +25,7 @@ export default function Login() {
       setError("Anmeldung fehlgeschlagen");
       return;
     }
-    navigate(from, { replace: true });
+    // AuthGate erkennt die neue Session via onAuthStateChange und rendert die App.
   };
 
   return (
