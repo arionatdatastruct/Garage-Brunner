@@ -1,9 +1,14 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { Calendar, Archive, BarChart3, Menu, X } from "lucide-react";
+import { Calendar, Archive, BarChart3, Menu, X, LogOut } from "lucide-react";
 import { useEffect, useState } from "react";
 import { GlobalSearch } from "./GlobalSearch";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/garage-brunner-logo.svg";
+
+const handleLogout = () => {
+  supabase.auth.signOut();
+};
 
 const navItems = [
   { to: "/", label: "Wochenplan", icon: Calendar },
@@ -88,6 +93,12 @@ export function AppLayout() {
                 </NavLink>
               ))}
             </nav>
+            <div className="p-3 border-t border-border">
+              <Button variant="ghost" size="sm" className="w-full justify-start gap-2" onClick={handleLogout}>
+                <LogOut className="h-4 w-4" />
+                Abmelden
+              </Button>
+            </div>
           </aside>
         </>
       )}
@@ -152,6 +163,12 @@ export function AppLayout() {
                 </NavLink>
               ))}
             </nav>
+            <div className="p-3 border-t border-border">
+              <Button variant="ghost" size="sm" className="w-full justify-start gap-2" onClick={handleLogout}>
+                <LogOut className="h-4 w-4" />
+                Abmelden
+              </Button>
+            </div>
           </aside>
         )}
 
