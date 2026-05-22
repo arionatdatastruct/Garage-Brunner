@@ -55,6 +55,12 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    if (userData.user.is_anonymous) {
+      return new Response(JSON.stringify({ error: "Unauthorized - anonymous sessions not allowed" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const payload = await req.json();
     console.log("notify-n8n payload:", { rapport_id: payload?.rapport_id });
