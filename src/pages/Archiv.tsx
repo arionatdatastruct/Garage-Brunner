@@ -14,7 +14,6 @@ import {
   ArrowUpDown, MoreVertical, Calendar,
 } from "lucide-react";
 import { toast } from "sonner";
-import JSZip from "jszip";
 import { KategorieBadges } from "@/components/KategorieBadges";
 import { downloadStorageFile, toSignedUrl } from "@/lib/storage";
 import { KATEGORIEN, parseKategorien } from "@/lib/kategorien";
@@ -235,6 +234,7 @@ export default function Archiv() {
     if (withPdf.length === 0) { toast.error("Keine PDFs in der Auswahl"); return; }
     setExporting("zip");
     try {
+      const { default: JSZip } = await import("jszip");
       const zip = new JSZip();
       let ok = 0;
       await Promise.all(withPdf.map(async (r) => {
