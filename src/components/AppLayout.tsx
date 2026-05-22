@@ -18,11 +18,7 @@ const navItems = [
   { to: "/statistiken", label: "Statistiken", icon: BarChart3 },
 ];
 
-// Mobile zeigt nur die Tagesübersicht — keine Statistiken, keine Suche
-const mobileNavItems = [
-  { to: "/", label: "Wochenplan", icon: Calendar },
-  { to: "/archiv", label: "Archiv", icon: Archive },
-];
+// Mobile Bottom-Nav entfernt – Navigation nur über Sidebar/Menu
 
 export function AppLayout() {
   const location = useLocation();
@@ -175,45 +171,10 @@ export function AppLayout() {
         )}
 
         {/* Main */}
-        <main className="flex-1 pb-20 md:pb-0 overflow-x-hidden">
+        <main className="flex-1 overflow-x-hidden">
           <Outlet />
         </main>
       </div>
-
-      {/* Bottom Nav Mobile */}
-      <nav
-        className="md:hidden fixed bottom-0 inset-x-0 bg-card/95 backdrop-blur border-t border-border flex z-40"
-        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
-        aria-label="Hauptnavigation"
-      >
-        {mobileNavItems.map(({ to, label, icon: Icon }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={to === "/"}
-            className={({ isActive }) =>
-              `flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-[11px] font-medium transition-colors ${
-                isActive
-                  ? "text-primary"
-                  : "text-muted-foreground hover:text-foreground"
-              }`
-            }
-          >
-            {({ isActive }) => (
-              <>
-                <span
-                  className={`flex items-center justify-center h-7 w-12 rounded-full transition-colors ${
-                    isActive ? "bg-primary/15" : ""
-                  }`}
-                >
-                  <Icon className="h-5 w-5" />
-                </span>
-                {label}
-              </>
-            )}
-          </NavLink>
-        ))}
-      </nav>
 
       {/* FAB entfernt: Auftrag erstellen nur auf PC möglich (Beleg nötig) */}
     </div>
