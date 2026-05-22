@@ -23,6 +23,7 @@ type Row = Pick<
   | "status"
   | "geplantes_datum"
   | "fahrzeug"
+  | "kunde"
 >;
 
 interface KundenAgg {
