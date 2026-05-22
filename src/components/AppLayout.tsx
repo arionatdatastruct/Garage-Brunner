@@ -93,6 +93,12 @@ export function AppLayout() {
                 </NavLink>
               ))}
             </nav>
+            <div className="p-3 border-t border-border">
+              <Button variant="ghost" size="sm" className="w-full justify-start gap-2" onClick={handleLogout}>
+                <LogOut className="h-4 w-4" />
+                Abmelden
+              </Button>
+            </div>
           </aside>
         </>
       )}
