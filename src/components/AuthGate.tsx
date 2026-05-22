@@ -14,15 +14,24 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let mounted = true;
 
-    supabase.auth.getSession().then(({ data }) => {
+    const isValidSession = (session: { access_token?: string; user?: { is_anonymous?: boolean } } | null) =>
+      !!session?.access_token && session.user?.is_anonymous !== true;
+
+    supabase.auth.getSession().then(async ({ data }) => {
       if (!mounted) return;
-      setHasSession(!!data.session?.access_token);
+      // Alte anonyme Sessions hart abmelden – diese hatten vor dem Auth-Umbau Vollzugriff.
+      if (data.session && data.session.user?.is_anonymous) {
+        await supabase.auth.signOut();
+        setHasSession(false);
+      } else {
+        setHasSession(isValidSession(data.session));
+      }
       setChecked(true);
     });
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!mounted) return;
-      setHasSession(!!session?.access_token);
+      setHasSession(isValidSession(session));
       setChecked(true);
     });
 
