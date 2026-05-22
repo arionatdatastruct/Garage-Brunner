@@ -11,6 +11,8 @@ import Statistiken from "./pages/Statistiken";
 import AuftragDetail from "./pages/AuftragDetail";
 import KundeDetail from "./pages/KundeDetail";
 import FahrzeugDetail from "./pages/FahrzeugDetail";
+import Fahrzeuge from "./pages/Fahrzeuge";
+import Kunden from "./pages/Kunden";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,6 +27,8 @@ const App = () => (
             <Routes>
               <Route element={<AppLayout />}>
                 <Route path="/" element={<Wochenplan />} />
+                <Route path="/fahrzeuge" element={<Fahrzeuge />} />
+                <Route path="/kunden" element={<Kunden />} />
                 <Route path="/archiv" element={<Archiv />} />
                 <Route path="/statistiken" element={<Statistiken />} />
                 <Route path="/auftrag/:id" element={<AuftragDetail />} />

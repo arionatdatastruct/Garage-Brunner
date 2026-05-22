@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { Calendar, Archive, BarChart3, Menu, X, LogOut } from "lucide-react";
+import { Calendar, Archive, BarChart3, Menu, X, LogOut, Car, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { GlobalSearch } from "./GlobalSearch";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,8 @@ const handleLogout = () => {
 
 const navItems = [
   { to: "/", label: "Wochenplan", icon: Calendar },
+  { to: "/fahrzeuge", label: "Fahrzeuge", icon: Car },
+  { to: "/kunden", label: "Kunden", icon: Users },
   { to: "/archiv", label: "Archiv", icon: Archive },
   { to: "/statistiken", label: "Statistiken", icon: BarChart3 },
 ];
