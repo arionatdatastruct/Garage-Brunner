@@ -74,7 +74,7 @@ export function AppLayout() {
               </div>
               <GlobalSearch />
             </div>
-            <nav className="flex-1 p-3 space-y-1">
+            <nav className="flex-1 p-3 space-y-1 border-0 border-orange-700">
               {navItems.map(({ to, label, icon: Icon }) => (
                 <NavLink
                   key={to}
@@ -144,7 +144,7 @@ export function AppLayout() {
               </div>
               <GlobalSearch />
             </div>
-            <nav className="flex-1 p-3 space-y-1">
+            <nav className="flex-1 p-3 space-y-1 border-0 border-orange-700">
               {navItems.map(({ to, label, icon: Icon }) => (
                 <NavLink
                   key={to}
