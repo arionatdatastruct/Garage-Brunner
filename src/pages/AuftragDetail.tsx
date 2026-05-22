@@ -158,7 +158,7 @@ export default function AuftragDetail() {
   }
 
   return (
-    <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-4">
+    <div className="p-4 md:p-6 max-w-[1600px] mx-auto space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <Link
