@@ -12,9 +12,12 @@ export function GlobalSearch({ className }: { className?: string }) {
   const wrapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    search(query);
-    setOpen(query.length >= 2);
+    const q = query.trim();
+    search(q);
+    if (q.length < 2) setOpen(false);
+    else setOpen(true);
   }, [query, search]);
+
 
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
