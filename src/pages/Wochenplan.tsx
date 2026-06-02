@@ -557,41 +557,56 @@ export default function Wochenplan() {
     const { active, over } = e;
     if (!over) return;
     const newDate = String(over.id);
-    const r = rapports.find((x) => x.id === active.id);
-    if (!r || r.geplantes_datum === newDate) return;
+    const draggedId = String(active.id);
 
-    const oldDate = r.geplantes_datum;
+    // Bulk-Move: Wenn die gezogene Karte selektiert ist, alle selektierten verschieben
+    const isBulk = selectedIds.has(draggedId) && selectedIds.size > 1;
+    const idsToMove = isBulk ? Array.from(selectedIds) : [draggedId];
+    const movable = rapports.filter(
+      (x) => idsToMove.includes(x.id) && x.geplantes_datum !== newDate,
+    );
+    if (movable.length === 0) return;
+
+    // Alte Daten merken für Undo
+    const oldByMap = new Map(movable.map((x) => [x.id, x.geplantes_datum]));
 
     // Optimistic update
-    setRapports((prev) => prev.map((x) => x.id === r.id ? { ...x, geplantes_datum: newDate } : x));
+    setRapports((prev) =>
+      prev.map((x) => (oldByMap.has(x.id) ? { ...x, geplantes_datum: newDate } : x)),
+    );
     const { error } = await (supabase as any)
       .from("arbeitsrapporte")
       .update({ geplantes_datum: newDate })
-      .eq("id", r.id);
+      .in("id", Array.from(oldByMap.keys()));
     if (error) {
       toast.error("Update fehlgeschlagen");
       load();
       return;
     }
-    // Erfolgs-Toast mit Undo
     const label = format(parseISO(newDate), "EEE d. MMM", { locale: de });
-    toast.success(`Verschoben auf ${label}`, {
+    const msg = movable.length === 1
+      ? `Verschoben auf ${label}`
+      : `${movable.length} Aufträge auf ${label} verschoben`;
+    toast.success(msg, {
       action: {
         label: "Rückgängig",
         onClick: async () => {
-          setRapports((prev) => prev.map((x) => x.id === r.id ? { ...x, geplantes_datum: oldDate } : x));
-          const { error: e2 } = await (supabase as any)
-            .from("arbeitsrapporte")
-            .update({ geplantes_datum: oldDate })
-            .eq("id", r.id);
-          if (e2) {
-            toast.error("Rückgängig fehlgeschlagen");
-            load();
+          setRapports((prev) =>
+            prev.map((x) => (oldByMap.has(x.id) ? { ...x, geplantes_datum: oldByMap.get(x.id)! } : x)),
+          );
+          // Per-ID Update, da unterschiedliche Ursprungstage
+          for (const [id, oldDate] of oldByMap) {
+            await (supabase as any)
+              .from("arbeitsrapporte")
+              .update({ geplantes_datum: oldDate })
+              .eq("id", id);
           }
         },
       },
     });
+    if (isBulk) clearSelection();
   };
+
 
   const openDialog = (date?: Date) => {
     setDialogDate(date ? format(date, "yyyy-MM-dd") : undefined);
