@@ -233,6 +233,8 @@ function DayColumn({
   onUpdateStunden,
   onDelete,
   highlightId,
+  selectedIds,
+  onCardClick,
 }: {
   date: Date;
   rapports: Rapport[];
@@ -240,6 +242,8 @@ function DayColumn({
   onUpdateStunden: (id: string, h: number | null) => void;
   onDelete: (r: Rapport) => void;
   highlightId?: string | null;
+  selectedIds: Set<string>;
+  onCardClick: (e: React.MouseEvent, r: Rapport) => void;
 }) {
   const id = format(date, "yyyy-MM-dd");
   const { setNodeRef, isOver } = useDroppable({ id });
@@ -311,7 +315,16 @@ function DayColumn({
         {rapports.map((r) => {
           const isOverdue = r.status === "geplant" && r.geplantes_datum < format(new Date(), "yyyy-MM-dd");
           return (
-            <RapportCard key={r.id} r={r} onUpdate={onUpdateStunden} onDelete={onDelete} highlight={highlightId === r.id} overdue={isOverdue} />
+            <RapportCard
+              key={r.id}
+              r={r}
+              onUpdate={onUpdateStunden}
+              onDelete={onDelete}
+              highlight={highlightId === r.id}
+              overdue={isOverdue}
+              selected={selectedIds.has(r.id)}
+              onCardClick={onCardClick}
+            />
           );
         })}
         {rapports.length === 0 && (
@@ -326,6 +339,7 @@ function DayColumn({
     </div>
   );
 }
+
 
 export default function Wochenplan() {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
