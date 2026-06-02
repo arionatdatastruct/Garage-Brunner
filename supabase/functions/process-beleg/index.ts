@@ -191,12 +191,47 @@ Deno.serve(async (req) => {
 
     const warnings: string[] = [];
 
+    // 4+5. Kunde- und Fahrzeug-Lookup PARALLEL (unabhängig voneinander)
+    const k = extracted?.kunde;
+    const f = extracted?.fahrzeug;
+
+    const kennzeichen = f ? normKennzeichen(f.kennzeichen) : null;
+    if (f?.kennzeichen && !kennzeichen) warnings.push("Kennzeichen-Format ungültig");
+    const chassis_nr = f ? normChassis(f.chassis_nr) : null;
+    if (f?.chassis_nr && !chassis_nr) warnings.push("Chassis-Nr ungültig");
+    const plz = k ? normPLZ(k.plz) : null;
+    if (k?.plz && !plz) warnings.push("PLZ ungültig");
+
+    const kundeLookupP = k?.kundennummer
+      ? admin.from("kunden").select("id").eq("kundennummer", k.kundennummer).maybeSingle()
+      : Promise.resolve({ data: null });
+
+    const fahrzeugLookupP = (() => {
+      if (chassis_nr) {
+        return admin.from("fahrzeuge").select("id").eq("chassis_nr", chassis_nr).maybeSingle();
+      }
+      if (kennzeichen) {
+        return admin.from("fahrzeuge").select("id").eq("kennzeichen", kennzeichen).maybeSingle();
+      }
+      return Promise.resolve({ data: null });
+    })();
+
+    const [kundeLookup, fahrzeugLookup] = await Promise.all([kundeLookupP, fahrzeugLookupP]);
+
+    // Fallback: Fahrzeug per Kennzeichen suchen, wenn Chassis-Suche leer
+    let existingFahrzeug = (fahrzeugLookup as any)?.data ?? null;
+    if (!existingFahrzeug && chassis_nr && kennzeichen) {
+      const { data } = await admin
+        .from("fahrzeuge")
+        .select("id")
+        .eq("kennzeichen", kennzeichen)
+        .maybeSingle();
+      existingFahrzeug = data;
+    }
+
     // 4. Kunde upsert
     let kunde_id: string | null = null;
-    const k = extracted?.kunde;
     if (k?.kundennummer) {
-      const plz = normPLZ(k.plz);
-      if (k.plz && !plz) warnings.push("PLZ ungültig");
       const updateFields: Record<string, unknown> = {};
       if (k.name) updateFields.name = k.name;
       if (k.strasse) updateFields.strasse = k.strasse;
@@ -205,12 +240,7 @@ Deno.serve(async (req) => {
       if (k.telefon) updateFields.telefon = k.telefon;
       if (k.email) updateFields.email = k.email;
 
-      const { data: existingKunde } = await admin
-        .from("kunden")
-        .select("id")
-        .eq("kundennummer", k.kundennummer)
-        .maybeSingle();
-
+      const existingKunde = (kundeLookup as any)?.data;
       if (existingKunde) {
         kunde_id = existingKunde.id;
         if (Object.keys(updateFields).length > 0) {
@@ -235,32 +265,7 @@ Deno.serve(async (req) => {
 
     // 5. Fahrzeug upsert
     let fahrzeug_id: string | null = null;
-    const f = extracted?.fahrzeug;
-    if (f && (f.chassis_nr || f.kennzeichen || f.marke)) {
-      const kennzeichen = normKennzeichen(f.kennzeichen);
-      if (f.kennzeichen && !kennzeichen) warnings.push("Kennzeichen-Format ungültig");
-      const chassis_nr = normChassis(f.chassis_nr);
-      if (f.chassis_nr && !chassis_nr) warnings.push("Chassis-Nr ungültig");
-
-      // Suche
-      let existingFahrzeug: { id: string } | null = null;
-      if (chassis_nr) {
-        const { data } = await admin
-          .from("fahrzeuge")
-          .select("id")
-          .eq("chassis_nr", chassis_nr)
-          .maybeSingle();
-        existingFahrzeug = data;
-      }
-      if (!existingFahrzeug && kennzeichen) {
-        const { data } = await admin
-          .from("fahrzeuge")
-          .select("id")
-          .eq("kennzeichen", kennzeichen)
-          .maybeSingle();
-        existingFahrzeug = data;
-      }
-
+    if (f && (chassis_nr || kennzeichen || f.marke)) {
       const fields: Record<string, unknown> = {};
       if (f.marke) fields.marke = f.marke;
       if (f.modell) fields.modell = f.modell;
@@ -292,26 +297,12 @@ Deno.serve(async (req) => {
       warnings.push("Kein Fahrzeug im Beleg");
     }
 
-    // 6. arbeitsrapporte verknüpfen
+    // 6+7. Rapport-Update, Positionen-Delete und neue Positionen parallel vorbereiten
     const rapUpdate: Record<string, unknown> = {};
     if (kunde_id) rapUpdate.kunde_id = kunde_id;
     if (fahrzeug_id) rapUpdate.fahrzeug_id = fahrzeug_id;
     const totalBetrag = parseBetrag(extracted?.total_betrag);
     if (totalBetrag !== null) rapUpdate.auftragswert_chf = totalBetrag;
-    if (Object.keys(rapUpdate).length > 0) {
-      const { error: rapUpdErr } = await admin
-        .from("arbeitsrapporte")
-        .update(rapUpdate)
-        .eq("id", rapport_id);
-      if (rapUpdErr) console.error("Rapport update failed", rapUpdErr);
-    }
-
-    // 7. Positionen (Idempotenz: zuerst alte OCR-Positionen löschen)
-    await admin
-      .from("rapport_positionen")
-      .delete()
-      .eq("rapport_id", rapport_id)
-      .in("typ", ["arbeit", "material"]);
 
     const positionen: Array<Record<string, unknown>> = [];
     let sort = 0;
@@ -319,12 +310,8 @@ Deno.serve(async (req) => {
       for (const a of extracted.arbeit_positionen) {
         if (!a) continue;
         positionen.push({
-          rapport_id,
-          typ: "arbeit",
-          beschreibung: String(a),
-          menge: 0,
-          einheit: "Check",
-          sort_order: sort++,
+          rapport_id, typ: "arbeit", beschreibung: String(a),
+          menge: 0, einheit: "Check", sort_order: sort++,
         });
       }
     }
@@ -332,22 +319,34 @@ Deno.serve(async (req) => {
       for (const m of extracted.materialien) {
         if (!m?.artikel) continue;
         positionen.push({
-          rapport_id,
-          typ: "material",
-          beschreibung: String(m.artikel),
-          menge: parseMenge(m.menge),
-          einheit: "Stk/L",
-          sort_order: sort++,
+          rapport_id, typ: "material", beschreibung: String(m.artikel),
+          menge: parseMenge(m.menge), einheit: "Stk/L", sort_order: sort++,
         });
       }
     }
-    if (positionen.length > 0) {
-      const { error: posErr } = await admin.from("rapport_positionen").insert(positionen);
-      if (posErr) {
-        console.error("Positionen insert failed", posErr);
-        warnings.push(`Positionen konnten nicht gespeichert werden: ${posErr.message}`);
-      }
+
+    const tasks: Promise<any>[] = [];
+    if (Object.keys(rapUpdate).length > 0) {
+      tasks.push(
+        admin.from("arbeitsrapporte").update(rapUpdate).eq("id", rapport_id)
+          .then((r: any) => { if (r.error) console.error("Rapport update failed", r.error); })
+      );
     }
+    // Delete + Insert für Positionen müssen sequenziell bleiben (Konsistenz),
+    // aber Delete nur, wenn wir tatsächlich neue schreiben.
+    if (positionen.length > 0) {
+      tasks.push((async () => {
+        await admin.from("rapport_positionen").delete()
+          .eq("rapport_id", rapport_id).in("typ", ["arbeit", "material"]);
+        const { error: posErr } = await admin.from("rapport_positionen").insert(positionen);
+        if (posErr) {
+          console.error("Positionen insert failed", posErr);
+          warnings.push(`Positionen konnten nicht gespeichert werden: ${posErr.message}`);
+        }
+      })());
+    }
+    await Promise.all(tasks);
+
 
     return json(200, {
       ok: true,
