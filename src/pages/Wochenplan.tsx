@@ -21,6 +21,8 @@ import { NeuerAuftragDialog } from "@/components/NeuerAuftragDialog";
 import { NeuerAuftragSheet } from "@/components/NeuerAuftragSheet";
 import { MobileWochenplan } from "@/components/MobileWochenplan";
 import { RapportActionSheet } from "@/components/RapportActionSheet";
+import { MultiSelectBar } from "@/components/wochenplan/MultiSelectBar";
+
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
