@@ -30,37 +30,68 @@ export function useFahrzeugSuche() {
   const [historie, setHistorie] = useState<HistorieItem[]>([]);
   const [historieLoading, setHistorieLoading] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const seqRef = useRef(0);
 
-  const search = useCallback((query: string) => {
+  const search = useCallback((rawQuery: string) => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    if (query.length < 2) { setResults([]); return; }
+    const query = (rawQuery ?? '').trim();
+    if (query.length < 2) {
+      seqRef.current++; // invalidate in-flight
+      setResults([]);
+      setSearching(false);
+      return;
+    }
     setSearching(true);
-    timeoutRef.current = setTimeout(async () => {
-      const q = `%${query}%`;
-      // Suche in fahrzeuge (kennzeichen, marke, modell) JOIN kunden (name, kundennummer)
-      const { data } = await (supabase as any)
-        .from('fahrzeuge')
-        .select(`
-          id, kennzeichen, marke, modell, chassis_nr,
-          kunde:kunden ( id, kundennummer, name, ort, telefon, email )
-        `)
-        .or(`kennzeichen.ilike.${q},marke.ilike.${q},modell.ilike.${q},chassis_nr.ilike.${q}`)
-        .limit(30);
+    const mySeq = ++seqRef.current;
 
-      // Zusätzlich nach Kunden suchen, dann deren Fahrzeuge
-      const { data: kData } = await (supabase as any)
-        .from('kunden')
-        .select(`
-          id, kundennummer, name, ort, telefon, email,
-          fahrzeuge:fahrzeuge!fahrzeuge_kunde_id_fkey ( id, kennzeichen, marke, modell, chassis_nr )
-        `)
-        .or(`name.ilike.${q},kundennummer.ilike.${q}`)
-        .limit(15);
+    timeoutRef.current = setTimeout(async () => {
+      // PostgREST or-filter: Sonderzeichen (, ) . % ") müssen über Quoting
+      // entschärft werden, sonst bricht der Parser oder liefert leere Treffer.
+      const escVal = (s: string) =>
+        `"%${s.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}%"`;
+      const v = escVal(query);
+      const compact = query.replace(/\s+/g, '');
+      const vCompact = compact && compact !== query ? escVal(compact) : null;
+
+      const fzFields = [
+        `kennzeichen.ilike.${v}`,
+        ...(vCompact ? [`kennzeichen.ilike.${vCompact}`] : []),
+        `marke.ilike.${v}`,
+        `modell.ilike.${v}`,
+        `chassis_nr.ilike.${v}`,
+        ...(vCompact ? [`chassis_nr.ilike.${vCompact}`] : []),
+      ].join(',');
+
+      const kdFields = [
+        `name.ilike.${v}`,
+        `kundennummer.ilike.${v}`,
+      ].join(',');
+
+      const [fzRes, kdRes] = await Promise.all([
+        (supabase as any)
+          .from('fahrzeuge')
+          .select(`
+            id, kennzeichen, marke, modell, chassis_nr,
+            kunde:kunden ( id, kundennummer, name, ort, telefon, email )
+          `)
+          .or(fzFields)
+          .limit(30),
+        (supabase as any)
+          .from('kunden')
+          .select(`
+            id, kundennummer, name, ort, telefon, email,
+            fahrzeuge:fahrzeuge!fahrzeuge_kunde_id_fkey ( id, kennzeichen, marke, modell, chassis_nr )
+          `)
+          .or(kdFields)
+          .limit(15),
+      ]);
+
+      if (mySeq !== seqRef.current) return; // stale response, neuere läuft
 
       const merged: Fahrzeug[] = [];
       const seen = new Set<string>();
 
-      for (const f of (data || [])) {
+      for (const f of (fzRes?.data || [])) {
         if (seen.has(f.id)) continue;
         seen.add(f.id);
         merged.push({
@@ -77,7 +108,7 @@ export function useFahrzeugSuche() {
           letzter_rapport_id: null,
         });
       }
-      for (const k of (kData || [])) {
+      for (const k of (kdRes?.data || [])) {
         for (const f of (k.fahrzeuge || [])) {
           if (seen.has(f.id)) continue;
           seen.add(f.id);
@@ -97,27 +128,45 @@ export function useFahrzeugSuche() {
         }
       }
 
-      // Für jedes Fahrzeug den jüngsten Rapport nachladen (für Navigation)
-      const ids = merged.slice(0, 10).map((f) => f.id);
+      // Relevanz-Sortierung: exakte / Prefix-Treffer auf Kennzeichen zuerst
+      const ql = query.toLowerCase();
+      const qc = compact.toLowerCase();
+      const score = (f: Fahrzeug) => {
+        const kz = (f.kennzeichen ?? '').toLowerCase();
+        const kzc = kz.replace(/\s+/g, '');
+        if (kz === ql || kzc === qc) return 0;
+        if (kz.startsWith(ql) || kzc.startsWith(qc)) return 1;
+        if (kz.includes(ql) || kzc.includes(qc)) return 2;
+        if ((f.kunde_name ?? '').toLowerCase().includes(ql)) return 3;
+        return 4;
+      };
+      merged.sort((a, b) => score(a) - score(b));
+
+      const top = merged.slice(0, 10);
+
+      // Für die Top-Treffer den jüngsten Rapport nachladen (für Navigation)
+      const ids = top.map((f) => f.id);
       if (ids.length > 0) {
         const { data: raps } = await (supabase as any)
           .from('arbeitsrapporte')
           .select('id, fahrzeug_id, created_at')
           .in('fahrzeug_id', ids)
           .order('created_at', { ascending: false });
+        if (mySeq !== seqRef.current) return;
         const lastByFz = new Map<string, string>();
         for (const r of (raps || [])) {
           if (!lastByFz.has(r.fahrzeug_id)) lastByFz.set(r.fahrzeug_id, r.id);
         }
-        for (const f of merged) {
+        for (const f of top) {
           f.letzter_rapport_id = lastByFz.get(f.id) ?? null;
         }
       }
 
-      setResults(merged.slice(0, 10));
+      setResults(top);
       setSearching(false);
-    }, 300);
+    }, 250);
   }, []);
+
 
   const loadHistorie = useCallback(async (fahrzeugId: string) => {
     setHistorieLoading(true);
