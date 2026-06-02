@@ -677,7 +677,31 @@ export default function Wochenplan() {
       return;
     }
     const label = format(parseISO(newDate), "EEE d. MMM", { locale: de });
-    toast.success(`${ids.length} ${ids.length === 1 ? "Auftrag" : "Aufträge"} auf ${label} verschoben`);
+    toast.success(
+      `${ids.length} ${ids.length === 1 ? "Auftrag" : "Aufträge"} auf ${label} verschoben`,
+      {
+        action: {
+          label: "Rückgängig",
+          onClick: async () => {
+            setRapports((prev) =>
+              prev.map((x) =>
+                oldByMap.has(x.id) ? { ...x, geplantes_datum: oldByMap.get(x.id)! } : x,
+              ),
+            );
+            for (const [id, oldDate] of oldByMap) {
+              await (supabase as any)
+                .from("arbeitsrapporte")
+                .update({ geplantes_datum: oldDate })
+                .eq("id", id);
+            }
+            const inWeekNow = days.some((d) =>
+              Array.from(oldByMap.values()).includes(format(d, "yyyy-MM-dd")),
+            );
+            if (!inWeekNow) load();
+          },
+        },
+      },
+    );
     clearSelection();
     // Wenn Zieldatum ausserhalb der aktuellen Woche liegt → nachladen
     const inWeek = days.some((d) => format(d, "yyyy-MM-dd") === newDate);
@@ -687,6 +711,11 @@ export default function Wochenplan() {
   const bulkAssignMechanic = async (m: "Roman" | "Pascal" | null) => {
     const ids = Array.from(selectedIds);
     if (ids.length === 0) return;
+    const oldByMap = new Map(
+      rapports
+        .filter((r) => selectedIds.has(r.id))
+        .map((r) => [r.id, r.mechaniker_zuweisung as "Roman" | "Pascal" | null]),
+    );
     setRapports((prev) =>
       prev.map((x) => (selectedIds.has(x.id) ? { ...x, mechaniker_zuweisung: m as any } : x)),
     );
@@ -703,6 +732,26 @@ export default function Wochenplan() {
       m
         ? `${ids.length} ${ids.length === 1 ? "Auftrag" : "Aufträge"} → ${m}`
         : `Mechaniker-Zuweisung entfernt (${ids.length})`,
+      {
+        action: {
+          label: "Rückgängig",
+          onClick: async () => {
+            setRapports((prev) =>
+              prev.map((x) =>
+                oldByMap.has(x.id)
+                  ? { ...x, mechaniker_zuweisung: oldByMap.get(x.id) as any }
+                  : x,
+              ),
+            );
+            for (const [id, oldMech] of oldByMap) {
+              await (supabase as any)
+                .from("arbeitsrapporte")
+                .update({ mechaniker_zuweisung: oldMech })
+                .eq("id", id);
+            }
+          },
+        },
+      },
     );
     clearSelection();
   };
@@ -712,24 +761,66 @@ export default function Wochenplan() {
     if (ids.length === 0) return;
     setBulkDeleting(true);
     try {
-      // Storage parallel aufräumen (best effort)
-      await Promise.all(
-        ids.flatMap((id) =>
-          (["belege", "fotos"] as const).map(async (bucket) => {
-            const { data: files } = await supabase.storage.from(bucket).list(id);
-            if (files && files.length > 0) {
-              await supabase.storage.from(bucket).remove(files.map((f) => `${id}/${f.name}`));
-            }
-          }),
-        ),
-      );
+      // Snapshot der Rapporte + Positionen für Undo
+      const snapshot = rapports.filter((r) => ids.includes(r.id));
+      const { data: positionenSnapshot } = await (supabase as any)
+        .from("rapport_positionen")
+        .select("*")
+        .in("rapport_id", ids);
+
+      // DB-Delete sofort, Storage-Cleanup verzögert (damit Undo Dateien rettet)
       const { error } = await (supabase as any)
         .from("arbeitsrapporte")
         .delete()
         .in("id", ids);
       if (error) throw error;
-      setRapports((prev) => prev.filter((r) => !selectedIds.has(r.id)));
-      toast.success(`${ids.length} ${ids.length === 1 ? "Auftrag" : "Aufträge"} gelöscht`);
+
+      let undone = false;
+      const storageTimer = window.setTimeout(async () => {
+        if (undone) return;
+        await Promise.all(
+          ids.flatMap((id) =>
+            (["belege", "fotos"] as const).map(async (bucket) => {
+              const { data: files } = await supabase.storage.from(bucket).list(id);
+              if (files && files.length > 0) {
+                await supabase.storage
+                  .from(bucket)
+                  .remove(files.map((f) => `${id}/${f.name}`));
+              }
+            }),
+          ),
+        );
+      }, 8000);
+
+      setRapports((prev) => prev.filter((r) => !ids.includes(r.id)));
+      toast.success(
+        `${ids.length} ${ids.length === 1 ? "Auftrag" : "Aufträge"} gelöscht`,
+        {
+          duration: 7000,
+          action: {
+            label: "Rückgängig",
+            onClick: async () => {
+              undone = true;
+              window.clearTimeout(storageTimer);
+              const { error: insErr } = await (supabase as any)
+                .from("arbeitsrapporte")
+                .insert(snapshot);
+              if (insErr) {
+                toast.error("Wiederherstellen fehlgeschlagen");
+                load();
+                return;
+              }
+              if (positionenSnapshot && positionenSnapshot.length > 0) {
+                await (supabase as any)
+                  .from("rapport_positionen")
+                  .insert(positionenSnapshot);
+              }
+              setRapports((prev) => [...prev, ...snapshot]);
+              toast.success("Wiederhergestellt");
+            },
+          },
+        },
+      );
       clearSelection();
       setBulkDeleteOpen(false);
     } catch (e: any) {
