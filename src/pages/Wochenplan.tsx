@@ -359,6 +359,14 @@ export default function Wochenplan() {
     return v === "Roman" || v === "Pascal" ? v : "alle";
   });
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
+
+  // Multi-Select
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [lastClickedId, setLastClickedId] = useState<string | null>(null);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+
 
   useEffect(() => {
     try { localStorage.setItem("wp.mechFilter", mechFilter); } catch {}
