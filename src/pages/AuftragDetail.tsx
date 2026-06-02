@@ -235,6 +235,24 @@ export default function AuftragDetail() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         <div className="space-y-4 min-w-0">
           <AuftragForm rapport={rapport} onSaved={load} />
+
+          {/* Tablet: Original-Beleg als Accordion (Desktop zeigt PDF-Pane rechts) */}
+          <div className="lg:hidden">
+            <Accordion type="single" collapsible>
+              <AccordionItem value="beleg" className="border-0 rounded-xl bg-transparent">
+                <AccordionTrigger className="px-3 py-3 rounded-xl border border-border bg-card hover:no-underline data-[state=open]:rounded-b-none">
+                  <span className="flex items-center gap-2 text-sm font-semibold">
+                    <FileText className="h-4 w-4 text-primary" /> Original-Beleg prüfen
+                  </span>
+                </AccordionTrigger>
+                <AccordionContent className="border border-t-0 border-border rounded-b-xl bg-card -mt-px">
+                  <div className="p-2 overflow-x-auto">
+                    <BelegMitRapport rapport={rapport} />
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </div>
         </div>
         <div className="hidden lg:block sticky top-4 min-w-0">
           <PdfPane />
