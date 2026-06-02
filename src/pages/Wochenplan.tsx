@@ -657,6 +657,91 @@ export default function Wochenplan() {
     }
   };
 
+  // ===== Bulk-Aktionen =====
+  const bulkMove = async (newDate: string) => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    const oldByMap = new Map(
+      rapports.filter((r) => ids.includes(r.id)).map((r) => [r.id, r.geplantes_datum]),
+    );
+    setRapports((prev) =>
+      prev.map((x) => (oldByMap.has(x.id) ? { ...x, geplantes_datum: newDate } : x)),
+    );
+    const { error } = await (supabase as any)
+      .from("arbeitsrapporte")
+      .update({ geplantes_datum: newDate })
+      .in("id", ids);
+    if (error) {
+      toast.error("Verschieben fehlgeschlagen");
+      load();
+      return;
+    }
+    const label = format(parseISO(newDate), "EEE d. MMM", { locale: de });
+    toast.success(`${ids.length} ${ids.length === 1 ? "Auftrag" : "Aufträge"} auf ${label} verschoben`);
+    clearSelection();
+    // Wenn Zieldatum ausserhalb der aktuellen Woche liegt → nachladen
+    const inWeek = days.some((d) => format(d, "yyyy-MM-dd") === newDate);
+    if (!inWeek) load();
+  };
+
+  const bulkAssignMechanic = async (m: "Roman" | "Pascal" | null) => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    setRapports((prev) =>
+      prev.map((x) => (selectedIds.has(x.id) ? { ...x, mechaniker_zuweisung: m as any } : x)),
+    );
+    const { error } = await (supabase as any)
+      .from("arbeitsrapporte")
+      .update({ mechaniker_zuweisung: m })
+      .in("id", ids);
+    if (error) {
+      toast.error("Zuweisung fehlgeschlagen");
+      load();
+      return;
+    }
+    toast.success(
+      m
+        ? `${ids.length} ${ids.length === 1 ? "Auftrag" : "Aufträge"} → ${m}`
+        : `Mechaniker-Zuweisung entfernt (${ids.length})`,
+    );
+    clearSelection();
+  };
+
+  const confirmBulkDelete = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    setBulkDeleting(true);
+    try {
+      // Storage parallel aufräumen (best effort)
+      await Promise.all(
+        ids.flatMap((id) =>
+          (["belege", "fotos"] as const).map(async (bucket) => {
+            const { data: files } = await supabase.storage.from(bucket).list(id);
+            if (files && files.length > 0) {
+              await supabase.storage.from(bucket).remove(files.map((f) => `${id}/${f.name}`));
+            }
+          }),
+        ),
+      );
+      const { error } = await (supabase as any)
+        .from("arbeitsrapporte")
+        .delete()
+        .in("id", ids);
+      if (error) throw error;
+      setRapports((prev) => prev.filter((r) => !selectedIds.has(r.id)));
+      toast.success(`${ids.length} ${ids.length === 1 ? "Auftrag" : "Aufträge"} gelöscht`);
+      clearSelection();
+      setBulkDeleteOpen(false);
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e.message ?? "Fehler beim Löschen");
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
+
+
   // Wochen-Gesamtauslastung
   const weekTotalH = days.reduce((sum, d) => {
     const key = format(d, "yyyy-MM-dd");
