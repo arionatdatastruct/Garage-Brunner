@@ -1,16 +1,37 @@
-## Plan
+## Empfehlung: NICHT splitten
 
-1. **Kundennamen im Desktop/Tablet-Wochenplan korrigieren**
-   - In `src/pages/Wochenplan.tsx` die Kartenlogik so anpassen, dass nicht nur `kunde.name`, sondern auch `kunde.vorname`/`kunde.nachname` und als Fallback `kundennummer` sauber angezeigt werden.
-   - Dadurch erscheint der Kundenname wie in der mobilen Ansicht zuverlässig unter dem Fahrzeugmodell.
+~95 % der Laufzeit von `process-beleg` ist der externe Mistral-OCR-Call (~7,8 s von ~8 s gesamt). Diese Zeit lässt sich durch Aufteilen in mehrere Edge Functions nicht reduzieren — sie würde sich sogar verschlechtern (zusätzliche Cold Starts, HTTP-Hops, Auth-Roundtrips, Komplexität bei Fehlern).
 
-2. **Layout stabil halten**
-   - Fahrzeugzeile bleibt oben: Marke + Modell.
-   - Kundenzeile bleibt separat darunter und bekommt `min-w-0`/`truncate`, damit lange Modellnamen den Kundennamen nicht verdrängen.
+## Stattdessen: gezielte Mikro-Optimierungen in derselben Function
 
-3. **Mobile Darstellung nicht verändern**
-   - `MobileWochenplan.tsx` bleibt unverändert, da dort die Struktur bereits korrekt ist.
+Spart in Summe ca. **300–600 ms** pro Aufruf, ohne die Architektur zu zerreissen.
 
-## Technische Details
+### 1. Storage Signed URL + Rapport-Check parallelisieren
+Aktuell laufen sie sequenziell (`await` nacheinander). Mit `Promise.all` gleichzeitig → spart ~50–150 ms.
 
-Aktuell rendert die Desktop/Tablet-Karte nur `r.fahrzeug?.kunde?.name`. Wenn der Kunde aber aus anderen Feldern zusammengesetzt ist oder `name` leer ist, wird zwar eine Kundenzeile vorbereitet, aber kein sichtbarer Text ausgegeben. Ich werde deshalb eine kleine Anzeigenamen-Logik direkt in `RapportCard` ergänzen und diese für die Kundenzeile verwenden.
+### 2. Rapport-Existenzprüfung entfernen
+Der spätere `UPDATE … WHERE id = rapport_id` ist sicher: wenn der Rapport nicht existiert, passiert nichts. Die separate `SELECT id`-Abfrage ist überflüssig → spart 1 Roundtrip (~30–80 ms).
+
+### 3. Kunde- und Fahrzeug-Lookup parallelisieren
+Nach dem OCR sind beide Lookups voneinander unabhängig (`kundennummer` und `chassis_nr`/`kennzeichen` kommen direkt aus dem Extrakt). Mit `Promise.all` parallel laufen lassen, Upserts danach.
+
+### 4. Positionen: Delete + Insert kombinieren
+Aktuell: erst `DELETE`, dann `INSERT`. Bleibt sequenziell aus Konsistenzgründen, aber: Wenn keine neuen Positionen kommen, das `DELETE` überspringen.
+
+### 5. Nicht-blockierende Auth-Validierung beibehalten
+Der `auth.getUser()`-Call ist nötig (RLS-Schutz). Lokale JWT-Validierung via JWKS wäre möglich, aber Aufwand > Nutzen für diese eine Function — nicht empfohlen.
+
+## Was NICHT angefasst wird
+
+- OCR-Schema, Prompt, Mistral-Modell
+- Normalisierungs-Funktionen
+- DB-Schema, RLS, Trigger
+- Frontend-Aufruf der Function
+
+## Erwarteter Effekt
+
+- Vorher: ~8.0 s
+- Nachher: ~7.4–7.7 s
+- Reduktion: 4–8 % (Rest ist Mistral)
+
+Wenn du wirklich grosse Sprünge willst, müsste man am OCR-Call selbst ansetzen (z. B. kleineres Modell, Streaming-Antwort, oder OCR asynchron entkoppeln mit Status-Polling im Frontend) — das ist aber ein eigenes Thema.
