@@ -1021,7 +1021,17 @@ export default function Wochenplan() {
             const dayRapports = visibleRapports.filter((r) => r.geplantes_datum === key);
             return (
               <div key={key} className="bg-muted/30 rounded-lg flex flex-col">
-                <DayColumn date={d} rapports={dayRapports} onAdd={() => openDialog(d)} onUpdateStunden={updateStunden} onDelete={setToDelete} highlightId={highlightId} />
+                <DayColumn
+                  date={d}
+                  rapports={dayRapports}
+                  onAdd={() => openDialog(d)}
+                  onUpdateStunden={updateStunden}
+                  onDelete={setToDelete}
+                  highlightId={highlightId}
+                  selectedIds={selectedIds}
+                  onCardClick={handleCardClick}
+                />
+
               </div>
             );
           })}
