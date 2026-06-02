@@ -1,37 +1,44 @@
-## Empfehlung: NICHT splitten
+## Multi-Select für Aufträge im Wochenplan
 
-~95 % der Laufzeit von `process-beleg` ist der externe Mistral-OCR-Call (~7,8 s von ~8 s gesamt). Diese Zeit lässt sich durch Aufteilen in mehrere Edge Functions nicht reduzieren — sie würde sich sogar verschlechtern (zusätzliche Cold Starts, HTTP-Hops, Auth-Roundtrips, Komplexität bei Fehlern).
+### Scope
+- **Nur Desktop-Wochenplan** (`src/pages/Wochenplan.tsx`). Mobile (`MobileWochenplan`) bleibt unverändert — auf dem Handy ist Multi-Select per Touch zu fummelig.
+- **Aktionen:** Verschieben auf anderen Tag, Mechaniker zuweisen, Löschen.
 
-## Stattdessen: gezielte Mikro-Optimierungen in derselben Function
+### Bedienkonzept
 
-Spart in Summe ca. **300–600 ms** pro Aufruf, ohne die Architektur zu zerreissen.
+1. **Aktivierung:**
+   - `Cmd/Ctrl + Klick` auf eine Karte → fügt sie zur Auswahl hinzu (toggle)
+   - `Shift + Klick` → wählt Bereich (alle Karten zwischen letzter und aktueller Karte über alle Tage hinweg, in der angezeigten Reihenfolge)
+   - Einzel-Klick ohne Modifier → öffnet wie bisher die Detailseite
+   - Klick auf leere Fläche oder `Esc` → hebt Auswahl auf
 
-### 1. Storage Signed URL + Rapport-Check parallelisieren
-Aktuell laufen sie sequenziell (`await` nacheinander). Mit `Promise.all` gleichzeitig → spart ~50–150 ms.
+2. **Visuelles Feedback:**
+   - Selektierte Karten bekommen einen `ring-2 ring-primary` + leicht erhöhte Opacity
+   - Auswahl-Zähler erscheint als schwebende Action-Bar am unteren Bildschirmrand: „3 Aufträge ausgewählt"
 
-### 2. Rapport-Existenzprüfung entfernen
-Der spätere `UPDATE … WHERE id = rapport_id` ist sicher: wenn der Rapport nicht existiert, passiert nichts. Die separate `SELECT id`-Abfrage ist überflüssig → spart 1 Roundtrip (~30–80 ms).
+3. **Action-Bar (sticky bottom, nur sichtbar wenn Auswahl > 0):**
+   - **Tag wählen** (Popover mit Datum-Picker oder den 7 sichtbaren Tagen als Buttons) → `UPDATE arbeitsrapporte SET geplantes_datum = ... WHERE id IN (...)`
+   - **Mechaniker zuweisen** (Roman / Pascal / kein) → Batch-Update
+   - **Löschen** (mit Bestätigungs-Dialog: „3 Aufträge wirklich löschen?")
+   - **Abbrechen** (X-Icon → Auswahl leeren)
 
-### 3. Kunde- und Fahrzeug-Lookup parallelisieren
-Nach dem OCR sind beide Lookups voneinander unabhängig (`kundennummer` und `chassis_nr`/`kennzeichen` kommen direkt aus dem Extrakt). Mit `Promise.all` parallel laufen lassen, Upserts danach.
+### Drag-and-Drop Verhalten
 
-### 4. Positionen: Delete + Insert kombinieren
-Aktuell: erst `DELETE`, dann `INSERT`. Bleibt sequenziell aus Konsistenzgründen, aber: Wenn keine neuen Positionen kommen, das `DELETE` überspringen.
+- Wenn man eine selektierte Karte zieht, werden **alle** selektierten Karten auf den Zielslot verschoben (gleiches Datum, ggf. Mechaniker des Zielslots).
+- Wenn man eine **nicht** selektierte Karte zieht, wird die Auswahl ignoriert und nur diese Karte verschoben (bestehendes Verhalten).
 
-### 5. Nicht-blockierende Auth-Validierung beibehalten
-Der `auth.getUser()`-Call ist nötig (RLS-Schutz). Lokale JWT-Validierung via JWKS wäre möglich, aber Aufwand > Nutzen für diese eine Function — nicht empfohlen.
+### Technische Details
 
-## Was NICHT angefasst wird
+- Neuer State im `Wochenplan`: `selectedIds: Set<string>` + `lastClickedId: string | null` für Shift-Bereichsauswahl
+- `RapportCard` bekommt zwei neue Props: `selected: boolean` und `onSelectClick(e: MouseEvent)` — die alte `onClick`-Navigation wandert in den Handler, der Modifier-Keys auswertet
+- Neue Komponente `SelectionActionBar.tsx` (Fixed Bottom, animiert ein/aus mit Framer Motion analog `RapportActionSheet`)
+- Batch-Operationen als einzelne Supabase-Queries mit `.in('id', selectedIds)` — kein Schleifen-Loop
+- Nach erfolgreichem Batch: lokales State-Update + Toast (`"3 Aufträge verschoben"`)
+- DnD: in `onDragStart` prüfen, ob die gezogene ID in `selectedIds` ist; wenn ja, im `onDragEnd` alle IDs gemeinsam updaten
 
-- OCR-Schema, Prompt, Mistral-Modell
-- Normalisierungs-Funktionen
-- DB-Schema, RLS, Trigger
-- Frontend-Aufruf der Function
+### Bewusst NICHT enthalten
+- Multi-Select im Archiv, Dashboard, Kunden-/Fahrzeuglisten (kann später, falls gewünscht)
+- Keyboard-Shortcuts wie `Cmd+A` (Edge-Case bei vielen Karten — separat zu klären)
+- Undo nach Löschen (separates Thema)
 
-## Erwarteter Effekt
-
-- Vorher: ~8.0 s
-- Nachher: ~7.4–7.7 s
-- Reduktion: 4–8 % (Rest ist Mistral)
-
-Wenn du wirklich grosse Sprünge willst, müsste man am OCR-Call selbst ansetzen (z. B. kleineres Modell, Streaming-Antwort, oder OCR asynchron entkoppeln mit Status-Polling im Frontend) — das ist aber ein eigenes Thema.
+Soll ich so umsetzen?

@@ -21,6 +21,8 @@ import { NeuerAuftragDialog } from "@/components/NeuerAuftragDialog";
 import { NeuerAuftragSheet } from "@/components/NeuerAuftragSheet";
 import { MobileWochenplan } from "@/components/MobileWochenplan";
 import { RapportActionSheet } from "@/components/RapportActionSheet";
+import { MultiSelectBar } from "@/components/wochenplan/MultiSelectBar";
+
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -64,8 +66,15 @@ const STATUS_BAR: Record<string, string> = {
   erledigt: "bg-emerald-500",
 };
 
-function RapportCard({ r, onUpdate, onDelete, highlight, overdue }: { r: Rapport; onUpdate: (id: string, h: number | null) => void; onDelete: (r: Rapport) => void; highlight?: boolean; overdue?: boolean }) {
-  const navigate = useNavigate();
+function RapportCard({ r, onUpdate, onDelete, highlight, overdue, selected, onCardClick }: {
+  r: Rapport;
+  onUpdate: (id: string, h: number | null) => void;
+  onDelete: (r: Rapport) => void;
+  highlight?: boolean;
+  overdue?: boolean;
+  selected?: boolean;
+  onCardClick: (e: React.MouseEvent, r: Rapport) => void;
+}) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: r.id });
   const [editing, setEditing] = useState(false);
   const [val, setVal] = useState<string>(
@@ -110,16 +119,18 @@ function RapportCard({ r, onUpdate, onDelete, highlight, overdue }: { r: Rapport
           style={style}
           {...attributes}
           {...listeners}
-          onClick={() => !isDragging && !editing && navigate(`/auftrag/${r.id}`)}
+          onClick={(e) => !isDragging && !editing && onCardClick(e, r)}
           className={cn(
             "group relative bg-card/60 hover:bg-card border border-border/60 hover:border-border",
             "rounded-lg pl-3 pr-2.5 py-2.5 mb-2 cursor-grab active:cursor-grabbing transition-all touch-none",
             "overflow-hidden",
             overdue && "border-destructive/60 bg-destructive/5 hover:border-destructive",
+            selected && "ring-2 ring-primary border-primary bg-primary/5",
             highlight && "ring-2 ring-primary border-primary animate-pulse"
           )}
           data-rapport-id={r.id}
         >
+
           {/* Status-Strich links */}
           <div
             className={cn("absolute left-0 top-0 bottom-0 w-1", STATUS_BAR[r.status] ?? "bg-muted-foreground/30")}
@@ -224,6 +235,8 @@ function DayColumn({
   onUpdateStunden,
   onDelete,
   highlightId,
+  selectedIds,
+  onCardClick,
 }: {
   date: Date;
   rapports: Rapport[];
@@ -231,6 +244,8 @@ function DayColumn({
   onUpdateStunden: (id: string, h: number | null) => void;
   onDelete: (r: Rapport) => void;
   highlightId?: string | null;
+  selectedIds: Set<string>;
+  onCardClick: (e: React.MouseEvent, r: Rapport) => void;
 }) {
   const id = format(date, "yyyy-MM-dd");
   const { setNodeRef, isOver } = useDroppable({ id });
@@ -302,7 +317,16 @@ function DayColumn({
         {rapports.map((r) => {
           const isOverdue = r.status === "geplant" && r.geplantes_datum < format(new Date(), "yyyy-MM-dd");
           return (
-            <RapportCard key={r.id} r={r} onUpdate={onUpdateStunden} onDelete={onDelete} highlight={highlightId === r.id} overdue={isOverdue} />
+            <RapportCard
+              key={r.id}
+              r={r}
+              onUpdate={onUpdateStunden}
+              onDelete={onDelete}
+              highlight={highlightId === r.id}
+              overdue={isOverdue}
+              selected={selectedIds.has(r.id)}
+              onCardClick={onCardClick}
+            />
           );
         })}
         {rapports.length === 0 && (
@@ -317,6 +341,7 @@ function DayColumn({
     </div>
   );
 }
+
 
 export default function Wochenplan() {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
@@ -334,6 +359,14 @@ export default function Wochenplan() {
     return v === "Roman" || v === "Pascal" ? v : "alle";
   });
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
+
+  // Multi-Select
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [lastClickedId, setLastClickedId] = useState<string | null>(null);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+
 
   useEffect(() => {
     try { localStorage.setItem("wp.mechFilter", mechFilter); } catch {}
@@ -347,7 +380,81 @@ export default function Wochenplan() {
           (r) => (r.mechaniker_zuweisung ?? "").trim().toLowerCase() === mechFilter.toLowerCase(),
         );
 
+  // Visuelle Reihenfolge: Tag für Tag, innerhalb des Tages nach load-order
+  const orderedIds = days.flatMap((d) => {
+    const key = format(d, "yyyy-MM-dd");
+    return visibleRapports.filter((r) => r.geplantes_datum === key).map((r) => r.id);
+  });
+
+  const clearSelection = useCallback(() => {
+    setSelectedIds(new Set());
+    setLastClickedId(null);
+  }, []);
+
+  const handleCardClick = useCallback((e: React.MouseEvent, r: Rapport) => {
+    const ctrl = e.metaKey || e.ctrlKey;
+    const shift = e.shiftKey;
+    const hasSelection = selectedIds.size > 0;
+
+    if (shift && lastClickedId) {
+      e.preventDefault();
+      e.stopPropagation();
+      const a = orderedIds.indexOf(lastClickedId);
+      const b = orderedIds.indexOf(r.id);
+      if (a >= 0 && b >= 0) {
+        const [from, to] = a < b ? [a, b] : [b, a];
+        const range = orderedIds.slice(from, to + 1);
+        setSelectedIds((prev) => {
+          const next = new Set(prev);
+          range.forEach((id) => next.add(id));
+          return next;
+        });
+      }
+      return;
+    }
+
+    if (ctrl) {
+      e.preventDefault();
+      e.stopPropagation();
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(r.id)) next.delete(r.id);
+        else next.add(r.id);
+        return next;
+      });
+      setLastClickedId(r.id);
+      return;
+    }
+
+    if (hasSelection) {
+      // Im Selection-Modus toggelt einfacher Klick die Karte
+      e.preventDefault();
+      e.stopPropagation();
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(r.id)) next.delete(r.id);
+        else next.add(r.id);
+        return next;
+      });
+      setLastClickedId(r.id);
+      return;
+    }
+
+    navigate(`/auftrag/${r.id}`);
+  }, [selectedIds, lastClickedId, orderedIds, navigate]);
+
+  // Esc hebt Auswahl auf
+  useEffect(() => {
+    if (selectedIds.size === 0) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") clearSelection();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [selectedIds, clearSelection]);
+
   const [activeId, setActiveId] = useState<string | null>(null);
+
 
   const sensors = useSensors(
     // Etwas grösser, damit Klick (zum Öffnen) nicht versehentlich Drag startet
@@ -450,41 +557,56 @@ export default function Wochenplan() {
     const { active, over } = e;
     if (!over) return;
     const newDate = String(over.id);
-    const r = rapports.find((x) => x.id === active.id);
-    if (!r || r.geplantes_datum === newDate) return;
+    const draggedId = String(active.id);
 
-    const oldDate = r.geplantes_datum;
+    // Bulk-Move: Wenn die gezogene Karte selektiert ist, alle selektierten verschieben
+    const isBulk = selectedIds.has(draggedId) && selectedIds.size > 1;
+    const idsToMove = isBulk ? Array.from(selectedIds) : [draggedId];
+    const movable = rapports.filter(
+      (x) => idsToMove.includes(x.id) && x.geplantes_datum !== newDate,
+    );
+    if (movable.length === 0) return;
+
+    // Alte Daten merken für Undo
+    const oldByMap = new Map(movable.map((x) => [x.id, x.geplantes_datum]));
 
     // Optimistic update
-    setRapports((prev) => prev.map((x) => x.id === r.id ? { ...x, geplantes_datum: newDate } : x));
+    setRapports((prev) =>
+      prev.map((x) => (oldByMap.has(x.id) ? { ...x, geplantes_datum: newDate } : x)),
+    );
     const { error } = await (supabase as any)
       .from("arbeitsrapporte")
       .update({ geplantes_datum: newDate })
-      .eq("id", r.id);
+      .in("id", Array.from(oldByMap.keys()));
     if (error) {
       toast.error("Update fehlgeschlagen");
       load();
       return;
     }
-    // Erfolgs-Toast mit Undo
     const label = format(parseISO(newDate), "EEE d. MMM", { locale: de });
-    toast.success(`Verschoben auf ${label}`, {
+    const msg = movable.length === 1
+      ? `Verschoben auf ${label}`
+      : `${movable.length} Aufträge auf ${label} verschoben`;
+    toast.success(msg, {
       action: {
         label: "Rückgängig",
         onClick: async () => {
-          setRapports((prev) => prev.map((x) => x.id === r.id ? { ...x, geplantes_datum: oldDate } : x));
-          const { error: e2 } = await (supabase as any)
-            .from("arbeitsrapporte")
-            .update({ geplantes_datum: oldDate })
-            .eq("id", r.id);
-          if (e2) {
-            toast.error("Rückgängig fehlgeschlagen");
-            load();
+          setRapports((prev) =>
+            prev.map((x) => (oldByMap.has(x.id) ? { ...x, geplantes_datum: oldByMap.get(x.id)! } : x)),
+          );
+          // Per-ID Update, da unterschiedliche Ursprungstage
+          for (const [id, oldDate] of oldByMap) {
+            await (supabase as any)
+              .from("arbeitsrapporte")
+              .update({ geplantes_datum: oldDate })
+              .eq("id", id);
           }
         },
       },
     });
+    if (isBulk) clearSelection();
   };
+
 
   const openDialog = (date?: Date) => {
     setDialogDate(date ? format(date, "yyyy-MM-dd") : undefined);
@@ -534,6 +656,91 @@ export default function Wochenplan() {
       setDeleting(false);
     }
   };
+
+  // ===== Bulk-Aktionen =====
+  const bulkMove = async (newDate: string) => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    const oldByMap = new Map(
+      rapports.filter((r) => ids.includes(r.id)).map((r) => [r.id, r.geplantes_datum]),
+    );
+    setRapports((prev) =>
+      prev.map((x) => (oldByMap.has(x.id) ? { ...x, geplantes_datum: newDate } : x)),
+    );
+    const { error } = await (supabase as any)
+      .from("arbeitsrapporte")
+      .update({ geplantes_datum: newDate })
+      .in("id", ids);
+    if (error) {
+      toast.error("Verschieben fehlgeschlagen");
+      load();
+      return;
+    }
+    const label = format(parseISO(newDate), "EEE d. MMM", { locale: de });
+    toast.success(`${ids.length} ${ids.length === 1 ? "Auftrag" : "Aufträge"} auf ${label} verschoben`);
+    clearSelection();
+    // Wenn Zieldatum ausserhalb der aktuellen Woche liegt → nachladen
+    const inWeek = days.some((d) => format(d, "yyyy-MM-dd") === newDate);
+    if (!inWeek) load();
+  };
+
+  const bulkAssignMechanic = async (m: "Roman" | "Pascal" | null) => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    setRapports((prev) =>
+      prev.map((x) => (selectedIds.has(x.id) ? { ...x, mechaniker_zuweisung: m as any } : x)),
+    );
+    const { error } = await (supabase as any)
+      .from("arbeitsrapporte")
+      .update({ mechaniker_zuweisung: m })
+      .in("id", ids);
+    if (error) {
+      toast.error("Zuweisung fehlgeschlagen");
+      load();
+      return;
+    }
+    toast.success(
+      m
+        ? `${ids.length} ${ids.length === 1 ? "Auftrag" : "Aufträge"} → ${m}`
+        : `Mechaniker-Zuweisung entfernt (${ids.length})`,
+    );
+    clearSelection();
+  };
+
+  const confirmBulkDelete = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    setBulkDeleting(true);
+    try {
+      // Storage parallel aufräumen (best effort)
+      await Promise.all(
+        ids.flatMap((id) =>
+          (["belege", "fotos"] as const).map(async (bucket) => {
+            const { data: files } = await supabase.storage.from(bucket).list(id);
+            if (files && files.length > 0) {
+              await supabase.storage.from(bucket).remove(files.map((f) => `${id}/${f.name}`));
+            }
+          }),
+        ),
+      );
+      const { error } = await (supabase as any)
+        .from("arbeitsrapporte")
+        .delete()
+        .in("id", ids);
+      if (error) throw error;
+      setRapports((prev) => prev.filter((r) => !selectedIds.has(r.id)));
+      toast.success(`${ids.length} ${ids.length === 1 ? "Auftrag" : "Aufträge"} gelöscht`);
+      clearSelection();
+      setBulkDeleteOpen(false);
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e.message ?? "Fehler beim Löschen");
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
+
 
   // Wochen-Gesamtauslastung
   const weekTotalH = days.reduce((sum, d) => {
@@ -814,7 +1021,17 @@ export default function Wochenplan() {
             const dayRapports = visibleRapports.filter((r) => r.geplantes_datum === key);
             return (
               <div key={key} className="bg-muted/30 rounded-lg flex flex-col">
-                <DayColumn date={d} rapports={dayRapports} onAdd={() => openDialog(d)} onUpdateStunden={updateStunden} onDelete={setToDelete} highlightId={highlightId} />
+                <DayColumn
+                  date={d}
+                  rapports={dayRapports}
+                  onAdd={() => openDialog(d)}
+                  onUpdateStunden={updateStunden}
+                  onDelete={setToDelete}
+                  highlightId={highlightId}
+                  selectedIds={selectedIds}
+                  onCardClick={handleCardClick}
+                />
+
               </div>
             );
           })}
@@ -885,6 +1102,41 @@ export default function Wochenplan() {
             <AlertDialogAction
               onClick={(e) => { e.preventDefault(); confirmDelete(); }}
               disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Löschen
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Multi-Select: schwebende Action-Bar (Desktop only) */}
+      <div className="hidden md:block">
+        <MultiSelectBar
+          count={selectedIds.size}
+          days={days}
+          onMoveToDate={bulkMove}
+          onAssignMechanic={bulkAssignMechanic}
+          onDelete={() => setBulkDeleteOpen(true)}
+          onClear={clearSelection}
+        />
+      </div>
+
+      <AlertDialog open={bulkDeleteOpen} onOpenChange={(o) => !o && !bulkDeleting && setBulkDeleteOpen(false)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {selectedIds.size} {selectedIds.size === 1 ? "Auftrag" : "Aufträge"} löschen?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Alle ausgewählten Aufträge werden unwiderruflich gelöscht — inkl. PDFs und Fotos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={bulkDeleting}>Abbrechen</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); confirmBulkDelete(); }}
+              disabled={bulkDeleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Löschen
