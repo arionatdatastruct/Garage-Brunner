@@ -141,15 +141,8 @@ Deno.serve(async (req) => {
 
     const admin = createClient(supaUrl, serviceKey);
 
-    // 1. Rapport existiert?
-    const { data: rap } = await admin
-      .from("arbeitsrapporte")
-      .select("id")
-      .eq("id", rapport_id)
-      .maybeSingle();
-    if (!rap) return json(404, { error: "rapport not found" });
-
-    // 2. Signed URL für PDF (5 min)
+    // 1+2. Signed URL für PDF (5 min) — Rapport-Existenzcheck entfällt
+    //      (das spätere UPDATE … WHERE id = rapport_id ist no-op, falls fehlend)
     const { data: signed, error: signErr } = await admin.storage
       .from("belege")
       .createSignedUrl(pdf_path, 300);
@@ -157,6 +150,7 @@ Deno.serve(async (req) => {
       console.error("createSignedUrl failed", signErr);
       return json(500, { error: "could not sign pdf url", details: signErr?.message });
     }
+
 
     // 3. Mistral OCR aufrufen
     console.log("Calling Mistral OCR...");
