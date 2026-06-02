@@ -380,7 +380,81 @@ export default function Wochenplan() {
           (r) => (r.mechaniker_zuweisung ?? "").trim().toLowerCase() === mechFilter.toLowerCase(),
         );
 
+  // Visuelle Reihenfolge: Tag für Tag, innerhalb des Tages nach load-order
+  const orderedIds = days.flatMap((d) => {
+    const key = format(d, "yyyy-MM-dd");
+    return visibleRapports.filter((r) => r.geplantes_datum === key).map((r) => r.id);
+  });
+
+  const clearSelection = useCallback(() => {
+    setSelectedIds(new Set());
+    setLastClickedId(null);
+  }, []);
+
+  const handleCardClick = useCallback((e: React.MouseEvent, r: Rapport) => {
+    const ctrl = e.metaKey || e.ctrlKey;
+    const shift = e.shiftKey;
+    const hasSelection = selectedIds.size > 0;
+
+    if (shift && lastClickedId) {
+      e.preventDefault();
+      e.stopPropagation();
+      const a = orderedIds.indexOf(lastClickedId);
+      const b = orderedIds.indexOf(r.id);
+      if (a >= 0 && b >= 0) {
+        const [from, to] = a < b ? [a, b] : [b, a];
+        const range = orderedIds.slice(from, to + 1);
+        setSelectedIds((prev) => {
+          const next = new Set(prev);
+          range.forEach((id) => next.add(id));
+          return next;
+        });
+      }
+      return;
+    }
+
+    if (ctrl) {
+      e.preventDefault();
+      e.stopPropagation();
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(r.id)) next.delete(r.id);
+        else next.add(r.id);
+        return next;
+      });
+      setLastClickedId(r.id);
+      return;
+    }
+
+    if (hasSelection) {
+      // Im Selection-Modus toggelt einfacher Klick die Karte
+      e.preventDefault();
+      e.stopPropagation();
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(r.id)) next.delete(r.id);
+        else next.add(r.id);
+        return next;
+      });
+      setLastClickedId(r.id);
+      return;
+    }
+
+    navigate(`/auftrag/${r.id}`);
+  }, [selectedIds, lastClickedId, orderedIds, navigate]);
+
+  // Esc hebt Auswahl auf
+  useEffect(() => {
+    if (selectedIds.size === 0) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") clearSelection();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [selectedIds, clearSelection]);
+
   const [activeId, setActiveId] = useState<string | null>(null);
+
 
   const sensors = useSensors(
     // Etwas grösser, damit Klick (zum Öffnen) nicht versehentlich Drag startet
