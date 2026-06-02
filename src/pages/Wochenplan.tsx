@@ -143,11 +143,16 @@ function RapportCard({ r, onUpdate, onDelete, highlight, overdue }: { r: Rapport
           <div className="text-xs text-muted-foreground truncate pl-1">
             {[r.fahrzeug?.marke, r.fahrzeug?.modell].filter(Boolean).join(" ") || "Kein Fahrzeug"}
           </div>
-          {(r.fahrzeug?.kunde?.name || r.fahrzeug?.kunde?.kundennummer) && (
-            <div className="text-[11px] text-muted-foreground/80 truncate mt-0.5 pl-1">
-              {r.fahrzeug?.kunde?.name}
-            </div>
-          )}
+          {(() => {
+            const k = (r as any).kunde ?? r.fahrzeug?.kunde;
+            const display = k?.name?.trim() || k?.kundennummer || null;
+            if (!display) return null;
+            return (
+              <div className="text-[11px] text-muted-foreground/80 truncate mt-0.5 pl-1">
+                {display}
+              </div>
+            );
+          })()}
 
           {/* Kategorie-Badges */}
           {r.kategorie && (
