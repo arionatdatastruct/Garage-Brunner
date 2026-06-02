@@ -19,7 +19,13 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { ArrowLeft, Loader2, Printer, Trash2 } from "lucide-react";
+import { ArrowLeft, FileText, Loader2, Printer, Trash2 } from "lucide-react";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { DruckvorschauDialog } from "@/components/DruckvorschauDialog";
 import {
   RAPPORT_SELECT_FULL,
