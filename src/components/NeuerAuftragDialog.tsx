@@ -75,16 +75,19 @@ export function NeuerAuftragDialog({ open, onOpenChange, onCreated, defaultDate 
         .eq("id", rap.id);
       if (updErr) throw updErr;
 
-      // 4. n8n Webhook (KI extrahiert alle Felder direkt in arbeitsrapporte)
+      // 4. OCR via Mistral (Edge Function process-beleg) — extrahiert Kunde/Fahrzeug/Positionen
       try {
-        await supabase.functions.invoke("notify-n8n", {
-          body: {
-            rapport_id: rap.id,
-            pdf_url: pub.publicUrl,
-          },
+        const { data: ocrRes, error: ocrErr } = await supabase.functions.invoke("process-beleg", {
+          body: { rapport_id: rap.id, pdf_path: path },
         });
+        if (ocrErr) throw ocrErr;
+        const warnings: string[] = ocrRes?.warnings ?? [];
+        if (warnings.length > 0) {
+          toast.warning(`OCR fertig – ${warnings.length} Hinweis(e), bitte prüfen`);
+        }
       } catch (whErr) {
-        console.warn("Webhook Fehler (nicht kritisch):", whErr);
+        console.warn("OCR Fehler (nicht kritisch):", whErr);
+        toast.warning("OCR konnte nicht ausgeführt werden – Felder bitte manuell prüfen");
       }
 
       toast.success(`Auftrag ${rap.rapport_nummer} angelegt`);
