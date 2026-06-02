@@ -147,9 +147,12 @@ function MobileCard({ r, highlight, overdue, onAction }: CardProps) {
 
       <div className="text-xs text-muted-foreground truncate">
         {marke ?? "Kein Fahrzeug"}
-        {kundeName && <span className="mx-1.5">·</span>}
-        {kundeName}
       </div>
+      {kundeName && (
+        <div className="text-xs text-muted-foreground/80 truncate">
+          {kundeName}
+        </div>
+      )}
 
       <div className="flex items-center justify-between gap-2 mt-2">
         <div className="min-w-0">
