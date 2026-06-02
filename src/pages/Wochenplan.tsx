@@ -1109,6 +1109,41 @@ export default function Wochenplan() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Multi-Select: schwebende Action-Bar (Desktop only) */}
+      <div className="hidden md:block">
+        <MultiSelectBar
+          count={selectedIds.size}
+          days={days}
+          onMoveToDate={bulkMove}
+          onAssignMechanic={bulkAssignMechanic}
+          onDelete={() => setBulkDeleteOpen(true)}
+          onClear={clearSelection}
+        />
+      </div>
+
+      <AlertDialog open={bulkDeleteOpen} onOpenChange={(o) => !o && !bulkDeleting && setBulkDeleteOpen(false)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {selectedIds.size} {selectedIds.size === 1 ? "Auftrag" : "Aufträge"} löschen?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Alle ausgewählten Aufträge werden unwiderruflich gelöscht — inkl. PDFs und Fotos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={bulkDeleting}>Abbrechen</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); confirmBulkDelete(); }}
+              disabled={bulkDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Löschen
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
