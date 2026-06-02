@@ -64,8 +64,15 @@ const STATUS_BAR: Record<string, string> = {
   erledigt: "bg-emerald-500",
 };
 
-function RapportCard({ r, onUpdate, onDelete, highlight, overdue }: { r: Rapport; onUpdate: (id: string, h: number | null) => void; onDelete: (r: Rapport) => void; highlight?: boolean; overdue?: boolean }) {
-  const navigate = useNavigate();
+function RapportCard({ r, onUpdate, onDelete, highlight, overdue, selected, onCardClick }: {
+  r: Rapport;
+  onUpdate: (id: string, h: number | null) => void;
+  onDelete: (r: Rapport) => void;
+  highlight?: boolean;
+  overdue?: boolean;
+  selected?: boolean;
+  onCardClick: (e: React.MouseEvent, r: Rapport) => void;
+}) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: r.id });
   const [editing, setEditing] = useState(false);
   const [val, setVal] = useState<string>(
@@ -110,16 +117,18 @@ function RapportCard({ r, onUpdate, onDelete, highlight, overdue }: { r: Rapport
           style={style}
           {...attributes}
           {...listeners}
-          onClick={() => !isDragging && !editing && navigate(`/auftrag/${r.id}`)}
+          onClick={(e) => !isDragging && !editing && onCardClick(e, r)}
           className={cn(
             "group relative bg-card/60 hover:bg-card border border-border/60 hover:border-border",
             "rounded-lg pl-3 pr-2.5 py-2.5 mb-2 cursor-grab active:cursor-grabbing transition-all touch-none",
             "overflow-hidden",
             overdue && "border-destructive/60 bg-destructive/5 hover:border-destructive",
+            selected && "ring-2 ring-primary border-primary bg-primary/5",
             highlight && "ring-2 ring-primary border-primary animate-pulse"
           )}
           data-rapport-id={r.id}
         >
+
           {/* Status-Strich links */}
           <div
             className={cn("absolute left-0 top-0 bottom-0 w-1", STATUS_BAR[r.status] ?? "bg-muted-foreground/30")}
