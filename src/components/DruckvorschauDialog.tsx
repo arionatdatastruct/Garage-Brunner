@@ -437,19 +437,48 @@ export function DruckvorschauDialog({ open, onOpenChange, rapport }: Props) {
                 <Button variant="outline" size="sm" onClick={() => setAll(!allOn)}>
                   {allOn ? "Alle abwählen" : "Alle auswählen"}
                 </Button>
-                <Button size="sm" onClick={() => handlePrint()}>
-                  <Printer className="h-4 w-4 mr-1" /> Drucken / PDF
+                <Button variant="secondary" size="sm" onClick={generatePreview} disabled={generating}>
+                  {generating ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <FileSearch className="h-4 w-4 mr-1" />}
+                  PDF-Vorschau
                 </Button>
+                <Button variant="outline" size="sm" onClick={downloadPdf} disabled={generating}>
+                  <Download className="h-4 w-4 mr-1" /> PDF herunterladen
+                </Button>
+                <Button size="sm" onClick={() => handlePrint()}>
+                  <Printer className="h-4 w-4 mr-1" /> Drucken
+                </Button>
+                {pdfUrl && (
+                  <Button variant="ghost" size="sm" onClick={() => { URL.revokeObjectURL(pdfUrl); setPdfUrl(null); }}>
+                    Vorschau schließen
+                  </Button>
+                )}
                 <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
                   <X className="h-4 w-4 mr-1" /> Schließen
                 </Button>
               </div>
             </aside>
 
-            <div className="overflow-y-auto bg-neutral-200 p-4">
+            <div className="overflow-y-auto bg-neutral-200 p-4 relative">
               <div ref={printRef} className="mx-auto" style={{ width: "210mm" }}>
                 {sheet}
               </div>
+              {pdfUrl && (
+                <div className="absolute inset-0 bg-neutral-900/95 flex flex-col">
+                  <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-card">
+                    <span className="text-sm font-medium flex items-center gap-2">
+                      <FileSearch className="h-4 w-4" /> PDF-Vorschau (echtes PDF)
+                    </span>
+                    <Button variant="ghost" size="sm" onClick={() => { URL.revokeObjectURL(pdfUrl); setPdfUrl(null); }}>
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <iframe
+                    src={pdfUrl}
+                    title="PDF-Vorschau"
+                    className="flex-1 w-full bg-white"
+                  />
+                </div>
+              )}
             </div>
           </div>
         </DialogContent>
