@@ -1,9 +1,11 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useReactToPrint } from "react-to-print";
+import html2canvas from "html2canvas";
+import { jsPDF } from "jspdf";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Printer, X, CheckCircle2, AlertTriangle, Circle } from "lucide-react";
+import { Printer, X, CheckCircle2, AlertTriangle, Circle, FileSearch, Download, Loader2 } from "lucide-react";
 import { kategorienLabels } from "@/lib/kategorien";
 import {
   fzKennzeichen, fzMarke, fzModell, fzChassis,
