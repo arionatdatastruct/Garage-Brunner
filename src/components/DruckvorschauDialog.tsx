@@ -82,6 +82,57 @@ export function DruckvorschauDialog({ open, onOpenChange, rapport }: Props) {
   const subscribe = usePositionenStore((s) => s.subscribe);
   const positionen = usePositionenStore((s) => s.byRapport[rapport.id]?.positionen ?? []);
   const printRef = useRef<HTMLDivElement>(null);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(false);
+
+  const buildPdf = useCallback(async (): Promise<jsPDF | null> => {
+    if (!printRef.current) return null;
+    const canvas = await html2canvas(printRef.current, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: "#ffffff",
+      logging: false,
+    });
+    const imgData = canvas.toDataURL("image/jpeg", 0.92);
+    const pdf = new jsPDF({ orientation: "p", unit: "mm", format: "a4" });
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const imgH = (canvas.height * pageW) / canvas.width;
+    // Multi-Page: Seitenweise das gleiche Bild mit y-Offset zeichnen.
+    let heightLeft = imgH;
+    let position = 0;
+    pdf.addImage(imgData, "JPEG", 0, position, pageW, imgH);
+    heightLeft -= pageH;
+    while (heightLeft > 0) {
+      position -= pageH;
+      pdf.addPage();
+      pdf.addImage(imgData, "JPEG", 0, position, pageW, imgH);
+      heightLeft -= pageH;
+    }
+    return pdf;
+  }, []);
+
+  const generatePreview = useCallback(async () => {
+    setGenerating(true);
+    try {
+      const pdf = await buildPdf();
+      if (!pdf) return;
+      const blob = pdf.output("blob");
+      const url = URL.createObjectURL(blob);
+      setPdfUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return url;
+      });
+    } finally {
+      setGenerating(false);
+    }
+  }, [buildPdf]);
+
+  const downloadPdf = useCallback(async () => {
+    const pdf = await buildPdf();
+    if (!pdf) return;
+    pdf.save(`Arbeitsrapport-${rapport.rapport_nummer ?? rapport.id}.pdf`);
+  }, [buildPdf, rapport.rapport_nummer, rapport.id]);
 
   const handlePrint = useReactToPrint({
     contentRef: printRef,
@@ -92,6 +143,14 @@ export function DruckvorschauDialog({ open, onOpenChange, rapport }: Props) {
   useEffect(() => {
     if (open) return subscribe(rapport.id);
   }, [open, rapport.id, subscribe]);
+
+  // Bei Schliessen aufräumen
+  useEffect(() => {
+    if (!open && pdfUrl) {
+      URL.revokeObjectURL(pdfUrl);
+      setPdfUrl(null);
+    }
+  }, [open, pdfUrl]);
 
   const toggle = (key: keyof RapportFieldVisibility) =>
     setVisibility((v) => ({ ...v, [key]: !v[key] }));
