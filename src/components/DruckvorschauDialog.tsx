@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { createPortal } from "react-dom";
+import { useState, useEffect, useRef } from "react";
+import { useReactToPrint } from "react-to-print";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
