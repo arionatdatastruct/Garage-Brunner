@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { createPortal } from "react-dom";
+import { useState, useEffect, useRef } from "react";
+import { useReactToPrint } from "react-to-print";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -79,6 +79,13 @@ export function DruckvorschauDialog({ open, onOpenChange, rapport }: Props) {
   const [visibility, setVisibility] = useState<RapportFieldVisibility>(ALL_VISIBLE);
   const subscribe = usePositionenStore((s) => s.subscribe);
   const positionen = usePositionenStore((s) => s.byRapport[rapport.id]?.positionen ?? []);
+  const printRef = useRef<HTMLDivElement>(null);
+
+  const handlePrint = useReactToPrint({
+    contentRef: printRef,
+    documentTitle: `Arbeitsrapport-${rapport.rapport_nummer ?? rapport.id}`,
+    pageStyle: `@page { size: A4; margin: 0; } @media print { body { margin: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; } .pdf-sheet { box-shadow: none !important; } .pdf-sheet img { filter: invert(1) !important; } }`,
+  });
 
   useEffect(() => {
     if (open) return subscribe(rapport.id);
@@ -369,7 +376,7 @@ export function DruckvorschauDialog({ open, onOpenChange, rapport }: Props) {
                 <Button variant="outline" size="sm" onClick={() => setAll(!allOn)}>
                   {allOn ? "Alle abwählen" : "Alle auswählen"}
                 </Button>
-                <Button size="sm" onClick={() => window.print()}>
+                <Button size="sm" onClick={() => handlePrint()}>
                   <Printer className="h-4 w-4 mr-1" /> Drucken / PDF
                 </Button>
                 <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
@@ -379,19 +386,13 @@ export function DruckvorschauDialog({ open, onOpenChange, rapport }: Props) {
             </aside>
 
             <div className="overflow-y-auto bg-neutral-200 p-4">
-              <div className="mx-auto" style={{ width: "210mm" }}>
+              <div ref={printRef} className="mx-auto" style={{ width: "210mm" }}>
                 {sheet}
               </div>
             </div>
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* Druck-Portal: rendert direkt unter <body>, ausserhalb der Dialog-Transformation. */}
-      {open && createPortal(
-        <div className="print-portal">{sheet}</div>,
-        document.body
-      )}
     </>
   );
 }
