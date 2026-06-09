@@ -79,6 +79,13 @@ export function DruckvorschauDialog({ open, onOpenChange, rapport }: Props) {
   const [visibility, setVisibility] = useState<RapportFieldVisibility>(ALL_VISIBLE);
   const subscribe = usePositionenStore((s) => s.subscribe);
   const positionen = usePositionenStore((s) => s.byRapport[rapport.id]?.positionen ?? []);
+  const printRef = useRef<HTMLDivElement>(null);
+
+  const handlePrint = useReactToPrint({
+    contentRef: printRef,
+    documentTitle: `Arbeitsrapport-${rapport.rapport_nummer ?? rapport.id}`,
+    pageStyle: `@page { size: A4; margin: 0; } @media print { body { margin: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; } .pdf-sheet { box-shadow: none !important; } .pdf-sheet img { filter: invert(1) !important; } }`,
+  });
 
   useEffect(() => {
     if (open) return subscribe(rapport.id);
