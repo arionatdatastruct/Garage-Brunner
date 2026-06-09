@@ -1,9 +1,11 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useReactToPrint } from "react-to-print";
+import html2canvas from "html2canvas";
+import { jsPDF } from "jspdf";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Printer, X, CheckCircle2, AlertTriangle, Circle } from "lucide-react";
+import { Printer, X, CheckCircle2, AlertTriangle, Circle, FileSearch, Download, Loader2 } from "lucide-react";
 import { kategorienLabels } from "@/lib/kategorien";
 import {
   fzKennzeichen, fzMarke, fzModell, fzChassis,
@@ -80,6 +82,57 @@ export function DruckvorschauDialog({ open, onOpenChange, rapport }: Props) {
   const subscribe = usePositionenStore((s) => s.subscribe);
   const positionen = usePositionenStore((s) => s.byRapport[rapport.id]?.positionen ?? []);
   const printRef = useRef<HTMLDivElement>(null);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(false);
+
+  const buildPdf = useCallback(async (): Promise<jsPDF | null> => {
+    if (!printRef.current) return null;
+    const canvas = await html2canvas(printRef.current, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: "#ffffff",
+      logging: false,
+    });
+    const imgData = canvas.toDataURL("image/jpeg", 0.92);
+    const pdf = new jsPDF({ orientation: "p", unit: "mm", format: "a4" });
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const imgH = (canvas.height * pageW) / canvas.width;
+    // Multi-Page: Seitenweise das gleiche Bild mit y-Offset zeichnen.
+    let heightLeft = imgH;
+    let position = 0;
+    pdf.addImage(imgData, "JPEG", 0, position, pageW, imgH);
+    heightLeft -= pageH;
+    while (heightLeft > 0) {
+      position -= pageH;
+      pdf.addPage();
+      pdf.addImage(imgData, "JPEG", 0, position, pageW, imgH);
+      heightLeft -= pageH;
+    }
+    return pdf;
+  }, []);
+
+  const generatePreview = useCallback(async () => {
+    setGenerating(true);
+    try {
+      const pdf = await buildPdf();
+      if (!pdf) return;
+      const blob = pdf.output("blob");
+      const url = URL.createObjectURL(blob);
+      setPdfUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return url;
+      });
+    } finally {
+      setGenerating(false);
+    }
+  }, [buildPdf]);
+
+  const downloadPdf = useCallback(async () => {
+    const pdf = await buildPdf();
+    if (!pdf) return;
+    pdf.save(`Arbeitsrapport-${rapport.rapport_nummer ?? rapport.id}.pdf`);
+  }, [buildPdf, rapport.rapport_nummer, rapport.id]);
 
   const handlePrint = useReactToPrint({
     contentRef: printRef,
@@ -90,6 +143,14 @@ export function DruckvorschauDialog({ open, onOpenChange, rapport }: Props) {
   useEffect(() => {
     if (open) return subscribe(rapport.id);
   }, [open, rapport.id, subscribe]);
+
+  // Bei Schliessen aufräumen
+  useEffect(() => {
+    if (!open && pdfUrl) {
+      URL.revokeObjectURL(pdfUrl);
+      setPdfUrl(null);
+    }
+  }, [open, pdfUrl]);
 
   const toggle = (key: keyof RapportFieldVisibility) =>
     setVisibility((v) => ({ ...v, [key]: !v[key] }));
@@ -376,19 +437,48 @@ export function DruckvorschauDialog({ open, onOpenChange, rapport }: Props) {
                 <Button variant="outline" size="sm" onClick={() => setAll(!allOn)}>
                   {allOn ? "Alle abwählen" : "Alle auswählen"}
                 </Button>
-                <Button size="sm" onClick={() => handlePrint()}>
-                  <Printer className="h-4 w-4 mr-1" /> Drucken / PDF
+                <Button variant="secondary" size="sm" onClick={generatePreview} disabled={generating}>
+                  {generating ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <FileSearch className="h-4 w-4 mr-1" />}
+                  PDF-Vorschau
                 </Button>
+                <Button variant="outline" size="sm" onClick={downloadPdf} disabled={generating}>
+                  <Download className="h-4 w-4 mr-1" /> PDF herunterladen
+                </Button>
+                <Button size="sm" onClick={() => handlePrint()}>
+                  <Printer className="h-4 w-4 mr-1" /> Drucken
+                </Button>
+                {pdfUrl && (
+                  <Button variant="ghost" size="sm" onClick={() => { URL.revokeObjectURL(pdfUrl); setPdfUrl(null); }}>
+                    Vorschau schließen
+                  </Button>
+                )}
                 <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
                   <X className="h-4 w-4 mr-1" /> Schließen
                 </Button>
               </div>
             </aside>
 
-            <div className="overflow-y-auto bg-neutral-200 p-4">
+            <div className="overflow-y-auto bg-neutral-200 p-4 relative">
               <div ref={printRef} className="mx-auto" style={{ width: "210mm" }}>
                 {sheet}
               </div>
+              {pdfUrl && (
+                <div className="absolute inset-0 bg-neutral-900/95 flex flex-col">
+                  <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-card">
+                    <span className="text-sm font-medium flex items-center gap-2">
+                      <FileSearch className="h-4 w-4" /> PDF-Vorschau (echtes PDF)
+                    </span>
+                    <Button variant="ghost" size="sm" onClick={() => { URL.revokeObjectURL(pdfUrl); setPdfUrl(null); }}>
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <iframe
+                    src={pdfUrl}
+                    title="PDF-Vorschau"
+                    className="flex-1 w-full bg-white"
+                  />
+                </div>
+              )}
             </div>
           </div>
         </DialogContent>
