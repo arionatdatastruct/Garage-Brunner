@@ -376,7 +376,7 @@ export function DruckvorschauDialog({ open, onOpenChange, rapport }: Props) {
                 <Button variant="outline" size="sm" onClick={() => setAll(!allOn)}>
                   {allOn ? "Alle abwählen" : "Alle auswählen"}
                 </Button>
-                <Button size="sm" onClick={() => window.print()}>
+                <Button size="sm" onClick={() => handlePrint()}>
                   <Printer className="h-4 w-4 mr-1" /> Drucken / PDF
                 </Button>
                 <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
@@ -386,19 +386,13 @@ export function DruckvorschauDialog({ open, onOpenChange, rapport }: Props) {
             </aside>
 
             <div className="overflow-y-auto bg-neutral-200 p-4">
-              <div className="mx-auto" style={{ width: "210mm" }}>
+              <div ref={printRef} className="mx-auto" style={{ width: "210mm" }}>
                 {sheet}
               </div>
             </div>
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* Druck-Portal: rendert direkt unter <body>, ausserhalb der Dialog-Transformation. */}
-      {open && createPortal(
-        <div className="print-portal">{sheet}</div>,
-        document.body
-      )}
     </>
   );
 }
