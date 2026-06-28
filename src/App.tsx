@@ -18,6 +18,7 @@ const FahrzeugDetail = lazy(() => import("./pages/FahrzeugDetail"));
 const Fahrzeuge = lazy(() => import("./pages/Fahrzeuge"));
 const Kunden = lazy(() => import("./pages/Kunden"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 
 const RouteFallback = () => (
   <div className="min-h-[40vh] flex items-center justify-center text-muted-foreground">
