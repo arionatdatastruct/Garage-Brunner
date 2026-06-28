@@ -1,35 +1,40 @@
 import { createRoot } from "react-dom/client";
 import "./index.css";
 
-// Safety-Net: Wenn ein Supabase-Recovery-Token an irgendeiner anderen Route
-// (z.B. "/") ankommt — etwa weil beim Senden des Reset-Mails ein falsches
-// redirect_to gesetzt war — sofort auf /reset-password umleiten, BEVOR der
-// Supabase-Client den Hash/Code verarbeitet und uns einloggt.
-const redirectedToPasswordReset = (() => {
+const root = createRoot(document.getElementById("root")!);
+
+// Safety-Net: Wenn ein Supabase-Recovery-Token oder ein Recovery-Fehlerhash
+// an irgendeiner Route ankommt — z.B. weil Supabase als Site URL nur "/" nutzt —
+// rendern wir direkt die Reset-Seite, BEVOR die Haupt-App/Supabase-Session lädt.
+const shouldRenderPasswordReset = (() => {
   const pathname = window.location.pathname.replace(/\/+$/, "") || "/";
-  if (pathname === "/reset-password") return false;
   const hash = window.location.hash || "";
   const search = window.location.search || "";
   const hashParams = new URLSearchParams(hash.startsWith("#") ? hash.slice(1) : hash);
   const searchParams = new URLSearchParams(search);
   const isRecoveryHash =
     hashParams.get("type") === "recovery" && !!hashParams.get("access_token");
+  const isRecoveryError =
+    hashParams.get("error_code") === "otp_expired" ||
+    hashParams.get("error") === "access_denied" ||
+    searchParams.get("error_code") === "otp_expired" ||
+    searchParams.get("error") === "access_denied";
   const isRecoveryCode =
     !!searchParams.get("code") &&
     (searchParams.get("type") === "recovery" || hashParams.get("type") === "recovery");
   // PKCE-Code ohne expliziten type kann auch Recovery sein — sicherheitshalber mitnehmen,
   // wenn der Code-Parameter alleine vorkommt und kein User eingeloggt ist.
   const hasBareCode = !!searchParams.get("code") && !searchParams.get("state");
-  if (isRecoveryHash || isRecoveryCode || hasBareCode) {
-    window.location.replace(`/reset-password${search}${hash}`);
-    return true;
-  }
-  return false;
+  return pathname === "/reset-password" || isRecoveryHash || isRecoveryError || isRecoveryCode || hasBareCode;
 })();
 
-if (!redirectedToPasswordReset) {
+if (shouldRenderPasswordReset) {
+  import("./pages/ResetPassword.tsx").then(({ default: ResetPassword }) => {
+    root.render(<ResetPassword />);
+  });
+} else {
   import("./App.tsx").then(({ default: App }) => {
-    createRoot(document.getElementById("root")!).render(<App />);
+    root.render(<App />);
   });
 }
 
