@@ -38,35 +38,12 @@ if (shouldRenderPasswordReset) {
   });
 }
 
-// PWA: Service Worker NUR in Production und niemals im Iframe / Lovable-Preview registrieren.
-const isInIframe = (() => {
-  try {
-    return window.self !== window.top;
-  } catch {
-    return true;
-  }
-})();
-const host = window.location.hostname;
-const isPreviewHost =
-  host.includes("id-preview--") ||
-  host.includes("lovableproject.com") ||
-  host.includes("lovable.app") ||
-  host === "localhost" ||
-  host === "127.0.0.1";
-
-if (isInIframe || isPreviewHost) {
-  // Eventuell vorhandene SW im Preview unbedingt entfernen
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.getRegistrations().then((regs) => {
-      regs.forEach((r) => r.unregister());
-    });
-  }
-} else if (import.meta.env.PROD && "serviceWorker" in navigator) {
-  import("virtual:pwa-register")
-    .then(({ registerSW }) => {
-      registerSW({ immediate: true });
-    })
-    .catch(() => {
-      /* no-op */
-    });
+// Kein App-Shell-PWA-Caching mehr: alte Service-Worker können veraltete Router-
+// Bundles ausliefern und dadurch /reset-password fälschlich als 404 anzeigen.
+// Die App bleibt installierbar über das Manifest, aber HTML/JS wird nicht mehr
+// offline gecacht.
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.getRegistrations().then((regs) => {
+    regs.forEach((registration) => registration.unregister());
+  });
 }
