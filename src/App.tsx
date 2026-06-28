@@ -36,7 +36,7 @@ const App = () => (
             {/* Öffentliche Route: Passwort-Reset-Ziel (nicht in Navigation verlinkt).
                 Muss VOR dem AuthGate liegen, damit der Recovery-Link auch ohne
                 bestehende Session erreichbar ist. */}
-            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/reset-password/*" element={<ResetPassword />} />
             <Route
               path="*"
               element={

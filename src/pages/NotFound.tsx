@@ -1,8 +1,13 @@
 import { useLocation } from "react-router-dom";
 import { useEffect } from "react";
+import ResetPassword from "./ResetPassword";
 
 const NotFound = () => {
   const location = useLocation();
+
+  if (location.pathname.replace(/\/+$/, "") === "/reset-password") {
+    return <ResetPassword />;
+  }
 
   useEffect(() => {
     console.error("404 Error: User attempted to access non-existent route:", location.pathname);
