@@ -28,6 +28,12 @@ const hasRecoveryHash = (hash: string) => {
   return type === "recovery" && !!access;
 };
 
+const getSupabaseErrorFromHash = (hash: string) => {
+  if (!hash || hash.length < 2) return null;
+  const params = new URLSearchParams(hash.startsWith("#") ? hash.slice(1) : hash);
+  return params.get("error") || params.get("error_code");
+};
+
 export default function ResetPassword() {
   const [access, setAccess] = useState<AccessState>("checking");
   const [hasSession, setHasSession] = useState(false);
@@ -42,16 +48,19 @@ export default function ResetPassword() {
 
     const url = new URL(window.location.href);
     const code = url.searchParams.get("code");
-    const errorParam = url.searchParams.get("error") || url.searchParams.get("error_code");
+    const errorParam =
+      url.searchParams.get("error") ||
+      url.searchParams.get("error_code") ||
+      getSupabaseErrorFromHash(window.location.hash);
     const recoveryInHash = hasRecoveryHash(window.location.hash);
 
-    // Harte Token-Gate: ohne Code/Hash gar nicht erst weitermachen.
-    if (!code && !recoveryInHash) {
+    if (errorParam) {
       setAccess("denied");
       return;
     }
 
-    if (errorParam) {
+    // Harte Token-Gate: ohne Code/Hash gar nicht erst weitermachen.
+    if (!code && !recoveryInHash) {
       setAccess("denied");
       return;
     }
