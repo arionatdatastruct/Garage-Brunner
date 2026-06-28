@@ -38,25 +38,22 @@ const App = () => (
                 bestehende Session erreichbar ist. */}
             <Route path="/reset-password/*" element={<ResetPassword />} />
             <Route
-              path="*"
               element={
                 <AuthGate>
-                  <Routes>
-                    <Route element={<AppLayout />}>
-                      <Route path="/" element={<Wochenplan />} />
-                      <Route path="/fahrzeuge" element={<Fahrzeuge />} />
-                      <Route path="/kunden" element={<Kunden />} />
-                      <Route path="/archiv" element={<Archiv />} />
-                      <Route path="/statistiken" element={<Statistiken />} />
-                      <Route path="/auftrag/:id" element={<AuftragDetail />} />
-                      <Route path="/kunde/:nummer" element={<KundeDetail />} />
-                      <Route path="/fahrzeug/:kennzeichen" element={<FahrzeugDetail />} />
-                    </Route>
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
+                  <AppLayout />
                 </AuthGate>
               }
-            />
+            >
+              <Route path="/" element={<Wochenplan />} />
+              <Route path="/fahrzeuge" element={<Fahrzeuge />} />
+              <Route path="/kunden" element={<Kunden />} />
+              <Route path="/archiv" element={<Archiv />} />
+              <Route path="/statistiken" element={<Statistiken />} />
+              <Route path="/auftrag/:id" element={<AuftragDetail />} />
+              <Route path="/kunde/:nummer" element={<KundeDetail />} />
+              <Route path="/fahrzeug/:kennzeichen" element={<FahrzeugDetail />} />
+            </Route>
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
       </BrowserRouter>

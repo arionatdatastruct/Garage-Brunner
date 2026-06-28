@@ -6,7 +6,7 @@ import "./index.css";
 // redirect_to gesetzt war — sofort auf /reset-password umleiten, BEVOR der
 // Supabase-Client den Hash/Code verarbeitet und uns einloggt.
 const redirectedToPasswordReset = (() => {
-  const pathname = window.location.pathname;
+  const pathname = window.location.pathname.replace(/\/+$/, "") || "/";
   if (pathname === "/reset-password") return false;
   const hash = window.location.hash || "";
   const search = window.location.search || "";
