@@ -18,6 +18,7 @@ const FahrzeugDetail = lazy(() => import("./pages/FahrzeugDetail"));
 const Fahrzeuge = lazy(() => import("./pages/Fahrzeuge"));
 const Kunden = lazy(() => import("./pages/Kunden"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 
 const RouteFallback = () => (
   <div className="min-h-[40vh] flex items-center justify-center text-muted-foreground">
@@ -29,25 +30,36 @@ const App = () => (
   <ErrorBoundary>
     <TooltipProvider>
       <Toaster position="top-center" mobileOffset={{ bottom: "5rem" }} />
-      <AuthGate>
-        <BrowserRouter>
-          <Suspense fallback={<RouteFallback />}>
-            <Routes>
-              <Route element={<AppLayout />}>
-                <Route path="/" element={<Wochenplan />} />
-                <Route path="/fahrzeuge" element={<Fahrzeuge />} />
-                <Route path="/kunden" element={<Kunden />} />
-                <Route path="/archiv" element={<Archiv />} />
-                <Route path="/statistiken" element={<Statistiken />} />
-                <Route path="/auftrag/:id" element={<AuftragDetail />} />
-                <Route path="/kunde/:nummer" element={<KundeDetail />} />
-                <Route path="/fahrzeug/:kennzeichen" element={<FahrzeugDetail />} />
-              </Route>
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
-        </BrowserRouter>
-      </AuthGate>
+      <BrowserRouter>
+        <Suspense fallback={<RouteFallback />}>
+          <Routes>
+            {/* Öffentliche Route: Passwort-Reset-Ziel (nicht in Navigation verlinkt).
+                Muss VOR dem AuthGate liegen, damit der Recovery-Link auch ohne
+                bestehende Session erreichbar ist. */}
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route
+              path="*"
+              element={
+                <AuthGate>
+                  <Routes>
+                    <Route element={<AppLayout />}>
+                      <Route path="/" element={<Wochenplan />} />
+                      <Route path="/fahrzeuge" element={<Fahrzeuge />} />
+                      <Route path="/kunden" element={<Kunden />} />
+                      <Route path="/archiv" element={<Archiv />} />
+                      <Route path="/statistiken" element={<Statistiken />} />
+                      <Route path="/auftrag/:id" element={<AuftragDetail />} />
+                      <Route path="/kunde/:nummer" element={<KundeDetail />} />
+                      <Route path="/fahrzeug/:kennzeichen" element={<FahrzeugDetail />} />
+                    </Route>
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </AuthGate>
+              }
+            />
+          </Routes>
+        </Suspense>
+      </BrowserRouter>
     </TooltipProvider>
   </ErrorBoundary>
 );
