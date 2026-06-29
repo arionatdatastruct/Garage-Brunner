@@ -1,44 +1,44 @@
-## Multi-Select für Aufträge im Wochenplan
+## Vorgehen
 
-### Scope
-- **Nur Desktop-Wochenplan** (`src/pages/Wochenplan.tsx`). Mobile (`MobileWochenplan`) bleibt unverändert — auf dem Handy ist Multi-Select per Touch zu fummelig.
-- **Aktionen:** Verschieben auf anderen Tag, Mechaniker zuweisen, Löschen.
+### Teil 1: Du machst manuell in Supabase
+1. **Authentication → Users → Add user** für den neuen Garagisten + neuen Admin anlegen (mit gewünschtem Passwort, "Auto Confirm User" aktivieren).
+2. Neue **User-IDs kopieren** (aus der User-Liste).
+3. **SQL Editor** öffnen und in `user_roles` die Rollen für die neuen IDs setzen:
+   ```sql
+   INSERT INTO public.user_roles (user_id, role) VALUES
+     ('<neue-admin-uuid>', 'admin'),
+     ('<neue-garagist-uuid>', 'garagist');
+   ```
+4. Testen: mit neuen Logins einloggen → alles funktioniert.
+5. Alte User in **Authentication → Users** löschen (löscht via Cascade auch deren `user_roles`-Einträge).
 
-### Bedienkonzept
+Daten in `arbeitsrapporte`, `fahrzeuge`, `kunden`, `rapport_positionen` sind **nicht** an `auth.users` gekoppelt → bleiben unberührt.
 
-1. **Aktivierung:**
-   - `Cmd/Ctrl + Klick` auf eine Karte → fügt sie zur Auswahl hinzu (toggle)
-   - `Shift + Klick` → wählt Bereich (alle Karten zwischen letzter und aktueller Karte über alle Tage hinweg, in der angezeigten Reihenfolge)
-   - Einzel-Klick ohne Modifier → öffnet wie bisher die Detailseite
-   - Klick auf leere Fläche oder `Esc` → hebt Auswahl auf
+### Teil 2: Ich räume den Reset-Password-Code auf (Build Mode)
 
-2. **Visuelles Feedback:**
-   - Selektierte Karten bekommen einen `ring-2 ring-primary` + leicht erhöhte Opacity
-   - Auswahl-Zähler erscheint als schwebende Action-Bar am unteren Bildschirmrand: „3 Aufträge ausgewählt"
+**Löschen:**
+- `src/pages/ResetPassword.tsx`
+- `public/sw.js` (Kill-Switch nicht mehr nötig — kann bleiben, schadet nicht; ich entferne ihn trotzdem, da PWA eh deaktiviert wurde)
+- `VITE_PASSWORD_RESET_REDIRECT` aus `.env.example`
 
-3. **Action-Bar (sticky bottom, nur sichtbar wenn Auswahl > 0):**
-   - **Tag wählen** (Popover mit Datum-Picker oder den 7 sichtbaren Tagen als Buttons) → `UPDATE arbeitsrapporte SET geplantes_datum = ... WHERE id IN (...)`
-   - **Mechaniker zuweisen** (Roman / Pascal / kein) → Batch-Update
-   - **Löschen** (mit Bestätigungs-Dialog: „3 Aufträge wirklich löschen?")
-   - **Abbrechen** (X-Icon → Auswahl leeren)
+**Zurückbauen:**
+- `src/main.tsx` → Recovery-Token-Interception entfernen, zurück auf simples `createRoot().render(<App />)`.
+- `src/App.tsx` → `/reset-password` und `/reset-password/*` Routen entfernen, zurück auf normale Router-Struktur mit `NotFound` als Catch-all.
+- `vercel.json` → Catch-all-Rewrite prüfen; SPA-Standard-Rewrite (`/* → /index.html`) bleibt, da generell für React-Router nötig.
+- Service-Worker-Unregister-Logik in `src/main.tsx` bleibt drin (schützt User mit altem PWA-Cache).
 
-### Drag-and-Drop Verhalten
+**Behalten:**
+- `vite.config.ts` ohne `vite-plugin-pwa` (war eh problematisch).
+- `public/manifest.webmanifest` (harmlos, App bleibt installierbar).
 
-- Wenn man eine selektierte Karte zieht, werden **alle** selektierten Karten auf den Zielslot verschoben (gleiches Datum, ggf. Mechaniker des Zielslots).
-- Wenn man eine **nicht** selektierte Karte zieht, wird die Auswahl ignoriert und nur diese Karte verschoben (bestehendes Verhalten).
+### Teil 3: Supabase-Konfiguration (optional, manuell)
+Falls du es aufgeräumt willst:
+- **Authentication → URL Configuration → Site URL** zurück auf `https://forms.datastruct.ch`.
+- **Redirect URLs**: alle `/reset-password`-Einträge entfernen.
 
-### Technische Details
+### Ergebnis
+- Reset-Link-Logik komplett weg, kein toter Code mehr.
+- Du verwaltest Passwörter ab jetzt über User-Neuanlage in Supabase.
+- Falls du später doch eine Admin-Funktion „Passwort setzen" in der App willst → separate kleine Edge Function mit `service_role`, die nur Admins aufrufen dürfen. Können wir bei Bedarf nachziehen.
 
-- Neuer State im `Wochenplan`: `selectedIds: Set<string>` + `lastClickedId: string | null` für Shift-Bereichsauswahl
-- `RapportCard` bekommt zwei neue Props: `selected: boolean` und `onSelectClick(e: MouseEvent)` — die alte `onClick`-Navigation wandert in den Handler, der Modifier-Keys auswertet
-- Neue Komponente `SelectionActionBar.tsx` (Fixed Bottom, animiert ein/aus mit Framer Motion analog `RapportActionSheet`)
-- Batch-Operationen als einzelne Supabase-Queries mit `.in('id', selectedIds)` — kein Schleifen-Loop
-- Nach erfolgreichem Batch: lokales State-Update + Toast (`"3 Aufträge verschoben"`)
-- DnD: in `onDragStart` prüfen, ob die gezogene ID in `selectedIds` ist; wenn ja, im `onDragEnd` alle IDs gemeinsam updaten
-
-### Bewusst NICHT enthalten
-- Multi-Select im Archiv, Dashboard, Kunden-/Fahrzeuglisten (kann später, falls gewünscht)
-- Keyboard-Shortcuts wie `Cmd+A` (Edge-Case bei vielen Karten — separat zu klären)
-- Undo nach Löschen (separates Thema)
-
-Soll ich so umsetzen?
+Soll ich so loslegen?
